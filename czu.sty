@@ -1,0 +1,59 @@
+%% czu.sty
+%% =============================================================================
+%% Visual identity package for ČZU (Česká zemědělská univerzita v Praze)
+%% Provides colors, logo commands, and university/faculty name definitions.
+%%
+%% Usage: \usepackage{czu}  (loaded automatically by czuthesis.cls)
+%% =============================================================================
+
+\ProvidesPackage{czu}[2026/03/31 CZU visual identity v1.1]
+
+%% ===================================================================
+%% COLORS: from the official ČZU graphic manual (vizual.czu.cz)
+%% ===================================================================
+
+\RequirePackage[table]{xcolor}
+
+% ČZU university colors
+\definecolor{czugreen}{HTML}{006940}    % Pantone 3425 EC, main green
+\definecolor{czugold}{HTML}{FBAA29}     % Pantone 130 EC, secondary gold
+\definecolor{czudeepblue}{HTML}{29235C} % tmavě modrá (web)
+\definecolor{czuwebgreen}{HTML}{71BF44} % světle zelená (web)
+
+% PEF faculty colors
+\definecolor{pefred}{HTML}{B62933}      % Pantone 187C, PEF red
+\definecolor{pefgray}{HTML}{939598}     % Cool Gray 9C
+\definecolor{peflightgray}{HTML}{BCBDC0}% Cool Gray 6C
+
+% Default accent color for links etc.
+\newcommand{\czucolor}{czugreen}
+
+%% ===================================================================
+%% LOGO COMMANDS
+%% ===================================================================
+%% ČZU visual elements:
+%%   - Symbol (značka): "ČZU" letters with a wheat ear (title page)
+%%   - Logotyp: symbol + "Česká zemědělská univerzita v Praze" text
+%%
+%% Files in images/:
+%%   CZU_logo_cerna.pdf     : symbol, black, vector PDF (title page)
+%%   CZU_logotyp_H_zelena.pdf: full logotype, green, vector PDF
+
+\RequirePackage{graphicx}
+
+% Symbol for title page (per official Word + LyX templates)
+\newcommand{\czusymbol}{\includegraphics[width=8.47cm]{images/CZU_logo_cerna}}
+
+% Full logotype (for other uses if needed)
+\newcommand{\czulogo}{\includegraphics[height=3cm]{images/CZU_logotyp_H_zelena}}
+
+%% ===================================================================
+%% UNIVERSITY AND FACULTY NAMES
+%% ===================================================================
+
+\newcommand{\CZUname}{\v{C}esk\'{a} zem\v{e}d\v{e}lsk\'{a} univerzita v~Praze}
+\newcommand{\CZUnameEN}{Czech University of Life Sciences Prague}
+\newcommand{\PEFname}{Provozn\v{e} ekonomick\'{a} fakulta}
+\newcommand{\PEFnameEN}{Faculty of Economics and Management}
+
+\endinput

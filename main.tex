@@ -1,0 +1,99 @@
+\documentclass[DP,latexfonts]{czuthesis}
+% DP = master's thesis; BP = bachelor's thesis
+% latexfonts = Latin Modern; drop it for the final version with Times New Roman
+% twoside = double-sided print
+
+\usepackage{polyglossia}
+\setdefaultlanguage{czech}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+\usepackage[format=plain, labelfont=it, textfont=it]{caption}
+\captionsetup[table]{position=below}
+\graphicspath{{./images/}}
+
+% ======================================================================
+% Thesis metadata
+% ======================================================================
+
+\CZUtitle{Název práce česky}{Thesis Title in English}
+\CZUauthor{Jméno Příjmení}
+\CZUdepartment{Katedra informačních technologií}
+\CZUyear{2025}
+
+% ======================================================================
+% Bibliography: ČSN ISO 690, Harvard style
+% ======================================================================
+
+\usepackage{csquotes}
+\usepackage[
+    backend=biber,
+    style=iso-authoryear,
+    sortlocale=cs_CZ,
+    autolang=other,
+    bibencoding=UTF8,
+    maxcitenames=2,
+    maxbibnames=3,
+]{biblatex}
+\addbibresource{refs.bib}
+\urlstyle{same}
+
+% ======================================================================
+% Hyperref
+% ======================================================================
+
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=czugreen,
+  urlcolor=czugreen,
+  citecolor=czugreen,
+  bookmarks=true,
+  bookmarksnumbered=true,
+  unicode=true,
+  pdftitle={Název práce česky},
+  pdfauthor={Jméno Příjmení},
+}
+
+% ======================================================================
+% Abbreviations
+% ======================================================================
+
+\usepackage[acronym,nonumberlist,nogroupskip,toc=false]{glossaries-extra}
+\makenoidxglossaries
+\input{parts/abbreviation-defs}
+
+% ======================================================================
+\begin{document}
+\glsaddallunused
+% ======================================================================
+
+\pagestyle{empty}
+\CZUtitlepage
+% \CZUassignment{zadani.pdf}
+\CZUdeclaration[male]
+\include{parts/acknowledgement}
+
+\clearpage\pagestyle{fancy}
+\include{parts/abstract}
+\tableofcontents\clearpage
+
+% ======================================================================
+% Main text
+% ======================================================================
+
+\include{parts/introduction}
+\include{parts/objectives}
+\include{parts/theory}
+\include{parts/practical}
+\include{parts/results}
+\include{parts/conclusion}
+
+% ======================================================================
+
+\printbibliography[heading=czuchapter, title={Seznam použitých zdrojů}]
+\include{parts/lists}
+\include{parts/attachments}
+
+\end{document}
