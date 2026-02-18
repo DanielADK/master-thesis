@@ -41,6 +41,9 @@
 *-blx.bib
 *.xmpi
 
+# Python
+__pycache__/
+
 # Editors and macOS
 .DS_Store
 *.swp

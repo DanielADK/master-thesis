@@ -1,10 +1,12 @@
 MAIN = main
 LATEX = xelatex -interaction=nonstopmode
 BIBER = biber
+PYTHON = python3
 
-.PHONY: build clean cleanall
+.PHONY: build clean cleanall typo typo-apply
 
-build:
+# Build: 3× xelatex + biber + typo-apply.
+build: typo-apply
 	$(LATEX) $(MAIN).tex
 	$(BIBER) $(MAIN)
 	$(LATEX) $(MAIN).tex
@@ -20,3 +22,9 @@ clean:
 
 cleanall: clean
 	rm -f $(MAIN).pdf
+
+typo:
+	$(PYTHON) tools/typo_fix.py
+
+typo-apply:
+	$(PYTHON) tools/typo_fix.py --apply
