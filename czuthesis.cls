@@ -62,10 +62,10 @@
 %% ===================================================================
 
 \RequirePackage{fontspec}
-\ifCZU@latexfonts\else
-  \setmainfont{Times New Roman}
-  \setsansfont{Arial}
-\fi
+%\ifCZU@latexfonts\else
+%  \setmainfont{Times New Roman}
+%  \setsansfont{Arial}
+%\fi
 
 %% ===================================================================
 %% TYPOGRAPHY
@@ -74,7 +74,7 @@
 \RequirePackage{microtype}
 \RequirePackage{setspace}
 \onehalfspacing
-\setlength{\parindent}{1.25cm}
+\setlength{\parindent}{1.27cm}  % 720 twips = ČZU Word template exact value
 \raggedbottom
 \clubpenalty=10000
 \widowpenalty=10000
@@ -219,9 +219,8 @@
 \newcommand{\CZUdeclaration}[1][male]{%
   \clearpage\thispagestyle{empty}%
   \mbox{}\vfill
-  {\noindent\bfseries \v{C}estn\'{e} prohl\'{a}\v{s}en\'{i}\par}
+  {\bfseries \v{C}estn\'{e} prohl\'{a}\v{s}en\'{i}\par}
   \vspace{15pt}
-  \noindent
   Prohla\v{s}uji, \v{z}e svou \CZU@levelCZacc{}
   \quotedblbase\CZU@title\textquotedblleft{}
   jsem vypracoval\ifthenelse{\equal{#1}{female}}{a}{} samostatn\v{e}
@@ -235,7 +234,7 @@
   neporu\v{s}il\ifthenelse{\equal{#1}{female}}{a}{} autorsk\'{a}
   pr\'{a}va t\v{r}et\'{i}ch osob.
   \vspace{1.5cm}
-  \noindent V~Praze dne \hspace{3cm} \hfill \makebox[5cm]{\dotfill}
+  \\\noindent V~Praze dne \hspace{3cm} \hfill \makebox[5cm]{\dotfill}
   \clearpage
 }
 
@@ -278,9 +277,9 @@
 %% ===================================================================
 
 \newenvironment{abstractCZ}[1][]{%
-  {\centering\bfseries\fontsize{18pt}{22pt}\selectfont \CZU@title\par}%
+  {\noindent\bfseries\fontsize{18pt}{22pt}\selectfont \CZU@title\par}%
   \vspace{15pt}%
-  {\centering\bfseries\fontsize{18pt}{22pt}\selectfont Abstrakt\par}%
+  {\noindent\bfseries Abstrakt\par}%
   \vspace{15pt}\noindent\ignorespaces
 }{\par\vspace{15pt}}
 
@@ -357,7 +356,7 @@
   \@ifpackageloaded{biblatex}{%
     \defbibheading{czuchapter}[\bibname]{\chapter{#1}}%
     \setlength{\bibitemsep}{6pt}%
-    \setlength{\bibhang}{1.25cm}%
+    \setlength{\bibhang}{1.27cm}%  match \parindent
   }{}%
 }
 
