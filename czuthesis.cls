@@ -151,6 +151,27 @@
 \RequirePackage{pdfpages}
 
 %% ===================================================================
+%% HYPERREF: black clickable links, PDF bookmarks + metadata
+%% ===================================================================
+%% Hyperref must be loaded late (after most packages that may patch it).
+%% pdftitle/pdfauthor are set in \AtBeginDocument from PDF-safe copies.
+
+\RequirePackage[
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=black,
+  citecolor=black,
+  bookmarks=true,
+  bookmarksnumbered=true,
+  unicode=true,
+  hidelinks=false,
+]{hyperref}
+% pdftitle/pdfauthor must be set after \CZUtitle/\CZUauthor are called
+\AtBeginDocument{%
+  \hypersetup{pdftitle={\CZU@titlePDF}, pdfauthor={\CZU@authorPDF}}%
+}
+
+%% ===================================================================
 %% METADATA
 %% ===================================================================
 
@@ -160,11 +181,23 @@
 \newcommand{\CZU@department}{Katedra}
 \newcommand{\CZU@year}{\the\year}
 
+% PDF-safe copies (~ replaced with normal space for PDF metadata)
+\newcommand{\CZU@titlePDF}{N\'{a}zev pr\'{a}ce}
+\newcommand{\CZU@authorPDF}{Jm\'{e}no P\v{r}\'{i}jmen\'{i}}
+
 \newcommand{\CZUtitle}[2]{%
   \renewcommand{\CZU@title}{#1}%
   \renewcommand{\CZU@titleEN}{#2}%
+  \begingroup\let~\space
+    \protected@xdef\CZU@titlePDF{#1}%
+  \endgroup
 }
-\newcommand{\CZUauthor}[1]{\renewcommand{\CZU@author}{#1}}
+\newcommand{\CZUauthor}[1]{%
+  \renewcommand{\CZU@author}{#1}%
+  \begingroup\let~\space
+    \protected@xdef\CZU@authorPDF{#1}%
+  \endgroup
+}
 \newcommand{\CZUdepartment}[1]{\renewcommand{\CZU@department}{#1}}
 \newcommand{\CZUyear}[1]{\renewcommand{\CZU@year}{#1}}
 
@@ -357,6 +390,37 @@
     \defbibheading{czuchapter}[\bibname]{\chapter{#1}}%
     \setlength{\bibitemsep}{6pt}%
     \setlength{\bibhang}{1.27cm}%  match \parindent
+    %% Whole citation clickable (author + year), not just the year.
+    %% Standard biblatex snippet for author-year styles with hyperref.
+    \DeclareFieldFormat{citehyperref}{%
+      \DeclareFieldAlias{bibhyperref}{noformat}%
+      \bibhyperref{#1}}%
+    \DeclareFieldFormat{textcitehyperref}{%
+      \DeclareFieldAlias{bibhyperref}{noformat}%
+      \bibhyperref{%
+        #1%
+        \ifbool{cbx:parens}
+          {\bibcloseparen\global\boolfalse{cbx:parens}}
+          {}}}%
+    \savebibmacro{cite}%
+    \savebibmacro{textcite}%
+    \renewbibmacro*{cite}{%
+      \printtext[citehyperref]{%
+        \restorebibmacro{cite}%
+        \usebibmacro{cite}}}%
+    \renewbibmacro*{textcite}{%
+      \ifboolexpr{%
+        ( not test {\iffieldundef{prenote}} and
+          test {\ifnumequal{\value{citecount}}{1}} )
+        or
+        ( not test {\iffieldundef{postnote}} and
+          test {\ifnumequal{\value{citecount}}{\value{citetotal}}} )%
+      }%
+        {\DeclareFieldAlias{textcitehyperref}{noformat}}%
+        {}%
+      \printtext[textcitehyperref]{%
+        \restorebibmacro{textcite}%
+        \usebibmacro{textcite}}}%
   }{}%
 }
 
