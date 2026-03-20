@@ -41,6 +41,11 @@
 *-blx.bib
 *.xmpi
 
+# minted
+_minted*/
+*.config.minted
+*.pyg
+
 # Python
 __pycache__/
 

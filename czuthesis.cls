@@ -10,6 +10,7 @@
 %%   \documentclass[BP]{czuthesis}              % bachelor's thesis
 %%   \documentclass[DP,latexfonts]{czuthesis}   % Latin Modern fonts
 %%   \documentclass[DP,twoside]{czuthesis}      % double-sided print
+%%   \documentclass[DP,code]{czuthesis}         % syntax-highlighted listings (minted)
 %% =============================================================================
 
 \NeedsTeXFormat{LaTeX2e}
@@ -37,6 +38,10 @@
 \newif\ifCZU@latexfonts
 \CZU@latexfontsfalse
 \DeclareOption{latexfonts}{\CZU@latexfontstrue}
+
+\newif\ifCZU@code
+\CZU@codefalse
+\DeclareOption{code}{\CZU@codetrue}
 
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{report}}
 \ProcessOptions\relax
@@ -423,5 +428,23 @@
         \usebibmacro{textcite}}}%
   }{}%
 }
+
+%% CODE LISTINGS: minted (pygments), needs xelatex -shell-escape
+\ifCZU@code
+  \RequirePackage[newfloat]{minted}
+  \usemintedstyle{tango}
+  \definecolor{codebg}{gray}{0.96}
+  \setminted{%
+    fontsize=\footnotesize,
+    bgcolor=codebg,
+    frame=lines,
+    framesep=2mm,
+    baselinestretch=1.1,
+    breaklines=true,
+    breakanywhere=true,
+    tabsize=2,
+    autogobble%
+  }
+\fi
 
 \endinput

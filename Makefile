@@ -1,7 +1,10 @@
 MAIN = main
-LATEX = xelatex -interaction=nonstopmode
+LATEX = xelatex -interaction=nonstopmode -shell-escape
 BIBER = biber
 PYTHON = python3
+
+# minted v3 (TeX Live 2025+) requires TEXMF_OUTPUT_DIRECTORY for output
+export TEXMF_OUTPUT_DIRECTORY = .
 
 .PHONY: build clean cleanall typo typo-apply
 
@@ -19,6 +22,7 @@ clean:
 	      $(MAIN).lof $(MAIN).lot $(MAIN).logrf $(MAIN).idx \
 	      $(MAIN).acn $(MAIN).acr $(MAIN).alg \
 	      $(MAIN).glg $(MAIN).glo $(MAIN).gls
+	rm -rf _minted _minted-$(MAIN) *.config.minted
 
 cleanall: clean
 	rm -f $(MAIN).pdf
