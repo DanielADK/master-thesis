@@ -6,7 +6,7 @@ PYTHON = python3
 # minted v3 (TeX Live 2025+) requires TEXMF_OUTPUT_DIRECTORY for output
 export TEXMF_OUTPUT_DIRECTORY = .
 
-.PHONY: build clean cleanall typo typo-apply
+.PHONY: build draft watch clean cleanall typo typo-apply
 
 # Build: 3× xelatex + biber + typo-apply.
 build: typo-apply
@@ -14,6 +14,16 @@ build: typo-apply
 	$(BIBER) $(MAIN)
 	$(LATEX) $(MAIN).tex
 	$(LATEX) $(MAIN).tex
+
+# Draft: 1× xelatex + typo-apply without biber.
+draft: typo-apply
+	$(LATEX) $(MAIN).tex
+
+# Continuous watch: without typo-fix
+watch:
+	@command -v latexmk >/dev/null 2>&1 || { echo "latexmk required (TeX Live)"; exit 1; }
+	@echo "Continuous compilation. Ctrl+C to stop."
+	@latexmk -pvc -view=none -xelatex -shell-escape -interaction=nonstopmode $(MAIN).tex
 
 clean:
 	find . -name '*.aux' -delete
