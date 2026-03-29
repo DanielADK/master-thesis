@@ -1,15 +1,74 @@
 % Records in ČSN ISO 690 (Harvard):
-%
-% \parencite{key}       = (Surname, year)
-% \textcite{key}        = Surname (year)
-% \parencite[s.~5]{key} = (Surname, year, s. 5)
 
-@book{sommerville2016,
-  author    = {Sommerville, Ian},
-  title     = {Software Engineering},
-  edition   = {10},
-  publisher = {Pearson},
-  location  = {Boston},
-  year      = {2016},
-  isbn      = {978-0133943030},
+% =====================================================================
+% Foundational papers: Information Flow Control & type-based security
+% =====================================================================
+
+@article{denning1976lattice,
+  author    = {Denning, Dorothy E.},
+  title     = {A Lattice Model of Secure Information Flow},
+  journal   = {Communications of the ACM},
+  volume    = {19},
+  number    = {5},
+  pages     = {236--243},
+  year      = {1976},
+  doi       = {10.1145/360051.360056},
+}
+
+@article{sabelfeld2003language,
+  author    = {Sabelfeld, Andrei and Myers, Andrew C.},
+  title     = {Language-Based Information-Flow Security},
+  journal   = {IEEE Journal on Selected Areas in Communications},
+  volume    = {21},
+  number    = {1},
+  pages     = {5--19},
+  year      = {2003},
+  doi       = {10.1109/JSAC.2002.806121},
+}
+
+% =====================================================================
+% Standards & reference docs
+% =====================================================================
+
+@online{w3cTrustedTypes,
+  author       = {{World Wide Web Consortium}},
+  title        = {Trusted {Types}},
+  organization = {W3C Working Draft},
+  year         = {2026},
+  url          = {https://www.w3.org/TR/trusted-types/},
+  urldate      = {2026-03-03},
+}
+
+@online{owaspXSSCheatSheet,
+  author       = {{OWASP Foundation}},
+  title        = {Cross Site Scripting Prevention Cheat Sheet},
+  organization = {OWASP Cheat Sheet Series},
+  year         = {2024},
+  url          = {https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html},
+  urldate      = {2026-03-03},
+}
+
+% =====================================================================
+% Backend implementation, validation and SSR
+% =====================================================================
+
+@online{googleSafevalues,
+  author       = {{Google}},
+  title        = {{safevalues}: {Safe-by-construction} libraries for {Trusted Types}},
+  year         = {2024},
+  url          = {https://github.com/google/safevalues},
+  urldate      = {2026-03-28},
+}
+
+% Docs without SSR escaping and template engines
+
+@article{kern2014tangled,
+  author       = {Kern, Christoph},
+  title        = {Securing the Tangled Web},
+  journal      = {Communications of the ACM},
+  volume       = {57},
+  number       = {9},
+  pages        = {38--47},
+  year         = {2014},
+  doi          = {10.1145/2643134},
 }

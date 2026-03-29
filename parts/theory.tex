@@ -1,3 +1,123 @@
 \chapter{Teoretická východiska}
 
-% Rešerše odborné literatury, teoretický rámec.
+Mezi nejzávažnější hrozby na straně klienta dlouhodobě patří \emph{Cross-Site Scripting} (XSS). I~přes rozvoj jednostránkových (Single-Page) frameworků nadále představuje zásadní riziko pro integritu uživatelských dat a~důvěrnost relací \parencite{owaspXSSCheatSheet}. Tradiční přístupy k~obraně stojí na školení vývojářů v~sanitaci vstupů, na revizích a~testování kódu nebo na heuristickém skenování hotových aplikací. Tyto přístupy výskyt XSS snižují, u~i~jen středně složitých aplikací mu však s~dostatečnou jistotou nezabrání. Požadavky na ošetření hodnoty závisejí na kontextu, toky dat jsou obtížně sledovatelné a~každý z~nich je další příležitostí k~chybě \parencite{kern2014tangled}. Kapitola se proto zaměřuje na konstruktivní pojetí bezpečnosti,~které namísto reaktivní obrany využívá vlastnosti typového systému jazyka TypeScript k~vynucení pravidel toku dat v~backendových webových aplikacích.
+
+\section{Formální matematické základy informační bezpečnosti}
+
+Návrh spolehlivého systému prevence XSS vyžaduje ukotvit implementační techniky v~pevných matematických základech. Bezpečnostní politiku aplikace lze popsat jako formální systém pomocí teorie mřížek a~typovaného lambda kalkulu. Oba aparáty umožňují přesně definovat, co znamená „bezpečný tok informací“. Zároveň poskytují prostředky, jak staticky dokázat, že v~programu nejsou nepovolené toky \parencite{denning1976lattice,sabelfeld2003language}.
+
+\subsection{Teorie mřížek pro řízení toku informací}
+
+Základem řízení toku informací (\emph{Information Flow Control}, IFC) je klasifikace datových objektů do bezpečnostních tříd. Tyto třídy tvoří strukturu nazývanou bezpečnostní mřížka (anglicky \emph{lattice}, v~matematice svaz). Formálně lze bezpečnostní mřížku definovat jako uspořádanou trojici
+\begin{equation}
+    \mathcal{L} = (SC,\; \sqsubseteq,\; \sqcup),
+    \label{eq:lattice}
+\end{equation}
+kde $SC$ je konečná množina bezpečnostních štítků, $\sqsubseteq\; \subseteq SC \times SC$ je relace částečného uspořádání a~$\sqcup : SC \times SC \to SC$ je operátor spojení,~který dvěma štítkům přiřadí jejich nejmenší horní mez \parencite{denning1976lattice}.
+
+Relace $\sqsubseteq$ definuje povolené toky dat mezi třídami. Zápis $A \sqsubseteq B$ znamená, že informace z~třídy $A$ smí téci do třídy $B$. Pro prevenci XSS je podstatná tzv.~mřížka integrity v~konvenci \textcite{sabelfeld2003language},~která pojímá integritu jako pojem duální k~důvěrnosti: vyšší poloha v~mřížce odpovídá vyšší míře kontaminace dat. Dále je uvažována jednoduchá mřížka integrity,~ve které
+\[
+    \bot \;=\; \text{\emph{Safe}} \quad\text{a}\quad \top \;=\; \text{\emph{Tainted}},
+\]
+přičemž $\bot$ reprezentuje důvěryhodná data, tj.~text programu a~data validovaná a~sanitovaná, a~$\top$ reprezentuje zcela nedůvěryhodný uživatelský vstup. Pro zachování bezpečnosti nesmí kontaminovaná informace téci do propasti očekávající čistá data bez explicitní transformace:
+\begin{equation}
+    \forall\, v \in \mathit{Values}:\; \ell(v) = \top \;\Longrightarrow\; \neg\,(v \rightsquigarrow \mathit{sink}_\bot),
+    \label{eq:no-flow}
+\end{equation}
+kde $\rightsquigarrow$ značí datový tok a~$\ell(\cdot)$ vrací bezpečnostní štítek hodnoty \parencite{sabelfeld2003language}. Opačný směr, tok z~$\bot$ do libovolné propasti, je v~tomto obrazu vždy přípustný, protože data se štítkem~$\bot$ jsou pokládána za bezpečná v~libovolném kontextu. Tuto mřížku znázorňuje diagram~\ref{fig:mrizka-integrity}. Jeho jediná hrana $\bot \sqsubseteq \top$ odpovídá tomuto vždy přípustnému toku, zatímco hrana $\top \sqsubseteq \bot$ chybí. Tok kontaminovaných dat do bezpečné propasti proto vyžaduje sanitační funkci~$\sigma$.
+
+Denningovými axiomy jsou stanoveny čtyři vlastnosti,~které musí každá taková mřížka splňovat \parencite{denning1976lattice}: konečnost (A1), částečné uspořádání (A2), existenci nejmenšího prvku (A3) a~existenci spojení, tj.~nejmenší horní meze (A4). Formálně:
+\begin{align}
+    & |SC| < \infty \tag{A1} \label{ax:finitness} \\[2pt]
+    & \forall a, b, c \in SC : a \sqsubseteq a \;\wedge\; \bigl(a \sqsubseteq b \wedge b \sqsubseteq a \Rightarrow a = b\bigr) \;\wedge\; \bigl(a \sqsubseteq b \wedge b \sqsubseteq c \Rightarrow a \sqsubseteq c\bigr) \tag{A2} \label{ax:order} \\[2pt]
+    & \exists!\,\bot \in SC : \forall a \in SC,\; \bot \sqsubseteq a \tag{A3} \label{ax:bottom} \\[2pt]
+    & \forall a, b \in SC : a \sqsubseteq a \sqcup b \;\wedge\; b \sqsubseteq a \sqcup b \;\wedge\; \forall c \in SC : \bigl(a \sqsubseteq c \wedge b \sqsubseteq c \Rightarrow a \sqcup b \sqsubseteq c\bigr) \tag{A4} \label{ax:join}
+\end{align}
+Axiom~\ref{ax:join} požaduje, aby spojení $a \sqcup b$ bylo horní mezí obou štítků a~zároveň pod každou jejich společnou horní mezí. Jednoznačnost spojení pak plyne z~antisymetrie (A2). Operátor spojení určuje, jaký štítek získá výsledek operace kombinující data ze dvou různých tříd. Protože je $a \sqcup b$ horní mezí obou operandů, kontaminace se při složených výrazech nemůže ztratit.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        lat/.style={draw, circle, inner sep=1pt, minimum size=8mm, fill=white}
+    ]
+        \node[lat] (bot) at (0, 0) {$\bot$};
+        \node[lat] (top) at (0, 2.4) {$\top$};
+        \draw[thick] (bot) -- (top);
+        \node[right=2mm of top, anchor=west] {\emph{Tainted} (uživatelský vstup)};
+        \node[right=2mm of bot, anchor=west] {\emph{Safe} (sanitováno, $\mathtt{SafeHtml}$)};
+    \end{tikzpicture}
+    \caption{Hasseho diagram dvouprvkové mřížky integrity $\mathcal{L}_2 = (\{\bot,\top\},\sqsubseteq)$}
+    \label{fig:mrizka-integrity}
+    \source{vlastní zpracování podle \textcite{sabelfeld2003language}}
+\end{figure}
+
+Při vývoji webových aplikací je mřížka rozšířena o~kontextově specifické typy. Uživatelský vstup může být například bezpečný pro vykreslení jako prostý text, nikoliv však pro vložení do atributu HTML či do těla skriptu. Mezi $\bot$ (\emph{Safe}, popř.~\emph{Fully Trusted}; validováno pro libovolný kontext) a~$\top$ (\emph{Tainted}; nevalidováno) tak přibude vrstva vzájemně nesrovnatelných typů. Každý z~nich reprezentuje validaci pro jeden konkrétní kontext \parencite{w3cTrustedTypes,googleSafevalues}. Příklad takto rozšířené mřížky znázorňuje diagram~\ref{fig:mrizka-kontextova}. Jsou v~něm typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\footnotesize},
+        lat/.style={draw, rounded corners=2pt, minimum width=30mm, minimum height=12mm, align=center},
+        e/.style={-, thick}
+    ]
+        \node[lat] (bot)        at ( 0,   0)   {$\bot$ (\emph{Safe})};
+        \node[lat] (safeUrl)    at (-5.1, 2.4) {\texttt{SafeUrl}};
+        \node[lat] (safeHtml)   at (-1.7, 2.4) {\texttt{SafeHtml}};
+        \node[lat] (safeScript) at ( 1.7, 2.4) {\texttt{SafeScript}};
+        \node[lat] (resUrl)     at ( 5.1, 2.4) {\texttt{Trusted}\\\texttt{ResourceUrl}};
+        \node[lat] (top)        at ( 0,   4.8) {$\top$ (\emph{Tainted})};
+
+        \draw[e] (bot) -- (safeUrl);
+        \draw[e] (bot) -- (safeHtml);
+        \draw[e] (bot) -- (safeScript);
+        \draw[e] (bot) -- (resUrl);
+        \draw[e] (safeUrl)    -- (top);
+        \draw[e] (safeHtml)   -- (top);
+        \draw[e] (safeScript) -- (top);
+        \draw[e] (resUrl)     -- (top);
+    \end{tikzpicture}
+    \caption{Hasseho diagram mřížky s~kontextovými typy z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}}
+    \label{fig:mrizka-kontextova}
+    \source{vlastní zpracování podle \textcite{googleSafevalues}}
+\end{figure}
+
+Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na tomto operátoru stojí propagace kontamince: pokud program kombinuje dvě hodnoty z~různých bezpečnostních tříd, získá výsledek štítek odpovídající jejich nejmenší společné horní mezi. Kontextové typy uprostřed mřížky jsou vzájemně nesrovnatelné a~jejich nejmenší společnou horní mezí je~$\top$. Spojení dvou různých bezpečných typů, například \texttt{SafeHtml} a~\texttt{SafeScript}, proto vrací~$\top$. Data validovaná pro různé kontexty po zkombinování neplatí v~žádném z~nich, a~jsou tak považována za kontaminovaná.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\footnotesize},
+        lat/.style={draw, rounded corners=2pt, minimum width=30mm, minimum height=12mm, align=center},
+        operand/.style={lat, fill=green!12, thick, draw=green!50!black},
+        result/.style={lat, fill=red!10, thick, draw=red!70!black},
+        e/.style={-, gray!50},
+        eHighlight/.style={->, red!80!black, thick, >=Stealth}
+    ]
+        \node[lat]     (bot)        at ( 0,   0)   {$\bot$ (\emph{Safe})};
+        \node[lat]     (safeUrl)    at (-5.1, 2.4) {\texttt{SafeUrl}};
+        \node[operand] (safeHtml)   at (-1.7, 2.4) {\texttt{SafeHtml}};
+        \node[operand] (safeScript) at ( 1.7, 2.4) {\texttt{SafeScript}};
+        \node[lat]     (resUrl)     at ( 5.1, 2.4) {\texttt{Trusted}\\\texttt{ResourceUrl}};
+        \node[result]  (top)        at ( 0,   4.8) {$\top$ (\emph{Tainted})};
+
+        \draw[e] (bot) -- (safeUrl);
+        \draw[e] (bot) -- (safeHtml);
+        \draw[e] (bot) -- (safeScript);
+        \draw[e] (bot) -- (resUrl);
+        \draw[e] (safeUrl)    -- (top);
+        \draw[e] (safeHtml)   -- (top);
+        \draw[e] (safeScript) -- (top);
+        \draw[e] (resUrl)     -- (top);
+
+        \draw[eHighlight] (safeHtml)   -- (top);
+        \draw[eHighlight] (safeScript) -- (top);
+
+        \node[right=6mm of top, anchor=west, align=left, font=\footnotesize\itshape] {%
+            \texttt{SafeHtml} $\sqcup$ \texttt{SafeScript} \\[2pt]
+            $=\;\top\;=\;$\texttt{Tainted}};
+    \end{tikzpicture}
+    \caption[Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy]{Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy. Zeleně bezpečné operandy, červeně kontaminovaný výsledek~$\top$.}
+    \label{fig:join-action}
+    \source{vlastní zpracování}
+\end{figure}
