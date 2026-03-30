@@ -121,3 +121,123 @@ Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na to
     \label{fig:join-action}
     \source{vlastní zpracování}
 \end{figure}
+
+\subsection{Bezpečnostní typové systémy a~lambda kalkul}
+
+Aplikace bezpečnostních politik na programovací jazyky se opírá o~rozšíření standardní teorie typů o~bezpečnostní anotace. Denningova analýza toku byla zapsána jako typový systém a~korektnost tohoto systému dokázána v~práci \textcite{volpano1996sound}, a~to pro jednoduchý imperativní jazyk s~proměnnými, přiřazením, podmíněným příkazem a~cyklem. Pro funkcionální jazyky vycházející z~lambda kalkulu navrhli bezpečnostní typový systém \textcite{heintze1998slam} v~kalkulu SLam. Jeho zjednodušenou variantou je kalkul $\lambda_{\mathrm{SEC}}$,~který \textcite{zdancewic2002thesis} popisuje jako jednoduše typovaný lambda kalkul doplněný o~štítky z~bezpečnostní mřížky. Typy v~něm mají tvar
+\[
+    \tau \;::=\; \mathtt{Int} \;\mid\; \mathtt{String} \;\mid\; s \to s,
+    \qquad
+    s \;::=\; \tau_\ell,
+\]
+kde $\tau$ je typ bez štítku, tedy základní typ nebo typ funkce, a~$s$ je bezpečnostní typ, tj.~typ~$\tau$ opatřený štítkem $\ell \in SC$. Původní definice má jediný základní typ \texttt{bool}. Typy \texttt{Int} a~\texttt{String} ho zde nahrazují pro názornost \parencite{zdancewic2002thesis}.
+
+\paragraph{Typový úsudek.}
+Typový úsudek (\emph{typing judgment}) má tvar $\Gamma \vdash e : \tau_\ell$ a~vyjadřuje, že v~kontextu typového prostředí~$\Gamma$ (mapujícího proměnné na jejich typy se štítky) má výraz~$e$ typ~$\tau$,~který svým informačním obsahem patří do třídy~$\ell$.
+
+\paragraph{Pravidlo propagace kontaminace.}
+Pro $n$-ární operátor $op$ aplikovaný na operandy o~různých bezpečnostních úrovních platí pravidlo propagace přes mřížku. V~kalkulu $\lambda_{\mathrm{SEC}}$ mu odpovídá pravidlo pro binární operace \parencite{zdancewic2002thesis}
+\begin{equation}
+    \inferrule{\Gamma \vdash e_1 : \tau_{\ell_1} \qquad \Gamma \vdash e_2 : \tau_{\ell_2}}
+              {\Gamma \vdash op(e_1, e_2) : \tau_{\ell_1 \sqcup \ell_2}}\;\;\textsc{(T-Op)}
+    \label{eq:t-op}
+\end{equation}
+Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních štítků, protože spojení je jejich horní mezí ($\ell_i \sqsubseteq \ell_1 \sqcup \ell_2$, axiom~\ref{ax:join}). Jediný kontaminovaný operand tak kontaminuje celý výraz,~což plyne z~rovnosti $\ell \sqcup \top = \top$ pro každý štítek~$\ell$. Pravidlo T-Op lze intuitivně přeformulovat jako strom toku dat (schéma~\ref{fig:t-op-tree}). Operátor zřetězení v~něm spojuje dvě hodnoty: programátorem zapsaný literál \verb|"Hello "| se štítkem~$\bot$ a~hodnotu \texttt{name} z~\texttt{req.body} se štítkem~$\top$. Výraz tak získá štítek $\bot \sqcup \top = \top$.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        operand/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=11mm, align=center},
+        safe/.style={operand, fill=green!12, draw=green!50!black},
+        tainted/.style={operand, fill=red!10, draw=red!70!black},
+        op/.style={draw, circle, fill=blue!10, minimum size=11mm, thick},
+        e/.style={->, thick, >=Stealth}
+    ]
+        \node[safe]    (e1)  at (-3.2, 0) {\verb|"Hello "|\\$\tau_{\bot}$ (literál)};
+        \node[tainted] (e2)  at ( 3.2, 0) {\texttt{name}\\$\tau_{\top}$ (\texttt{req.body})};
+        \node[op]      (op)  at ( 0,   2.2) {$+$};
+        \node[tainted, minimum width=58mm] (res) at (0, 4.4)
+            {\verb|"Hello "+|\texttt{name}\\$\tau_{\bot \,\sqcup\, \top} \;=\; \tau_{\top}$ (kontaminováno)};
+
+        \draw[e] (e1.north)  to[bend left=10]  node[left=1mm, font=\scriptsize] {$\ell_1 = \bot$}  (op.south west);
+        \draw[e] (e2.north)  to[bend right=10] node[right=1mm, font=\scriptsize] {$\ell_2 = \top$} (op.south east);
+        \draw[e] (op.north)  -- node[right=1mm, font=\scriptsize] {$\ell = \ell_1 \sqcup \ell_2$} (res.south);
+    \end{tikzpicture}
+    \caption{Pravidlo T-Op jako strom toku dat pro výraz \texttt{"Hello~"+name}}
+    \label{fig:t-op-tree}
+    \source{vlastní zpracování}
+\end{figure}
+
+\paragraph{Neinterference.}
+Cílem tohoto systému je dokázat jeho hlavní vlastnost, \emph{neinterferenci} (\emph{non-interference}). Tato vlastnost zaručuje, že data s~vysokou bezpečnostní úrovní nemohou ovlivnit pozorovatelné chovaní programu na nízké bezpečnostní úrovni (v~bezpečných propastech, anglicky \emph{sinks}) \parencite{goguen1982security}. Formálně ji lze definovat pomocí ekvivalence stavů. Zápis $\mu \approx_L \mu'$ označuje relaci „stavy~$\mu$ a~$\mu'$ se shodují ve všech proměnných se štítkem $\sqsubseteq L$“. Program $P$ pak splňuje neinterferenci vzhledem k~úrovni~$L$ právě tehdy, když
+\begin{equation}
+    \forall \mu, \mu' \in \mathit{State} : \mu \approx_L \mu' \;\Longrightarrow\; \llbracket P \rrbracket(\mu) \approx_L \llbracket P \rrbracket(\mu'),
+    \label{eq:noninterference}
+\end{equation}
+kde $\llbracket P \rrbracket$ značí denotační sémantiku programu~$P$ \parencite{sabelfeld2003language}. Tato definice dává matematickou záruku, že vstup útočníka (vysoká úroveň kontaminace) nemůže být pozorovatelný skrze propasti,~které očekávají bezpečná data. Pro programátora je neinterference srozumitelnější jako dva paralelní běhy stejného programu (schéma~\ref{fig:noninterference}). Počáteční stavy obou běhů se liší pouze kontaminovanou složkou, bezpečná složka je v~obou shodná.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        st/.style={draw, rounded corners=2pt, minimum width=44mm, align=left, inner sep=4pt},
+        prog/.style={draw, fill=blue!10, rounded corners=2pt, minimum width=18mm, minimum height=10mm, align=center, thick},
+        e/.style={->, thick, >=Stealth},
+        eq/.style={draw, double, blue!60!black, thick, line width=0.4pt}
+    ]
+        \node[st] (s1) at (-3.6, 4.2) {%
+            \textbf{stav $\mu$}\\[1pt]
+            \textcolor{red!70!black}{\texttt{tainted}: \emph{evilA}}\\
+            \textcolor{green!40!black}{\texttt{safe}: \emph{"X"}}};
+        \node[st] (s2) at ( 3.6, 4.2) {%
+            \textbf{stav $\mu'$}\\[1pt]
+            \textcolor{red!70!black}{\texttt{tainted}: \emph{evilB}}\\
+            \textcolor{green!40!black}{\texttt{safe}: \emph{"X"}}};
+
+        \node[font=\itshape, blue!60!black] at (0, 4.6) {$\mu \approx_\bot \mu'$};
+        \node[font=\scriptsize, gray!60!black] at (0, 4.1) {(shoda na složce $\bot$)};
+
+        \node[prog] (p1) at (-3.6, 2.2) {Program $P$};
+        \node[prog] (p2) at ( 3.6, 2.2) {Program $P$};
+
+        \node[st] (o1) at (-3.6, 0) {%
+            \textbf{$\llbracket P \rrbracket(\mu)$}\\[1pt]
+            \textcolor{green!40!black}{\texttt{safe out}: \emph{"X'"}}};
+        \node[st] (o2) at ( 3.6, 0) {%
+            \textbf{$\llbracket P \rrbracket(\mu')$}\\[1pt]
+            \textcolor{green!40!black}{\texttt{safe out}: \emph{"X'"}}};
+
+        \node[font=\itshape, blue!60!black] at (0, 0.3) {$\approx_\bot$};
+        \node[font=\scriptsize, gray!60!black] at (0, -0.2) {(musí být shodné)};
+
+        \draw[e] (s1) -- (p1);
+        \draw[e] (s2) -- (p2);
+        \draw[e] (p1) -- (o1);
+        \draw[e] (p2) -- (o2);
+    \end{tikzpicture}
+    \caption[Neinterference jako dva paralelní běhy programu~$P$]{Neinterference jako dva paralelní běhy programu~$P$. Červeně kontaminovaná složka stavu (vstup útočníka), zeleně bezpečná složka.}
+    \label{fig:noninterference}
+    \source{vlastní zpracování}
+\end{figure}
+
+Pro prevenci XSS je však klasická neinterference příliš přísná. Aplikace,~která vypisuje uživatelský vstup, ji porušuje už svou podstatou, protože její výstup na vstupu útočníka záviset musí. Stejné platí i~pro sanitaci: její výsledek na vstupu útočníka závisí, a~přesto je mu přiznána vyšší důvěryhodnost. Jde o~záměrné povýšení integrity (\emph{endorsement}), integritní protějšek deklasifikace, tj.~záměrného uvolnění důvěrné informace \parencite{zdancewic2003robust,sabelfeld2009declassification}.
+
+Vztah zavedených formálních pojmů k~prevenci XSS shrnuje tabulka~\ref{tab:formalni-koncepty}.
+
+\begin{table}[h]
+    \centering
+    \footnotesize
+    \begin{tabular}{l>{\raggedright\arraybackslash}p{52mm}l}
+        \toprule
+        \textbf{Formální koncept} & \textbf{Význam v~prevenci XSS} & \textbf{Cíl analýzy} \\
+        \midrule
+        Bezpečnostní štítek $\ell$ & úroveň kontaminace dat & identifikace původu informace \\
+        Relace $\sqsubseteq$       & povolený tok od zdroje k~propasti & zamezení toku kontaminovaných dat \\
+        Operátor $\sqcup$          & propagace kontaminace          & sledování složitých výrazů \\
+        \bottomrule
+    \end{tabular}
+    \caption{Mapování formálních konceptů na úlohy prevence XSS}
+    \label{tab:formalni-koncepty}
+    \source{vlastní zpracování}
+\end{table}
