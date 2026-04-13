@@ -241,3 +241,91 @@ Vztah zavedených formálních pojmů k~prevenci XSS shrnuje tabulka~\ref{tab:fo
     \label{tab:formalni-koncepty}
     \source{vlastní zpracování}
 \end{table}
+
+\section{Cross-Site Scripting v~backendové architektuře}
+
+Cross-Site Scripting je zranitelnost,~která vzniká z~nedodržení striktního oddělení mezi daty a~řídicími instrukcemi v~prostředí prohlížeče. Útočník vkládá škodlivý kód, typicky v~jazyce JavaScript, do obsahu,~který je následně interpretován prohlížečem oběti jako legitimní součást stránky \parencite{owaspXSSCheatSheet}. V~současné webové architektuře, kde server vrací přímo hotové HTML namísto pouhého rozhraní, je hranice mezi serverem a~prohlížečem setřena. Chyba v~serverové šabloně se tak projeví jako klientská zranitelnost. Tato práce se proto soustřeďuje na bezpečnost backendové vrstvy,~ve které je rozhodováno o~tom, zda do prohlížeče odejdou pouze hodnoty typu \texttt{SafeHtml}, anebo libovolný řetězec.
+
+\subsection{Mechanismus a~typologie útoků}
+
+Útoky XSS jsou tradičně děleny do tří kategorií \parencite{owaspTypesXSS}. OWASP přitom upozorňuje, že se kategorie překrývají, a~doporučené obrany uvádí zvlášť pro chybu v~kódu serveru (\emph{Server XSS}) a~v~kódu klienta (\emph{Client XSS}). Kategorie se od sebe liší cestou,~kterou škodlivý řetězec urazí od útočníka do prohlížeče oběti. Ve schématu~\ref{fig:xss-typy} je tato cesta zachycena pro každou kategorii na jednom konkrétním příkladu. Ze stejných příkladů vychází i~následující výčet.
+
+\begin{figure}[!htb]
+    \centering
+    \begin{tikzpicture}[
+        x=1mm, y=0.9mm,
+        every node/.style={font=\scriptsize},
+        actor/.style={draw=blue!50!black, fill=blue!8, rounded corners=2pt, minimum width=20mm, minimum height=7mm, font=\footnotesize},
+        attacker/.style={actor, draw=red!70!black, fill=red!10},
+        life/.style={densely dashed, gray!55},
+        lane/.style={draw=gray!60!black, rounded corners=2pt},
+        tab/.style={draw=gray!60!black, fill=gray!12, rounded corners=2pt, anchor=north west, inner sep=2.5pt, font=\footnotesize\bfseries},
+        pay/.style={-{Stealth}, thick, red!70!black},
+        msg/.style={-{Stealth}, thick, gray!60!black},
+        lbl/.style={above, inner sep=1.5pt, text=black, xshift=1.6mm},
+        num/.style={circle, inner sep=0pt, minimum size=3.2mm, font=\tiny\bfseries, text=white, fill=red!70!black},
+        numg/.style={num, fill=gray!60!black},
+        ins/.style={draw=red!70!black, fill=red!25, minimum width=2.2mm, minimum height=4.5mm, inner sep=0pt},
+        run/.style={font=\scriptsize\itshape, text=red!70!black}
+    ]
+        % Actors and their timelines
+        \node[attacker] at ( 10, 0) {útočník};
+        \node[actor]    at ( 60, 0) {prohlížeč oběti};
+        \node[actor]    at (109, 0) {server aplikace};
+        \node[actor, minimum width=18mm] at (145, 0) {databáze};
+        \begin{scope}[on background layer]
+            \foreach \x in {10, 60, 109, 145} { \draw[life] (\x, -3.5) -- (\x, -124); }
+        \end{scope}
+
+        % Reflected XSS
+        \begin{scope}[shift={(0,-7)}]
+            \draw[lane] (0, 0) rectangle (154, -33);
+            \node[tab] at (0, 0) {Reflektované XSS (typ~I)};
+            \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{?q=<script>…</script>}} (60, -10.5);
+            \draw[pay] (60, -16.5) -- node[lbl, label={[num]left:2}] {\texttt{GET /hledat?q=<script>…}} (109, -16.5);
+            \node[ins] at (109, -22.5) {};
+            \node[anchor=west, label={[num]left:3}] at (115, -22.5) {vložení \texttt{q} do HTML};
+            \draw[pay] (109, -28.5) -- node[lbl, label={[num]left:4}] {HTML se skriptem} (60, -28.5);
+            \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
+        \end{scope}
+
+        % Stored XSS
+        \begin{scope}[shift={(0,-43)}]
+            \draw[lane] (0, 0) rectangle (154, -45);
+            \node[tab] at (0, 0) {Uložené XSS (typ~II)};
+            \draw[pay] (10, -10.5) -- (109, -10.5);
+            \node[lbl, label={[num]left:1}] at (35, -10.5) {komentář \texttt{<script>…</script>}};
+            \draw[pay] (109, -16.5) -- node[lbl, label={[num]left:2}] {uložení} (145, -16.5);
+            \draw[msg] (60, -22.5) -- node[lbl, label={[numg]left:3}] {později \texttt{GET /clanek}} (109, -22.5);
+            \draw[pay] (145, -28.5) -- node[lbl, label={[num]left:4}] {načtení} (109, -28.5);
+            \node[ins] at (109, -34.5) {};
+            \node[anchor=west, label={[num]left:5}] at (115, -34.5) {vložení do HTML};
+            \draw[pay] (109, -40.5) -- node[lbl, label={[num]left:6}] {HTML se skriptem} (60, -40.5);
+            \node[run, anchor=east, label={[num]left:7}] at (57.5, -40.5) {spuštění skriptu};
+        \end{scope}
+
+        % DOM-based XSS
+        \begin{scope}[shift={(0,-91)}]
+            \draw[lane] (0, 0) rectangle (154, -33);
+            \node[tab] at (0, 0) {DOM-based XSS (typ~0)};
+            \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{\#<img src=x onerror=…>}} (60, -10.5);
+            \draw[msg] (60, -16.5) -- node[lbl, label={[numg]left:2}] {\texttt{GET /} bez fragmentu \texttt{\#…}} (109, -16.5);
+            \draw[msg] (109, -22.5) -- node[lbl, label={[numg]left:3}] {nezměněná stránka} (60, -22.5);
+            \node[ins] at (60, -28.5) {};
+            \node[anchor=west, label={[num]left:4}] at (66, -28.5) {\texttt{location.hash} $\to$ \texttt{innerHTML}};
+            \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
+        \end{scope}
+    \end{tikzpicture}
+    \caption[Tři typy XSS na konkrétních příkladech]{Tři typy XSS na konkrétních příkladech. Červeně cesta škodlivého řetězce, šedě komunikace bez něj, červeným obdélníkem místo vložení do HTML.}
+    \label{fig:xss-typy}
+    \source{vlastní zpracování podle \textcite{owaspTypesXSS}}
+\end{figure}
+
+\FloatBarrier
+\begin{enumerate}
+    \item \textbf{Reflektované XSS (typ~I).} Škodlivý kód je součástí HTTP požadavku (typicky parametru URL) a~server ho okamžitě „odrazí“ zpět do HTML odpovědi bez dostatečné sanitace. Ve schématu útočník podvrhne oběti odkaz na vyhledávací stránku. Parametr \texttt{q} tohoto odkazu obsahuje místo hledaného výrazu skript. Jakmile oběť odkaz otevře, server vloží hodnotu \texttt{req.query.q} do stránky s~výsledky a~prohlížeč oběti skript spustí jako součást odpovědi. Z~pohledu backendové analýzy se zde sleduje tok dat z~objektů typu \texttt{req.query} a~\texttt{req.params} do šablonovací propasti.
+    \item \textbf{Uložené XSS (typ~II).} Útočníkův skript je trvale uložen na serveru (např.~v~databázi, v~komentáři nebo v~uživatelském profilu) a~následně zobrazen libovolnému uživateli,~který danou stránku navštíví. Ve schématu útočník odešle komentář obsahující element \texttt{<script>}. Aplikace komentář uloží do databáze a~při každém pozdějším zobrazení článku ho načte a~vloží do HTML. Na rozdíl od reflektované varianty tak oběť nemusí otevřít žádný podvržený odkaz. Sledování toku je zde komplikovanější, protože zahrnuje perzistetní vrstvu a~zápis i~výpis probíhají v~různých požadavcích. Statická analýza musí předpokládat, že jakákoliv data načtená z~úložiště či z~externího rozhraní jsou potenciálně kontaminovaná.
+    \item \textbf{DOM-based XSS (typ~0).} Škodlivý řetězec vkládá do dokumentu až klientský kód, typicky zápisem do vlastnosti \texttt{innerHTML}, takže k~injektáži dochází výhradně na straně klienta. Server řetězec obdržet může, například v~parametru dotazu, do odpovědi ho však nevloží \parencite{klein2005domxss}. Ve schématu tvoří škodlivý řetězec element \texttt{<img>} s~obsluhou události \texttt{onerror}. Útočník ho umístí za znak~\texttt{\#}, tj.~do fragmentu adresy,~který prohlížeč serveru neodesílá \parencite{klein2005domxss}. Pouze v~takovém případě škodlivá data prohlížeč vůbec neopustí. Server proto vrátí nezměněnou stránku a~řetězec do dokumentu vloží až její klientský skript zápisem hodnoty \texttt{location.hash} do \texttt{innerHTML}. V~aplikacích využívajících SSR mohou vznikat kombinované varianty: server poskytne zdánlivě nezávadný počáteční stav,~který klientská část následně použije jako vstup do nebezpečné propasti.
+\end{enumerate}
+
+Ze schématu~\ref{fig:xss-typy} je patrné i~to, kde škodlivý řetězec vstupuje do HTML dokumentu. U~reflektovaného i~uloženého XSS je do odpovědi vložen serverem a~chyba leží v~serverovém kódu. U~DOM-based XSS provádí vložení klientský skript a~server škodlivý řetězec buď vůbec neobdrží, jako ve schématu, nebo ho obdrží, avšak do odpovědi nevloží. Tomuto rozdělení odpovídají dvě roviny ochrany popsané v~následující podsekci.
