@@ -329,3 +329,51 @@ Cross-Site Scripting je zranitelnost,~která vzniká z~nedodržení striktního 
 \end{enumerate}
 
 Ze schématu~\ref{fig:xss-typy} je patrné i~to, kde škodlivý řetězec vstupuje do HTML dokumentu. U~reflektovaného i~uloženého XSS je do odpovědi vložen serverem a~chyba leží v~serverovém kódu. U~DOM-based XSS provádí vložení klientský skript a~server škodlivý řetězec buď vůbec neobdrží, jako ve schématu, nebo ho obdrží, avšak do odpovědi nevloží. Tomuto rozdělení odpovídají dvě roviny ochrany popsané v~následující podsekci.
+
+\subsection{Server-side a~DOM-based XSS v~kontextu SSR}
+\label{sec:server-vs-dom}
+
+Z~hlediska architektury aplikace je ochrana před XSS rozdělena do dvou doplňujících se rovin. \emph{Server-side XSS} vzniká v~okamžiku, kdy backend generuje HTML odpověď obsahující neošetřená data z~požadavku, popř.~z~úložiště. Obrannou linií je zde kódování výstupu podle kontextu místa vložení \parencite{owaspTypesXSS,owaspXSSCheatSheet},~které tato práce vynucuje typem výstupu. Šablonovací enginy pro Node.js, například Handlebars a~EJS, svůj běžný výstup escapují pro HTML bez ohledu na místo vložení \parencite{handlebarsDocs,ejsDocs}. Takové escapování však v~obsluze události či v~URL nestačí. \emph{DOM-based XSS} naproti tomu vzniká v~prohlížeči nezávisle na backendu. Ochranu před ním poskytuje rozhraní Trusted Types \parencite{w3cTrustedTypes}.
+
+Ve frameworcích pracujících současně na serveru i~v~prohlížeči (Next.js, SvelteKit) se obě roviny prolínají. Serverová komponenta předává klientské komponentě data prostřednictvím vlastností (\emph{props}),~které jsou serializovány Reactem. Takto předaný počáteční stav je nutno formálně oddělit od HTML,~do kterého je vkládán. Bez typového rozlišení se může stát, že stejný řetězec slouží jednou jako data (parametr funkce) a~podruhé jako kód (atribut \texttt{onclick}). Konstruktivní obrana proto musí zaručit, že hodnoty opouštějící serverový kód jsou již způsobilé pro konkrétní propast,~do které se vkládají.
+
+\subsection{Zdroje a~propasti v~Node.js a~SSR}
+
+Taint analýza rozlišuje \emph{zdroje} (anglicky \emph{sources}), tedy vstupní body neprověřených dat, a~\emph{propasti} (anglicky \emph{sinks}), tedy citlivá rozhraní, kde může dojít k~provedení kódu \parencite{kern2014tangled}.
+
+Mezi typické zdroje v~backendové aplikaci patří:
+\begin{itemize}
+    \item tělo HTTP požadavku (\texttt{req.body}) a~parametry URL (\texttt{req.query}, \texttt{req.params}) ve frameworcích jako Express, Fastify či Next.js;
+    \item hlavičky požadavku, jmenovitě \texttt{User-Agent}, \texttt{Referer} a~vlastní hlavičky,~které útočník plně kontroluje;
+    \item záznamy z~databáze nebo z~mezipaměti,~které mohly být kontaminovány v~předchozím požadavku (perzistentní zdroj);
+    \item odpovědi vnějších rozhraní a~zprávy z~front (Kafka, RabbitMQ),~které je nutno až do validace pokládat za nedůvěryhodné.
+\end{itemize}
+
+Mezi kritické propasti v~prostředí Node.js patří:
+\begin{itemize}
+    \item \textbf{šablonovací enginy} (EJS, Handlebars, Pug, Nunjucks),~které vedle escapovaného výstupu nabízejí i~výstup bez escapování. Ten vloží řetězec do HTML beze změny: v~Handlebars trojité složené závorky \verb|{{{ value }}}| \parencite{handlebarsDocs}, v~EJS značka \verb|<%- value %>| \parencite{ejsDocs}, v~Pug zápisy \verb|!=| a~\verb|!{value}| \parencite{pugCodeDocs,pugInterpolationDocs} a~v~Nunjucks filtr \verb+|safe+ \parencite{nunjucksDocs};
+    \item \textbf{SSR vykreslovače}, například funkce \texttt{renderToString} frameworků React a~Vue či vykreslování na serveru ve Svelte. Nejnebezpečnější jsou konstrukce,~které vloží řetězec jako HTML bez escapování: v~Reactu atribut \texttt{dangerouslySetInnerHTML} \parencite{reactDocs}, ve Vue direktiva \texttt{v-html} \parencite{vueDocs} a~ve Svelte značka \verb|{@html ...}| \parencite{svelteDocs};
+    \item \textbf{přímé zápisy do odpovědi} přes \texttt{res.send(html)}, \texttt{res.write(html)} či zřetězení v~handleru, kde Node.js neposkytuje žádnou ochrannou abstrakci;
+    \item \textbf{HTTP hlavičky a~přesměrování}: volání \texttt{res.redirect(url)} nastavuje pole \texttt{Location}. Express do verze~4.19 navíc vkládal adresu jako odkaz do těla odpovědi, takže injektáž řetězce \texttt{javascript:} vedla k~XSS po kliknutí \parencite{ghsaExpressRedirect}.
+\end{itemize}
+
+Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~\ref{tab:sinky}.
+
+\begin{table}[h]
+    \centering
+    \footnotesize
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Kategorie propasti} & \textbf{Příklad rozhraní} & \textbf{Požadovaný typ} \\
+        \midrule
+        Vložení do HTML     & \texttt{ejs.render}, \texttt{res.send}            & \texttt{SafeHtml}            \\
+        SSR fragment        & \texttt{dangerouslySetInnerHTML}, \texttt{v-html} & \texttt{SafeHtml}            \\
+        Data ve skriptu     & řetězcový literál v~inline \texttt{<script>}      & \texttt{SafeScript}          \\
+        Načtení zdroje      & atribut \texttt{src} v~\texttt{<script>}          & \texttt{TrustedResourceUrl}  \\
+        Přesměrování        & \texttt{res.redirect}                             & \texttt{SafeUrl} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Kategorie backendových propastí a~odpovídající typové ochrany dle vzoru Trusted Types}
+    \label{tab:sinky}
+    \source{vlastní zpracování}
+\end{table}
