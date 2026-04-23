@@ -377,3 +377,111 @@ Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~
     \label{tab:sinky}
     \source{vlastní zpracování}
 \end{table}
+
+\section{Taint analýza}
+
+Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. Jejím cílem je zjistit, zda se data z~nedůvěryhodného zdroje mohou dostat do nebezpečné propasti bez předchozí sanitace. V~jazyce TypeScript ji lze realizovat buď externími nástroji statické analýzy (\emph{Static Application Security Testing}, SAST), nebo ji integrovat přímo do typového systému \parencite{volpano1996sound,owaspSAST}. Cílovou pipeline backendové aplikace,~kterou taint analýza střeží, shrnuje schéma~\ref{fig:pipeline}. Hodnota typu \texttt{unknown} se štítkem~$\top$ v~ní nejprve projde validací podle schématu knihovny Zod a~získá mezistupeň~$\mathit{mid}$. Poté ji sanitační funkce~$\sigma$ převede na \texttt{SafeHtml} se štítkem~$\bot$. Teprve takovou hodnotu smí přijmout propast \texttt{res.send}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\footnotesize},
+        stage/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=16mm, align=center, thick},
+        s0/.style={stage, fill=red!10,    draw=red!70!black},
+        s1/.style={stage, fill=orange!12, draw=orange!70!black},
+        s2/.style={stage, fill=green!12,  draw=green!50!black},
+        snk/.style={stage, fill=blue!8,   draw=blue!50!black},
+        e/.style={->, very thick, >=Stealth},
+        op/.style={font=\footnotesize\itshape, align=center}
+    ]
+        % Top row: input and validation
+        \node[s0] (s_unknown)   at (0, 3.6) {\texttt{unknown}\\$\tau_\top$};
+        \node[s1] (s_validated) at (6, 3.6) {\texttt{Validated}\\$\langle S \rangle$\\($\mathit{mid}$)};
+
+        % Bottom row: sanitization and send
+        \node[s2]  (s_safe)     at (0, 0)   {\texttt{SafeHtml}\\$\tau_\bot$};
+        \node[snk] (sink)       at (6, 0)   {\texttt{res.send}\\$\rightarrow$ prohlížeč};
+
+        % Top horizontal arrow
+        \draw[e] (s_unknown) -- node[above, op] {\texttt{Zod.parse}} (s_validated);
+
+        % Diagonal (middle) stroke of the Z
+        \draw[e] (s_validated) -- node[sloped, above, op] {$\sigma$ (\texttt{sanitizeHtml})} (s_safe);
+
+        % Bottom horizontal arrow
+        \draw[e] (s_safe) -- node[above, op] {\texttt{send}} (sink);
+
+        % Outer labels, away from the arrows
+        \node[above=2mm of s_unknown, font=\scriptsize, red!70!black]   {\texttt{req.body} / \texttt{req.query}};
+        \node[below=2mm of s_safe,    font=\scriptsize, green!50!black] {\emph{validováno + sanitováno}};
+    \end{tikzpicture}
+    \caption{Konstruktivní pipeline od~HTTP požadavku k~SSR propasti}
+    \label{fig:pipeline}
+    \source{vlastní zpracování}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        phase/.style={draw, rounded corners=2pt, minimum width=92mm, inner sep=6pt, align=left},
+        p1/.style={phase, fill=red!8, draw=red!60!black},
+        p2/.style={phase, fill=yellow!12, draw=orange!60!black},
+        p3/.style={phase, fill=red!14, draw=red!70!black, thick},
+        e/.style={->, very thick, >=Stealth, gray!60!black}
+    ]
+        \node[p1] (f1) {%
+            \textbf{1. Značení.} Vstup z~HTTP požadavku.\\[3pt]
+            \verb|const comment = req.body;|\\[3pt]
+            $\ell(\text{\texttt{comment}}) := \top$ \quad \emph{(vstup požadavku typu \texttt{unknown})}};
+
+        \node[p2, below=8mm of f1] (f2) {%
+            \textbf{2. Propagace.} Zřetězení s~literálem.\\[3pt]
+            \verb|const msg = "Komentář: " + comment;|\\[3pt]
+            $\ell(\text{\texttt{msg}}) := \bot \sqcup \top = \top$ \quad \emph{(v~TypeScriptu prostý \texttt{string})}};
+
+        \node[p3, below=8mm of f2] (f3) {%
+            \textbf{3. Kontrola u~propasti.} Pokus o~odeslání odpovědi.\\[3pt]
+            \verb|send(res, msg);|\\[3pt]
+            $\ell(\text{\texttt{msg}}) = \top \neq \bot$ \;\;$\Longrightarrow$\;\; \textcolor{red!70!black}{\textbf{chyba kompilace}}};
+
+        \draw[e] (f1) -- (f2);
+        \draw[e] (f2) -- (f3);
+    \end{tikzpicture}
+    \caption{Tři fáze taint analýzy na příkladu uživatelského komentáře}
+    \label{fig:taint-three-phases}
+    \source{vlastní zpracování}
+\end{figure}
+
+\subsection{Fáze sledování toku dat}
+
+Proces taint analýzy lze rozdělit do tří fazí \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send}.
+
+\FloatBarrier
+\paragraph{1. Značení (\emph{introduction}, \emph{tainting}).}
+Přiřazení příznaku kontaminace datům,~která vstupují do systému. Formálně pro každý vstupní zdroj $\mathit{src} \in \mathit{Sources}$ platí
+\begin{equation}
+    v \leftarrow \mathit{read}(\mathit{src}) \;\Longrightarrow\; \ell(v) := \top.
+    \label{eq:taint-intro}
+\end{equation}
+
+\paragraph{2. Propagace (\emph{propagation}).}
+Definice pravidel, jak se příznak šíří při operacích s~daty. Pro $n$-ární operátor $op$ platí
+\begin{equation}
+    v = op(v_1, \ldots, v_n) \;\Longrightarrow\; \ell(v) := \bigsqcup_{i=1}^{n} \ell(v_i).
+    \label{eq:taint-prop}
+\end{equation}
+Spojení je horní mezí štítků všech operandů (axiom~\ref{ax:join}). Pokud je tedy kontaminován alespoň jeden z~operandů, je kontaminován i~výsledek. Sanitační status nelze získat „zředěním“.
+
+\paragraph{3. Kontrola a~sanitace (\emph{sanitization}).}
+V~okamžiku, kdy data dosáhnou propasti, kontrolor ověří přítomnost příznaku. V~klasickém dvouúrovňovém obrazu značí $\sigma : \tau_\top \to \tau_\bot$ schválenou sanitační funkci a~$\mathit{sink}_\bot$ citlivé rozhraní,~které vyžaduje důvěryhodný vstup. Analýza pak povolí zápis právě tehdy, když
+\begin{equation}
+    \mathit{sink}_\bot(v) \;\text{je platný} \;\iff\; \ell(v) = \bot.
+    \label{eq:taint-sink}
+\end{equation}
+Hodnota odvozená ze vstupu přitom štítek~$\bot$ získá pouze jako výsledek sanitace, tedy zápisem $v \leftarrow \sigma(v_0)$. Ten stejně jako v~rovnici~\ref{eq:taint-intro} vyjadřuje původ hodnoty: $v$ vzniklo aplikací funkce~$\sigma$ na nějakou hodnotu~$v_0$. Rozhoduje tedy, jak hodnota vznikla, nikoliv jaká je. Řetězec,~který se s~některým výstupem~$\sigma$ jen shoduje, podmínku nesplní. Pokud podmínka splněna není, analýza nahlásí chybu již při překladu a~zranitelný kód neprojde typovou kontrolou.
+
+
+\subsection{Výzvy statické taint analýzy v~jazyce JavaScript a~TypeScript}
+
+JavaScript je dynamický, slabě typovaný jazyk,~což statickou analýzu značně komplikuje. Přesné sledování toku dat je znesnadněno problémy, jako jsou \emph{aliasing} (více referencí na stejný objekt), dynamické vlastnosti objektů a~asynchronní volání (\emph{promises}, \emph{callbacks}). Nástroj,~který je nedokáže věrně modelovat, musí tok buď přehlédnout, nebo ho odhadnout s~rezervou. Heuristické nástroje statické analýzy toku dat jsou dle zkušenosti společnosti Google nutně neúplné a~trpí jak falešnými negativy, tak falešnými pozitivy \parencite{kern2014tangled}. Zjemněné typy kontrolované SMT solverem,~které pro TypeScript zpřístupnil výzkumný nástroj Refined TypeScript, rozšiřují vyjadřovací sílu typového systému o~logické predikáty nad hodnotami \parencite{vekris2016refinement}.
