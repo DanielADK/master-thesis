@@ -13,7 +13,7 @@ Základem řízení toku informací (\emph{Information Flow Control}, IFC) je kl
     \mathcal{L} = (SC,\; \sqsubseteq,\; \sqcup),
     \label{eq:lattice}
 \end{equation}
-kde $SC$ je konečná množina bezpečnostních štítků, $\sqsubseteq\; \subseteq SC \times SC$ je relace částečného uspořádání a~$\sqcup : SC \times SC \to SC$ je operátor spojení,~který dvěma štítkům přiřadí jejich nejmenší horní mez \parencite{denning1976lattice}.
+kde $SC$ je konečná množina bezpečnostních štítků, $\sqsubseteq\; \subseteq SC \times SC$ je relace částečného uspořádání a~$\sqcup : SC \times SC \to SC$ je operátor spojení přiřazující dvěma štítkům jejich nejmenší horní mez \parencite{denning1976lattice}.
 
 Relace $\sqsubseteq$ definuje povolené toky dat mezi třídami. Zápis $A \sqsubseteq B$ znamená, že informace z~třídy $A$ smí téci do třídy $B$. Pro prevenci XSS je podstatná tzv.~mřížka integrity v~konvenci \textcite{sabelfeld2003language},~která pojímá integritu jako pojem duální k~důvěrnosti: vyšší poloha v~mřížce odpovídá vyšší míře kontaminace dat. Dále je uvažována jednoduchá mřížka integrity,~ve které
 \[
@@ -82,7 +82,7 @@ Při vývoji webových aplikací je mřížka rozšířena o~kontextově specifi
     \source{vlastní zpracování podle \textcite{googleSafevalues}}
 \end{figure}
 
-Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na tomto operátoru stojí propagace kontamince: pokud program kombinuje dvě hodnoty z~různých bezpečnostních tříd, získá výsledek štítek odpovídající jejich nejmenší společné horní mezi. Kontextové typy uprostřed mřížky jsou vzájemně nesrovnatelné a~jejich nejmenší společnou horní mezí je~$\top$. Spojení dvou různých bezpečných typů, například \texttt{SafeHtml} a~\texttt{SafeScript}, proto vrací~$\top$. Data validovaná pro různé kontexty po zkombinování neplatí v~žádném z~nich, a~jsou tak považována za kontaminovaná.
+Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na tomto operátoru stojí propagace kontaminace: pokud program kombinuje dvě hodnoty z~různých bezpečnostních tříd, získá výsledek štítek odpovídající jejich nejmenší společné horní mezi. Kontextové typy uprostřed mřížky jsou vzájemně nesrovnatelné a~jejich nejmenší společnou horní mezí je~$\top$. Spojení dvou různých bezpečných typů, například \texttt{SafeHtml} a~\texttt{SafeScript}, proto vrací~$\top$. Data validovaná pro různé kontexty po zkombinování neplatí v~žádném z~nich, a~jsou tak považována za kontaminovaná.
 
 \begin{figure}[h]
     \centering
@@ -170,7 +170,7 @@ Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních št
 \end{figure}
 
 \paragraph{Neinterference.}
-Cílem tohoto systému je dokázat jeho hlavní vlastnost, \emph{neinterferenci} (\emph{non-interference}). Tato vlastnost zaručuje, že data s~vysokou bezpečnostní úrovní nemohou ovlivnit pozorovatelné chovaní programu na nízké bezpečnostní úrovni (v~bezpečných propastech, anglicky \emph{sinks}) \parencite{goguen1982security}. Formálně ji lze definovat pomocí ekvivalence stavů. Zápis $\mu \approx_L \mu'$ označuje relaci „stavy~$\mu$ a~$\mu'$ se shodují ve všech proměnných se štítkem $\sqsubseteq L$“. Program $P$ pak splňuje neinterferenci vzhledem k~úrovni~$L$ právě tehdy, když
+Cílem tohoto systému je dokázat jeho hlavní vlastnost, \emph{neinterferenci} (\emph{non-interference}). Tato vlastnost zaručuje, že data s~vysokou bezpečnostní úrovní nemohou ovlivnit pozorovatelné chování programu na nízké bezpečnostní úrovni (v~bezpečných propastech, anglicky \emph{sinks}) \parencite{goguen1982security}. Formálně ji lze definovat pomocí ekvivalence stavů. Zápis $\mu \approx_L \mu'$ označuje relaci „stavy~$\mu$ a~$\mu'$ se shodují ve všech proměnných se štítkem $\sqsubseteq L$“. Program $P$ pak splňuje neinterferenci vzhledem k~úrovni~$L$ právě tehdy, když
 \begin{equation}
     \forall \mu, \mu' \in \mathit{State} : \mu \approx_L \mu' \;\Longrightarrow\; \llbracket P \rrbracket(\mu) \approx_L \llbracket P \rrbracket(\mu'),
     \label{eq:noninterference}
@@ -324,7 +324,7 @@ Cross-Site Scripting je zranitelnost,~která vzniká z~nedodržení striktního 
 \FloatBarrier
 \begin{enumerate}
     \item \textbf{Reflektované XSS (typ~I).} Škodlivý kód je součástí HTTP požadavku (typicky parametru URL) a~server ho okamžitě „odrazí“ zpět do HTML odpovědi bez dostatečné sanitace. Ve schématu útočník podvrhne oběti odkaz na vyhledávací stránku. Parametr \texttt{q} tohoto odkazu obsahuje místo hledaného výrazu skript. Jakmile oběť odkaz otevře, server vloží hodnotu \texttt{req.query.q} do stránky s~výsledky a~prohlížeč oběti skript spustí jako součást odpovědi. Z~pohledu backendové analýzy se zde sleduje tok dat z~objektů typu \texttt{req.query} a~\texttt{req.params} do šablonovací propasti.
-    \item \textbf{Uložené XSS (typ~II).} Útočníkův skript je trvale uložen na serveru (např.~v~databázi, v~komentáři nebo v~uživatelském profilu) a~následně zobrazen libovolnému uživateli,~který danou stránku navštíví. Ve schématu útočník odešle komentář obsahující element \texttt{<script>}. Aplikace komentář uloží do databáze a~při každém pozdějším zobrazení článku ho načte a~vloží do HTML. Na rozdíl od reflektované varianty tak oběť nemusí otevřít žádný podvržený odkaz. Sledování toku je zde komplikovanější, protože zahrnuje perzistetní vrstvu a~zápis i~výpis probíhají v~různých požadavcích. Statická analýza musí předpokládat, že jakákoliv data načtená z~úložiště či z~externího rozhraní jsou potenciálně kontaminovaná.
+    \item \textbf{Uložené XSS (typ~II).} Útočníkův skript je trvale uložen na serveru (např.~v~databázi, v~komentáři nebo v~uživatelském profilu) a~následně zobrazen libovolnému uživateli,~který danou stránku navštíví. Ve schématu útočník odešle komentář obsahující element \texttt{<script>}. Aplikace komentář uloží do databáze a~při každém pozdějším zobrazení článku ho načte a~vloží do HTML. Na rozdíl od reflektované varianty tak oběť nemusí otevřít žádný podvržený odkaz. Sledování toku je zde komplikovanější, protože zahrnuje perzistentní vrstvu a~zápis i~výpis probíhají v~různých požadavcích. Statická analýza musí předpokládat, že jakákoliv data načtená z~úložiště či z~externího rozhraní jsou potenciálně kontaminovaná.
     \item \textbf{DOM-based XSS (typ~0).} Škodlivý řetězec vkládá do dokumentu až klientský kód, typicky zápisem do vlastnosti \texttt{innerHTML}, takže k~injektáži dochází výhradně na straně klienta. Server řetězec obdržet může, například v~parametru dotazu, do odpovědi ho však nevloží \parencite{klein2005domxss}. Ve schématu tvoří škodlivý řetězec element \texttt{<img>} s~obsluhou události \texttt{onerror}. Útočník ho umístí za znak~\texttt{\#}, tj.~do fragmentu adresy,~který prohlížeč serveru neodesílá \parencite{klein2005domxss}. Pouze v~takovém případě škodlivá data prohlížeč vůbec neopustí. Server proto vrátí nezměněnou stránku a~řetězec do dokumentu vloží až její klientský skript zápisem hodnoty \texttt{location.hash} do \texttt{innerHTML}. V~aplikacích využívajících SSR mohou vznikat kombinované varianty: server poskytne zdánlivě nezávadný počáteční stav,~který klientská část následně použije jako vstup do nebezpečné propasti.
 \end{enumerate}
 
@@ -455,7 +455,7 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
 
 \subsection{Fáze sledování toku dat}
 
-Proces taint analýzy lze rozdělit do tří fazí \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send}.
+Proces taint analýzy lze rozdělit do tří fází \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send}.
 
 \FloatBarrier
 \paragraph{1. Značení (\emph{introduction}, \emph{tainting}).}
