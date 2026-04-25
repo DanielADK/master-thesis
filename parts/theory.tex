@@ -464,6 +464,7 @@ Přiřazení příznaku kontaminace datům,~která vstupují do systému. Formá
     v \leftarrow \mathit{read}(\mathit{src}) \;\Longrightarrow\; \ell(v) := \top.
     \label{eq:taint-intro}
 \end{equation}
+V~navrženém řešení se značení neprovádí zvláštním konstruktorem. Štítku~$\top$ odpovídá každý řetězec bez značky, protože ho žádná bezpečná propast nepřijme.
 
 \paragraph{2. Propagace (\emph{propagation}).}
 Definice pravidel, jak se příznak šíří při operacích s~daty. Pro $n$-ární operátor $op$ platí
@@ -485,3 +486,72 @@ Hodnota odvozená ze vstupu přitom štítek~$\bot$ získá pouze jako výsledek
 \subsection{Výzvy statické taint analýzy v~jazyce JavaScript a~TypeScript}
 
 JavaScript je dynamický, slabě typovaný jazyk,~což statickou analýzu značně komplikuje. Přesné sledování toku dat je znesnadněno problémy, jako jsou \emph{aliasing} (více referencí na stejný objekt), dynamické vlastnosti objektů a~asynchronní volání (\emph{promises}, \emph{callbacks}). Nástroj,~který je nedokáže věrně modelovat, musí tok buď přehlédnout, nebo ho odhadnout s~rezervou. Heuristické nástroje statické analýzy toku dat jsou dle zkušenosti společnosti Google nutně neúplné a~trpí jak falešnými negativy, tak falešnými pozitivy \parencite{kern2014tangled}. Zjemněné typy kontrolované SMT solverem,~které pro TypeScript zpřístupnil výzkumný nástroj Refined TypeScript, rozšiřují vyjadřovací sílu typového systému o~logické predikáty nad hodnotami \parencite{vekris2016refinement}.
+
+\section{Statická prevence v~TypeScriptu}
+
+TypeScript jako nadmnožina JavaScriptu přináší možnost definovat striktní pravidla pro tok dat,~která jsou vynucována již v~době vývoje. Hlavním omezením standardního TypeScriptu v~oblasti bezpečnosti je jeho strukturální povaha: pokud mají dva typy stejnou strukturu (např.~oba jsou jen \texttt{string}), jsou kompilátorem považovány za identické. Pro bezpečnostní prevenci XSS je však nutné zavést nominální odlišení mezi „nebezpečným řetězcem“ a~„bezpečným řetězcem“.
+
+\subsection{Značkované typy}
+\label{sec:branded}
+
+Značkované typy (\emph{branded types}) jsou technika pro vytvoření unikátních typů. Tyto typy se v~době běhu chovají jako primitivy (např.~\texttt{string}), avšak kompilátor je považuje za odlišné. Formální definice značky využívá průniku typů (\emph{intersection types}) a~unikátních symbolů:
+
+\begin{minted}{typescript}
+declare const __brand: unique symbol;
+type Brand<T, B> = T & { readonly [__brand]: B };
+
+type TaintedString = string;                    // řetězec bez značky
+type SafeHtml      = Brand<string, "SafeHtml">;
+\end{minted}
+
+Tato konstrukce zajišťuje, že programátor nemůže omylem přiřadit hodnotu typu \texttt{TaintedString} do proměnné typu \texttt{SafeHtml}, přestože oba jsou v~jádru řetězce. Opačné přiřazení typová kontrola dovolí, takže přiřaditelnost odpovídá uspořádání $\bot \sqsubseteq \top$ dvouprvkové mřížky. Značku smí hodnotě přidat pouze auditovaný modul knihovny (dílčí cíl~2). Jeho funkce hodnotu nejprve ověří, např.~sanitací nebo validací za běhu, a~teprve poté jí přetypováním (\emph{type casting}) značku „přidají“.
+
+Rozsáhlý kontrolovaný experiment \textcite{hanenberg2014maintainability} zjistil, že statické typování měřitelně pomáhá při porozumění nedokumentovanému kódu a~při opravě typových chyb. \emph{Při opravě chyb sémantických však žádný prokazatelný přínos nepřináší.} Zranitelnost typu XSS je přitom chybou právě sémantickou: stejný řetězec je nezávadný jako datová hodnota a~nebezpečný jako fragment HTML, aniž by se jeho struktura jakkoliv lišila. Samo zavedení TypeScriptu proti XSS proto nepomůže, protože bezpečný i~nebezpečný řetězec v~něm mají stejný typ \texttt{string}. Smysl značkovaných typů je v~tom, že sémantickou vlastnost „tato hodnota již prošla schválenou politikou“ převedou na vlastnost typovou. Tím ji přesunou do oblasti,~ve které je přínos typového systému doložen.
+
+\subsection{Šablonové literálové typy pro strukturní validaci}
+
+TypeScript od verze~4.1 podporuje \emph{template literal types},~které umožňují definovat typy řetězců odpovídající specifickým vzorům. Tato vlastnost je významná pro prevenci XSS v~kontextech URL, popř.~CSS. Vynucení protokolu HTTPS u~externě načítaných skriptů lze formulovat takto:
+
+\begin{minted}{typescript}
+type SecureURL = `https://${string}`;
+function loadExternalScript(url: SecureURL) { /* ... */ }
+
+loadExternalScript("https://cdn.example.com/lib.js"); // OK
+// loadExternalScript("http://insecure.com/lib.js"); // chyba kompilace
+\end{minted}
+
+Tímto mechanismem je poskytnuta statická jistota, že řetězec vyhovuje definovanému gramatickému pravidlu, aniž by bylo nutné spouštět kód. Argument v~nesprávném formátu tak typová kontrola ohlásí už při překladu \parencite{tsTemplateLiteralTypes}.
+
+\subsection{Sledování toku skrze podpisy funkcí}
+
+Typový systém lze využít k~definici závazných podpisů funkcí,~které manipulují s~daty. V~modelu založeném na mřížce integrity lze rozhraní sanitizéru definovat jako totální funkci
+\begin{equation}
+    \sigma : \mathtt{TaintedString} \longrightarrow \mathtt{SafeHtml},
+    \label{eq:sanitizer}
+\end{equation}
+která přijímá kontaminovaný vstup a~garantuje bezpečný výstup. Redefinice citlivých rozhraní (propastí) potom odpovídá typovému podpisu
+\begin{equation}
+    \mathit{assign}_{\mathtt{innerHTML}} : \mathtt{SafeHtml} \longrightarrow \mathtt{Unit},
+    \label{eq:sink-contract}
+\end{equation}
+takže kompilátor nedovolí žádné volání s~hodnotou,~která nevznikla transformací podle rovnice~\ref{eq:sanitizer} \parencite{w3cTrustedTypes,sabelfeld2003language}. Takový přístup převádí chybu „zapomenutá sanitace“,~která by se jinak projevila až za běhu, na statickou typovou chybu.
+
+\subsection{Validace schématem jako vstupní bariéra}
+\label{sec:schema-validace}
+
+Značkované typy popsané výše předpokládají, že hodnota již má některý ze známých základních typů (\texttt{string}, \texttt{number}). U~vstupů přicházejících z~HTTP požadavku však backend pracuje s~typem \texttt{unknown}. Tělo požadavku po deserializaci z~JSONu nemá v~typovém systému žádnou strukturu. Mezistupněm mezi \texttt{unknown} a~značkovaným typem proto musí být explicitní validace,~která zaručí přítomnost očekávaných polí a~jejich primitivních typů.
+
+V~ekosystému TypeScriptu tuto roli plní knihovny jako Zod (popř.~Valibot či Yup),~které umožňují deklarovat schéma a~odvodit z~něj statický typ. Formálně lze schéma chápat jako parciální funkci
+\begin{equation}
+    \mathit{validate}_S : \mathtt{unknown} \rightharpoonup \mathtt{Validated}\langle S \rangle,
+    \label{eq:validate}
+\end{equation}
+která buď vrátí hodnotu opatřenou bezpečnostním štítkem „validováno“ ($\bot \sqsubset \mathit{mid} \sqsubset \top$), nebo selže s~výjimkou. Štítek $\mathit{mid}$ vyjadřuje, že struktura dat odpovídá očekávání (např.~vstup je opravdu řetězec o~dané maximální délce), nikoliv však ještě, že je bezpečný pro vložení do HTML. K~dosažení štítku $\bot$ tedy musí proběhnout druhý krok: sanitační transformace popsaná v~rovnici~\ref{eq:sanitizer}.
+
+\paragraph{Pravidlo povýšení.}
+Pro vstupní cestu od HTTP požadavku k~SSR propasti lze typový oblouk vyjádřit jako složení dvou funkcí
+\begin{equation}
+    \sigma \,\circ\, \mathit{validate}_S \,:\; \mathtt{unknown} \rightharpoonup \mathtt{SafeHtml},
+    \label{eq:pipeline}
+\end{equation}
+přičemž každá cesta mimo tuto kompozici, například přímé přetypování \texttt{as SafeHtml}, je únikem z~typového systému.
