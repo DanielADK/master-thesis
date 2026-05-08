@@ -380,7 +380,7 @@ Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~
 
 \section{Taint analýza}
 
-Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. Jejím cílem je zjistit, zda se data z~nedůvěryhodného zdroje mohou dostat do nebezpečné propasti bez předchozí sanitace. V~jazyce TypeScript ji lze realizovat buď externími nástroji statické analýzy (\emph{Static Application Security Testing}, SAST), nebo ji integrovat přímo do typového systému \parencite{volpano1996sound,owaspSAST}. Cílovou pipeline backendové aplikace,~kterou taint analýza střeží, shrnuje schéma~\ref{fig:pipeline}. Hodnota typu \texttt{unknown} se štítkem~$\top$ v~ní nejprve projde validací podle schématu knihovny Zod a~získá mezistupeň~$\mathit{mid}$. Poté ji sanitační funkce~$\sigma$ převede na \texttt{SafeHtml} se štítkem~$\bot$. Teprve takovou hodnotu smí přijmout propast \texttt{res.send}.
+Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. Jejím cílem je zjistit, zda se data z~nedůvěryhodného zdroje mohou dostat do nebezpečné propasti bez předchozí sanitace. V~jazyce TypeScript ji lze realizovat buď externími nástroji statické analýzy (\emph{Static Application Security Testing}, SAST), nebo ji integrovat přímo do typového systému \parencite{volpano1996sound,owaspSAST}. Cílovou pipeline backendové aplikace,~kterou taint analýza střeží, shrnuje schéma~\ref{fig:pipeline}. Hodnota typu \texttt{unknown} se štítkem~$\top$ v~ní nejprve projde validací podle schématu knihovny Zod a~získá mezistupeň~$\mathit{mid}$. Poté ji sanitační funkce~$\sigma$ převede na \texttt{SafeHtml} se štítkem~$\bot$. Teprve takovou hodnotu smí přijmout propast \texttt{res.send}, a~to prostřednictvím obalující funkce \texttt{send} s~podpisem podle rovnice~\ref{eq:send-contract}. Schéma~\ref{fig:pipeline} tak doplňuje dvouprvkovou mřížku z~diagramu~\ref{fig:mrizka-integrity} o~mezistupeň~$\mathit{mid}$ z~rovnice~\ref{eq:validate}. Zároveň ji propojuje s~konkrétními typy TypeScriptu,~které zavádějí podsekce~\ref{sec:schema-validace} a~\ref{sec:safevalues}.
 
 \begin{figure}[htbp]
     \centering
@@ -455,7 +455,7 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
 
 \subsection{Fáze sledování toku dat}
 
-Proces taint analýzy lze rozdělit do tří fází \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send}.
+Proces taint analýzy lze rozdělit do tří fází \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send} obalující funkcí \texttt{send} s~podpisem podle rovnice~\ref{eq:send-contract}.
 
 \FloatBarrier
 \paragraph{1. Značení (\emph{introduction}, \emph{tainting}).}
@@ -555,3 +555,75 @@ Pro vstupní cestu od HTTP požadavku k~SSR propasti lze typový oblouk vyjádř
     \label{eq:pipeline}
 \end{equation}
 přičemž každá cesta mimo tuto kompozici, například přímé přetypování \texttt{as SafeHtml}, je únikem z~typového systému.
+
+\section{Od Trusted Types k~typové prevenci v~překladu}
+
+Rozhraní Trusted Types je bezpečnostní mechanismus specifikovaný konsorciem W3C \parencite{w3cTrustedTypes}. V~prohlížeči je jím odpovědnost za bezpečnost přesunuta z~tisíců míst v~kódu na několik centrálně definovaných politik. Pro tuto práci slouží jako \emph{precedent}: dokládá, že vzor „do citlivé propasti smí pouze hodnota bezpečného typu“ je předmětem aktivně rozvíjené webové specifikace. Trusted Types však tento vzor vynucují \emph{za~běhu a~výhradně v~prohlížeči}, a~na serverem renderovaný výstup tak nedosáhnou. V~navrhovaném řešení je proto z~Trusted Types převzat jen samotný návrhový vzor a~realizován o~krok dříve: staticky, v~době překladu na straně serveru, kde se rozhodnutí o~bezpečnosti stává typovou kontrolou.
+
+\subsection{Mechanismus Trusted Types}
+
+Pokud je rozhraní Trusted Types vynuceno HTTP hlavičkou \texttt{Content-Security-Policy} s~direktivou \texttt{require-trusted-types-for}, prohlížeč přestane u~citlivých propastí (jako je vlastnost pro přiřazení HTML fragmentu) přijímat prosté řetězce. Namísto nich jsou vyžadovány objekty \texttt{TrustedHTML}, \texttt{TrustedScript} nebo \texttt{TrustedScriptURL}. Tyto objekty lze vytvořit pouze skrze registrované politiky:
+
+\begin{minted}{javascript}
+const policy = trustedTypes.createPolicy('myPolicy', {
+  createHTML: (input) => DOMPurify.sanitize(input)
+});
+const safe = policy.createHTML(userInput);
+// hodnotu typu TrustedHTML lze poté předat citlivé propasti,
+// jiná než vyrobená skrze politiku je za běhu odmítnuta
+\end{minted}
+
+Tímto mechanismem je počet míst,~která je třeba auditovat, redukován na samotné definice politik. Vše ostatní je vynuceno typovým systémem prohlížeče \parencite{mdnTrustedTypes}.
+
+Životaschopnost tohoto vzoru v~provozním nasazení doložila případová studie \textcite{wang2021trustedtypes},~ve které byl mechanismus Trusted Types zaveden do frameworku Angular. Během převodu upoutalo pozornost autorů jedno z~porušení pravidel Trusted Types zachycených za běhu. Vedlo k~nalezení a~opravě dosud neznámé zranitelnosti v~samotném frameworku Angular: hodnota atributu \texttt{srcdoc} označeného k~lokalizaci (\texttt{i18n-srcdoc}) se dostala do propasti DOM bez povinné sanitace. Nález naznačuje, že zavedení bezpečných typů může kromě zabránění budoucím chybám zviditelnit i~chyby již existující.
+
+\subsection{Bezpečné typy při překladu}
+\label{sec:safevalues}
+
+Typové rozlišení bezpečných hodnot není myšlenkou standardu Trusted Types. Jako návrhový vzor proti injektáži skriptu ho na základě zkušeností společnosti Google popsal \textcite{kern2014tangled}. Vzor kombinuje typy bezpečných hodnot, striktní automatické escapování v~šablonách a~malý auditovaný modul,~který jako jediný smí surový řetězec převést na bezpečný typ. Trusted Types i~knihovna \texttt{safevalues} tento vzor později zobecnily.
+
+Stejný vzor lze realizovat zcela staticky, pokud se přesune z~prohlížeče do typového systému serveru. Namísto objektů \texttt{TrustedHTML},~které existují za běhu, pak vystupují značkované typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2, zavedené technikou z~podsekce~\ref{sec:branded}. Namísto registrované politiky vystupují značkované konstruktory,~které jako jediné takové hodnoty vyrobí.
+
+Předlohou návrhu je knihovna \texttt{safevalues} od společnosti Google \parencite{googleSafevalues}. Tato knihovna však stejný vzor realizuje v~prohlížeči: chrání propasti DOM a~usnadňuje nasazení Trusted Types. Její typy nejsou značky,~které překlad vymaže, ale objekty za běhu. Každý z~nich obaluje hodnotu Trusted Types, nebo prostý řetězec tam, kde rozhraní Trusted Types chybí. Typ \texttt{SafeHtml} tak obaluje \texttt{TrustedHTML} a~\texttt{SafeScript} obaluje \texttt{TrustedScript}. Sanitizér HTML knihovny pracuje nad rozhraním DOM. Typ \texttt{SafeUrl} není knihovnou zaveden a~adresy jsou sanitovány až v~propasti. Vlastní řešení této práce proto z~knihovny přebírá návrhový vzor a~názvy typů \texttt{SafeHtml}, \texttt{SafeScript} a~\texttt{TrustedResourceUrl}. Typ \texttt{SafeUrl} doplňuje z~knihoven typů bezpečných hodnot,~které popisuje \textcite{kern2014tangled}. Všechny tyto typy jsou přeneseny do typů na serveru, aby mělo řešení plnou kontrolu nad množinou konstruktorů a~nezáviselo na prohlížečové vrstvě Trusted Types. V~kombinaci s~validací schématem z~podsekce~\ref{sec:schema-validace} poskytuje tento aparát statickou záruku, že do citlivé propasti se dostane pouze hodnota bezpečného typu.
+
+Stavební bloky knihovny \texttt{safevalues},~které zde slouží jako návrhová předloha, lze rozdělit do tří kategorií:
+\begin{itemize}
+    \item \textbf{konstruktory bezpečných hodnot}: funkce \texttt{htmlEscape} pro escapování HTML entit a~\texttt{sanitizeHtml} pro očištění uživatelského obsahu vestavěným sanitizérem. Pro literály zapsané v~programu slouží značkované šablony. Šablona \texttt{safeScript} interpolaci nepřipouští, dovolí pouze výrazy s~prázdným řetězcem pro vložené komentáře, a~skript proto nikdy neobsahuje uživatelská data. Výrazy v~šabloně \texttt{trustedResourceUrl} smějí stát pouze za pevně zapsaným počátkem adresy či začátkem cesty a~jejich hodnoty se kódují funkcí \texttt{encodeURIComponent};
+    \item \textbf{obaly propastí DOM} v~subbalíku \texttt{safevalues/dom},~které přiřazují hodnoty do rozhraní DOM. Lze je proto použít pouze v~prohlížeči, nikoliv kolem serverových propastí jako \texttt{res.send} či \texttt{res.redirect}. Obal \texttt{setElementInnerHtml} přijímá pouze \texttt{SafeHtml}, některé obaly však konkrétní typ nevyžadují a~argument samy sanitují: \texttt{setLocationHref} přijímá prostý řetězec;
+    \item \textbf{unwrappery} (\texttt{unwrapHtml}, \texttt{unwrapScript}, \texttt{unwrapResourceUrl}),~které vrátí obalenou hodnotu Trusted Types, popřípadě prostý řetězec. Dle dokumentace knihovny se přímo používají výjimečně, protože bezpečné hodnoty se mají předávat obalům propastí DOM.
+\end{itemize}
+
+K~auditovatelnosti tohoto vzoru přispívá sesterský linter \texttt{safety-web},~který zakazuje vybraná nebezpečná rozhraní DOM. K~nim jsou knihovnou nabízeny obaly v~subbalíku \texttt{safevalues/dom}. Pro sestavování složitějšího HTML doporučuje knihovna šablonovací systém,~který je s~ní kompatibilní, například Lit.
+
+Pomocí značkovaných typů lze typový podpis propasti \texttt{res.send} rozšířit z~rovnice~\ref{eq:sink-contract} na backendovou variantu
+\begin{equation}
+    \mathit{send} : \mathtt{Response} \times \mathtt{SafeHtml} \longrightarrow \mathtt{Unit},
+    \label{eq:send-contract}
+\end{equation}
+čímž se rozhodnutí o~bezpečnosti přesouvá z~doby běhu do doby překladu.
+
+\subsection{Volitelná prohlížečová vrstva: require-trusted-types-for}
+
+Vynucení navrhované záruky probíhá při překladu: hodnotu nesprávného typu odmítne kompilátor. Nezávisle na tom lze klientské propasti stejné aplikace chránit i~v~prohlížeči za~běhu, a~to hlavičkou \texttt{Content-Security-Policy} s~dvojicí direktiv \parencite{mdnCSPTrustedTypes,w3cTrustedTypes}:
+\begin{minted}{http}
+HTTP/1.1 200 OK
+Content-Security-Policy: require-trusted-types-for 'script'; trusted-types myPolicy
+\end{minted}
+První direktiva přikazuje prohlížeči odmítat řetězce u~propastí,~které pracují se skriptem. Druhá omezuje povolené názvy politik. Backend tuto hlavičku obvykle vkládá uprostřed middleware vrstvy (např.~v~Expressu pomocí balíku \texttt{helmet}). Oznámení o~porušení politiky lze doručit na auditní endpoint direktivou \texttt{report-to}. Starší direktiva \texttt{report-uri} je zastaralá. Při postupném zavádění se politika posílá samostatnou hlavičkou \texttt{Content-Security-Policy-Report-Only}. S~ní prohlížeč porušení pouze hlásí a~nic neblokuje \parencite{mdnCSP}. Tato vrstva je nezávislou, nepovinnou pojistkou (\emph{defense in depth}), její dosah je však omezený. Trusted Types chrání pouze klientské propasti DOM. Zachytí například skript třetí strany,~který by do nich zapisoval prosté řetězce. Na injektáž,~která by unikla na serveru a~skončila přímo v~serverem vykresleném HTML, však nedosáhnou. Specifikace ochranu serverem generovaného HTML výslovně vylučuje ze svých cílů a~proti takové injektáži doporučuje šablonovací systémy nebo direktivu CSP \texttt{script-src} \parencite{w3cTrustedTypes}. Direktiva \texttt{script-src} s~jednorázovou hodnotou \emph{nonce} funguje tak, že server tuto hodnotu pro každou odpověď nově vygeneruje a~uvede ji v~direktivě i~v~atributu \texttt{nonce} svých elementů \texttt{<script>}. Skript,~který útočník do stránky vložil bez ní, prohlížeč nespustí \parencite{mdnCSP}. Ani jedna z~obou pojistek však překladovou záruku nenahrazuje, ani nepodmiňuje.
+
+\subsection{Centralizace a~auditovatelnost politik}
+\label{sec:audit}
+
+Hlavním přínosem tohoto vzoru je, že redukuje plochu bezpečnostního auditu z~celé aplikace na drobnou, pevně ohraničenou množinu modulů. V~praxi sestává tato množina z~konstruktorů bezpečných hodnot a~ze sanitačních funkcí,~které tyto konstruktory využívají (v~prohlížečovém světě jim odpovídá \texttt{createPolicy}, v~knihovně \texttt{safevalues} pak tovární funkce). Úkolem statické analýzy je určit, na kterých místech programu smí hodnota bezpečného typu vzniknout.
+
+Takto vymezená úloha souvisí s~deklasifikací (záměrným uvolněním informace,~které by neinterference jinak zakázala). \textcite{zdancewic2003robust} ukázal, jak typovým systémem vynutit její \emph{robustnost}: rozhodnutí o~deklasifikaci musí mít vysokou integritu, takže útočník nesmí ovlivnit, zda a~co se uvolní. U~integrity, a~s~ní i~u~XSS, odpovídá deklasifikaci duální operace, povýšení integrity \parencite{zdancewic2003robust}. Auditní úloha tak vymezuje, \emph{kde} v~programu smí k~povýšení dojít. \textcite{sabelfeld2009declassification} řadí takové vymezení k~dimenzi „kde“ (\emph{where}) a~u~povýšení pokládají za přirozený požadavek, aby k~němu docházelo pouze na k~tomu určených místech programu.
+
+Auditní postup se proto soustředí do tří kroků:
+\begin{enumerate}
+    \item nalezení všech odkazů na konstruktory bezpečných hodnot ve zdrojovém stromě, nikoliv jen jejich přímých volání, protože konstruktor lze volat i~přes alias či předat jako hodnotu. Odkazovanou deklaraci spolehlivě určí dotaz nad AST využívající typové informace překladače;
+    \item ověření, že v~jejich definici je použita důvěryhodná sanitační knihovna (DOMPurify, sanitize-html), popř.~je vstup omezen literálem známým při kompilaci;
+    \item kontrola, zda kód neobchází typový systém, typicky přetypováním \texttt{as SafeHtml}, hodnotou typu \texttt{any} či neúplnými typovými deklaracemi. Podle zkušenosti společnosti Google je automatické vynucení takových pravidel nezbytné už ve středně velkých projektech, jinak se porušení časem do kódu vloudí \parencite{kern2014tangled}.
+\end{enumerate}
+Centralizací politik je tak zmenšena plocha,~kterou je nutno auditovat. Navíc umožňuje svěřit audit specializovanému revidentovi, aniž by bylo nutné procházet všechen aplikační kód.
+
+Provozní zkušenost s~tímto postupem popisuje \textcite{kern2014tangled}. Jedna z~největších aplikací společnosti Google přešla na začátku roku 2013 na striktní kontextové automatické escapování. V~roce 2012 bylo k~ní nahlášeno 31~chyb XSS, po přechodu jen čtyři za rok do poloviny roku 2014 a~v~první polovině roku 2014 žádná. U~další aplikace,~která se teprve převáděla, klesl počet ve stejném období z~21 na devět. Autor však výslovně upozorňuje, že jde pouze o~anekdotická pozorování, protože počet chyb ovlivňuje řada dalších proměnných, např.~velikost a~složitost kódu či bezpečnostní vzdělání vývojářů.
