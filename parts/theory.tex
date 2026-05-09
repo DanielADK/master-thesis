@@ -580,7 +580,7 @@ Tímto mechanismem je počet míst,~která je třeba auditovat, redukován na sa
 \subsection{Bezpečné typy při překladu}
 \label{sec:safevalues}
 
-Typové rozlišení bezpečných hodnot není myšlenkou standardu Trusted Types. Jako návrhový vzor proti injektáži skriptu ho na základě zkušeností společnosti Google popsal \textcite{kern2014tangled}. Vzor kombinuje typy bezpečných hodnot, striktní automatické escapování v~šablonách a~malý auditovaný modul,~který jako jediný smí surový řetězec převést na bezpečný typ. Trusted Types i~knihovna \texttt{safevalues} tento vzor později zobecnily.
+Myšlenka nahradit rozptýlenou sanitaci typovým rozlišením hodnot nevznikla teprve se standardem Trusted Types. V~ucelené podobě ji jako návrhový vzor pro prevenci injektáže skriptu popsal \textcite{kern2014tangled} na základě provozní praxe společnosti Google. Osvědčila se tam kombinace typů bezpečných hodnot, striktního automatického escapování v~šablonách a~úzce vymezeného auditovaného modulu pro záměrné převedení surového řetězce. Standard Trusted Types i~knihovna \texttt{safevalues} jsou pozdějším zobecněním stejného vzoru.
 
 Stejný vzor lze realizovat zcela staticky, pokud se přesune z~prohlížeče do typového systému serveru. Namísto objektů \texttt{TrustedHTML},~které existují za běhu, pak vystupují značkované typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2, zavedené technikou z~podsekce~\ref{sec:branded}. Namísto registrované politiky vystupují značkované konstruktory,~které jako jediné takové hodnoty vyrobí.
 
