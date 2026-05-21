@@ -319,3 +319,194 @@
   url          = {http://www.webappsec.org/projects/articles/071105.shtml},
   urldate      = {2026-04-13},
 }
+
+% =====================================================================
+% Section 3.7: Refinement Types, SMT Solvers, String Analysis, and Sanitization
+% =====================================================================
+
+@inproceedings{rondon2008liquid,
+  author       = {Rondon, Patrick M. and Kawaguchi, Ming and Jhala, Ranjit},
+  title        = {Liquid Types},
+  booktitle    = {Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI '08)},
+  pages        = {159--169},
+  publisher    = {ACM},
+  year         = {2008},
+  doi          = {10.1145/1375581.1375602},
+}
+
+@article{jhala2021refinement,
+  author       = {Jhala, Ranjit and Vazou, Niki},
+  title        = {Refinement Types: A~Tutorial},
+  journal      = {Foundations and Trends in Programming Languages},
+  volume       = {6},
+  number       = {3--4},
+  pages        = {159--317},
+  year         = {2021},
+  doi          = {10.1561/2500000032},
+}
+
+@inproceedings{vazou2014refinement,
+  author       = {Vazou, Niki and Seidel, Eric L. and Jhala, Ranjit and Vytiniotis, Dimitrios and Peyton Jones, Simon},
+  title        = {Refinement Types for {Haskell}},
+  booktitle    = {Proceedings of the 19th ACM SIGPLAN International Conference on Functional Programming (ICFP '14)},
+  pages        = {269--282},
+  publisher    = {ACM},
+  year         = {2014},
+  doi          = {10.1145/2628136.2628161},
+}
+
+@inproceedings{swamy2016dependent,
+  author       = {Swamy, Nikhil and Hri{\c{t}}cu, C{\u{a}}t{\u{a}}lin and Keller, Chantal and Rastogi, Aseem and Delignat-Lavaud, Antoine and Forest, Simon and Bhargavan, Karthikeyan and Fournet, C{\'e}dric and Strub, Pierre-Yves and Kohlweiss, Markulf and Zinzindohoue, Jean-Karim and Zanella-B{\'e}guelin, Santiago},
+  title        = {Dependent Types and Multi-Monadic Effects in {F*}},
+  booktitle    = {Proceedings of the 43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL '16)},
+  pages        = {256--270},
+  publisher    = {ACM},
+  year         = {2016},
+  doi          = {10.1145/2837614.2837655},
+}
+
+@article{lehmann2023flux,
+  author       = {Lehmann, Nico and Geller, Adam T. and Vazou, Niki and Jhala, Ranjit},
+  title        = {Flux: Liquid Types for {Rust}},
+  journal      = {Proceedings of the ACM on Programming Languages},
+  volume       = {7},
+  number       = {PLDI},
+  pages        = {1533--1557},
+  year         = {2023},
+  doi          = {10.1145/3591283},
+}
+
+@inproceedings{gamboa2023liquidjava,
+  author       = {Gamboa, Catarina and Canelas, Paulo and Timperley, Christopher and Fonseca, Alcides},
+  title        = {Usability-Oriented Design of Liquid Types for {Java}},
+  booktitle    = {Proceedings of the 45th IEEE/ACM International Conference on Software Engineering (ICSE 2023)},
+  pages        = {1520--1532},
+  publisher    = {IEEE},
+  year         = {2023},
+  doi          = {10.1109/ICSE48619.2023.00132},
+}
+
+@online{refscriptRepo,
+  author       = {{UCSD-PL}},
+  title        = {refscript: Refinement Types for {TypeScript}},
+  organization = {GitHub},
+  year         = {2019},
+  url          = {https://github.com/UCSD-PL/refscript},
+  urldate      = {2026-05-20},
+}
+
+@inproceedings{demoura2008z3,
+  author       = {de Moura, Leonardo and Bj{\o}rner, Nikolaj},
+  options      = {useprefix=true},
+  title        = {{Z3}: An Efficient {SMT} Solver},
+  booktitle    = {Tools and Algorithms for the Construction and Analysis of Systems (TACAS 2008)},
+  series       = {Lecture Notes in Computer Science},
+  pages        = {337--340},
+  publisher    = {Springer},
+  year         = {2008},
+  doi          = {10.1007/978-3-540-78800-3_24},
+}
+
+@online{smtlibStrings,
+  author       = {Tinelli, Cesare and Barrett, Clark and Fontaine, Pascal},
+  title        = {Theory of {Unicode} Strings},
+  organization = {The {SMT-LIB} Standard, version 2.7},
+  year         = {2025},
+  url          = {https://smt-lib.org/theories-UnicodeStrings.shtml},
+  urldate      = {2026-05-20},
+}
+
+@inproceedings{liang2014dpllt,
+  author       = {Liang, Tianyi and Reynolds, Andrew and Tinelli, Cesare and Barrett, Clark and Deters, Morgan},
+  title        = {A~{DPLL(T)} Theory Solver for a~Theory of Strings and Regular Expressions},
+  booktitle    = {Computer Aided Verification (CAV 2014)},
+  editor       = {Biere, Armin and Bloem, Roderick},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {8559},
+  pages        = {646--662},
+  publisher    = {Springer},
+  location     = {Vienna},
+  year         = {2014},
+  doi          = {10.1007/978-3-319-08867-9_43},
+}
+
+@inproceedings{zheng2013z3str,
+  author       = {Zheng, Yunhui and Zhang, Xiangyu and Ganesh, Vijay},
+  title        = {{Z3-str}: A~{Z3}-Based String Solver for Web Application Analysis},
+  booktitle    = {Proceedings of the 2013 9th Joint Meeting on Foundations of Software Engineering (ESEC/FSE 2013)},
+  pages        = {114--124},
+  publisher    = {ACM},
+  year         = {2013},
+  doi          = {10.1145/2491411.2491456},
+}
+
+@inproceedings{lin2016string,
+  author       = {Lin, Anthony W. and Barcel{\'o}, Pablo},
+  title        = {String Solving with Word Equations and Transducers: Towards a~Logic for Analysing Mutation {XSS}},
+  booktitle    = {Proceedings of the 43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL '16)},
+  pages        = {123--136},
+  publisher    = {ACM},
+  year         = {2016},
+  doi          = {10.1145/2837614.2837641},
+}
+
+@article{chen2019decision,
+  author       = {Chen, Taolue and Hague, Matthew and Lin, Anthony W. and R{\"u}mmer, Philipp and Wu, Zhilin},
+  title        = {Decision Procedures for Path Feasibility of String-Manipulating Programs with Complex Operations},
+  journal      = {Proceedings of the ACM on Programming Languages},
+  volume       = {3},
+  number       = {POPL},
+  pages        = {1--30},
+  year         = {2019},
+  doi          = {10.1145/3290362},
+}
+
+@inproceedings{wassermann2008static,
+  author       = {Wassermann, Gary and Su, Zhendong},
+  title        = {Static Detection of Cross-Site Scripting Vulnerabilities},
+  booktitle    = {Proceedings of the 30th International Conference on Software Engineering (ICSE '08)},
+  pages        = {171--180},
+  publisher    = {ACM},
+  year         = {2008},
+  doi          = {10.1145/1368088.1368112},
+}
+
+@inproceedings{balzarotti2008saner,
+  author       = {Balzarotti, Davide and Cova, Marco and Felmetsger, Vika and Jovanovic, Nenad and Kirda, Engin and Kruegel, Christopher and Vigna, Giovanni},
+  title        = {Saner: Composing Static and Dynamic Analysis to Validate Sanitization in Web Applications},
+  booktitle    = {Proceedings of the 2008 IEEE Symposium on Security and Privacy (SP 2008)},
+  pages        = {387--401},
+  publisher    = {IEEE},
+  year         = {2008},
+  doi          = {10.1109/SP.2008.22},
+}
+
+@inproceedings{hooimeijer2011bek,
+  author       = {Hooimeijer, Pieter and Livshits, Benjamin and Molnar, David and Saxena, Prateek and Veanes, Margus},
+  title        = {Fast and Precise Sanitizer Analysis with {BEK}},
+  booktitle    = {Proceedings of the 20th USENIX Security Symposium (USENIX Security 11)},
+  location     = {San Francisco, CA},
+  year         = {2011},
+  url          = {https://www.usenix.org/conference/usenix-security-11/fast-and-precise-sanitizer-analysis-bek},
+  urldate      = {2026-05-20},
+}
+
+@inproceedings{veanes2012symbolic,
+  author       = {Veanes, Margus and Hooimeijer, Pieter and Livshits, Benjamin and Molnar, David and Bj{\o}rner, Nikolaj},
+  title        = {Symbolic Finite State Transducers: Algorithms and Applications},
+  booktitle    = {Proceedings of the 39th Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL '12)},
+  pages        = {137--150},
+  publisher    = {ACM},
+  year         = {2012},
+  doi          = {10.1145/2103656.2103674},
+}
+
+@inproceedings{dantoni2014fast,
+  author       = {D'Antoni, Loris and Veanes, Margus and Livshits, Benjamin and Molnar, David},
+  title        = {Fast: A~Transducer-Based Language for Tree Manipulation},
+  booktitle    = {Proceedings of the 35th ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI '14)},
+  pages        = {384--394},
+  publisher    = {ACM},
+  year         = {2014},
+  doi          = {10.1145/2594291.2594309},
+}
