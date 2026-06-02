@@ -13,9 +13,23 @@
 \usepackage{mathtools}
 \usepackage{stmaryrd}
 \usepackage{mathpartir}
+\usepackage{amsthm}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc, fit,
                 backgrounds, matrix, decorations.pathreplacing, patterns}
+
+% ----------------------------------------------------------------------
+% Theorem environments of the formal model (chapter Vlastní práce)
+% ----------------------------------------------------------------------
+\theoremstyle{definition}
+\newtheorem{definice}{Definice}[chapter]
+\newtheorem{predpoklad}[definice]{Předpoklad}
+\theoremstyle{plain}
+\newtheorem{lemma}[definice]{Lemma}
+\newtheorem{veta}[definice]{Věta}
+\newtheorem{dusledek}[definice]{Důsledek}
+\newtheorem{tvrzeni}[definice]{Tvrzení}
+\AtBeginDocument{\renewcommand{\proofname}{Důkaz}}
 
 \usepackage[format=plain, labelfont=it, textfont=it]{caption}
 \captionsetup[table]{position=below}

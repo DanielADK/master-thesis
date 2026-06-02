@@ -1,3 +1,76 @@
 \chapter{Vlastní práce}
+\label{chap:practical}
 
-% Praktická část: analýza, návrh, implementace.
+% ======================================================================
+% Macros of the formal model
+% ======================================================================
+\newcommand{\lxss}{\lambda_{\mathsf{XSS}}}
+\newcommand{\Lat}{\mathcal{L}}
+\newcommand{\Ctxs}{\mathcal{C}}
+\newcommand{\tStr}{\mathsf{Str}}
+\newcommand{\tBool}{\mathsf{Bool}}
+\newcommand{\tUnit}{\mathsf{Unit}}
+\newcommand{\mSrc}{\mathsf{src}}
+\newcommand{\mVal}{\mathsf{val}}
+\newcommand{\mOut}{\mathsf{out}}
+\newcommand{\mTpl}{\mathsf{tpl}}
+\newcommand{\mErr}{\mathsf{err}}
+\newcommand{\Inert}{\mathit{Inert}}
+\newcommand{\Exec}{\mathit{Exec}}
+\newcommand{\Marked}{\mathit{Mark}}
+\newcommand{\CtxOf}{\mathit{ctx}}
+\newcommand{\Prs}{\mathit{parse}}
+\newcommand{\San}{\mathit{San}}
+\newcommand{\Skel}{\mathit{skel}}
+\newcommand{\Prov}{\mathcal{I}}
+
+Předchozí kapitola shromáždila aparát, o~který se konstruktivní prevence XSS opírá: Denningovu bezpečnostní mřížku, bezpečnostní typové systémy odvozené od~$\lambda^{SEC}$ a~návrhový vzor bezpečných hodnot doložený standardem Trusted Types. Všechny tyto stavební kameny jsou převzaté. Tato kapitola z~nich staví vlastní model,~který je formuluje jako jediný celek a~doplňuje o~to, co v~převzatém aparátu chybí: o~sémantiku,~která bezpečnostním štítkům dává obsah odvozený od chování prohlížeče, a~o~důkaz, že typová pravidla tuto sémantiku respektují.
+
+\section{Formální model toku nedůvěryhodných dat}
+\label{sec:model}
+
+\subsection{Konstrukční požadavky a~přehled modelu}
+\label{sec:model-pozadavky}
+
+Model není samoúčelný. Má sloužit jako podklad pro knihovnu,~kterou zavádí dílčí cíl~2, a~pro auditní pravidlo z~dílčího cíle~4. Z~toho plyne pět konstrukčních požadavků. Zároveň vysvětlují, proč má model právě tu podobu,~ve které je níže předložen.
+
+\begin{description}
+    \item[R1: oddělení validace od sanitace.] Dílčí cíl~1 žádá, aby model \emph{formálně zachycoval krok validace schématu i~krok sanitace}. Nestačí tedy, aby oba kroky posouvaly hodnotu stejnou mřížkou. Každý z~nich musí měnit jinou vlastnost a~model to musí umět vyjádřit.
+    \item[R2: přípustnost legitimního výstupu.] Smyslem sledované aplikace je vypsat uživatelský komentář. Model,~který by takový program zamítl, je nepoužitelný. Bezpečnostní vlastnost proto nesmí znít „vstup útočníka neovlivní výstup“, ale musí přesně vymezit, \emph{v~čem} ho ovlivnit nesmí.
+    \item[R3: záměna kontextu.] Nejčastější reálnou chybou není zapomenutá sanitace, ale sanitace pro nesprávný kontext: hodnota escapovaná pro tělo HTML se vloží do hodnoty atributu \parencite{samuel2011context}. Model musí tento případ odmítnout, a~to bez zvláštního pravidla ušitého na míru.
+    \item[R4: přenositelnost do TypeScriptu.] Záruka má být vynucena překladačem, ne ideálním kalkulem. Struktura štítků proto musí mít protějšek v~operacích,~které TypeScript skutečně má.
+    \item[R5: vymezení auditní plochy.] Model musí umět odpovědět na otázku,~kterou sekce~\ref{sec:audit} označila za jádro auditovatelnosti: \emph{kdo je oprávněn vyrobit bezpečnou hodnotu?} Odpověď je zároveň měřenou veličinou v~hodnocení dle rámce SPACE.
+\end{description}
+
+Model se skládá ze šesti vrstev,~jejichž vzájemnou závislost zachycuje schéma~\ref{fig:model-prehled}. Postup je záměrně veden zdola: nejprve se určí, \emph{co štítek znamená} v~pojmech chování prohlížeče, a~teprve pak se odvodí pravidla,~která s~ním pracují. Opačné pořadí, tedy nejprve pravidla a~pak jejich výklad, vede k~modelu, u~kterého nelze rozhodnout, zda je zvolený operátor spojení správný, či pouze pravděpodobný.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\footnotesize},
+        blk/.style={draw, rounded corners=2pt, minimum width=33mm, minimum height=14mm, align=center, thick},
+        fa/.style={blk, fill=blue!8,    draw=blue!55!black},
+        fb/.style={blk, fill=orange!12, draw=orange!65!black},
+        fc/.style={blk, fill=green!10,  draw=green!45!black},
+        fd/.style={blk, fill=gray!12,   draw=gray!60!black},
+        e/.style={->, very thick, >=Stealth, gray!55!black},
+        num/.style={font=\scriptsize\bfseries, gray!60!black}
+    ]
+        \node[fa] (lat)  at (0,    2.9) {mřížka $\Lat$\\[1pt]\scriptsize provenience $\times$ inertnost};
+        \node[fa] (sem)  at (4.55, 2.9) {význam štítků\\[1pt]\scriptsize $\Exec_c$, $\Inert_c$};
+        \node[fb] (lang) at (9.1,  2.9) {jazyk $\lxss$\\[1pt]\scriptsize syntaxe a~sémantika};
+        \node[fb] (typ)  at (9.1,  0.4) {typová pravidla\\[1pt]\scriptsize $\Gamma \vdash e : \tau$};
+        \node[fc] (thm)  at (4.55, 0.4) {korektnost\\[1pt]\scriptsize L1--L4, V1--V5};
+        \node[fd] (ts)   at (0,    0.4) {realizace v~TS\\[1pt]\scriptsize vnoření $\llbracket \cdot \rrbracket$};
+
+        \draw[e] (lat)  -- node[above, num] {4.1.2} (sem);
+        \draw[e] (sem)  -- node[above, num] {4.1.3} (lang);
+        \draw[e] (lang) -- node[right, num] {4.1.5} (typ);
+        \draw[e] (typ)  -- node[above, num] {4.1.6} (thm);
+        \draw[e] (thm)  -- node[above, num] {4.1.8} (ts);
+
+        \draw[e, dashed, gray!45!black] (sem) -- node[right=1mm, num, align=center] {sémantická\\opora vět} (thm);
+    \end{tikzpicture}
+    \caption{Vrstvy modelu a~jejich závislosti. Čísla u~hran odkazují na podsekci,~která danou vrstvu zavádí. Plné šipky vyjadřují konstrukční postup, přerušovaná šipka připomíná, že věty o~bezpečnosti nejsou tvrzeními o~symbolech, ale o~sémantice štítků zavedené v~podsekci~\ref{sec:model-semantika}.}
+    \label{fig:model-prehled}
+\end{figure}
