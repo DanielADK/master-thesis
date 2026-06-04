@@ -74,3 +74,117 @@ Model se skládá ze šesti vrstev,~jejichž vzájemnou závislost zachycuje sch
     \caption{Vrstvy modelu a~jejich závislosti. Čísla u~hran odkazují na podsekci,~která danou vrstvu zavádí. Plné šipky vyjadřují konstrukční postup, přerušovaná šipka připomíná, že věty o~bezpečnosti nejsou tvrzeními o~symbolech, ale o~sémantice štítků zavedené v~podsekci~\ref{sec:model-semantika}.}
     \label{fig:model-prehled}
 \end{figure}
+
+\subsection{Bezpečnostní mřížka: provenience a~kontextová inertnost}
+\label{sec:model-mrizka}
+
+Teoretická kapitola pracovala se dvěma mřížkami odděleně: s~lineární mřížkou integrity $\bot \sqsubseteq \mathit{mid} \sqsubseteq \top$ (schéma~\ref{fig:pipeline}) a~s~mřížkou kontextově specifických typů (diagram~\ref{fig:mrizka-kontextova}). Požadavek~R1 velí obě spojit, nikoliv však sloučit. Jde totiž o~dvě nezávislé vlastnosti stejné hodnoty.
+
+\begin{definice}[Osa provenience]
+\label{def:provenience}
+Označme $\Prov = \{\bot, \mathit{mid}, \top\}$ s~uspořádáním $\bot \sqsubseteq \mathit{mid} \sqsubseteq \top$, kde
+$\bot$ značí hodnotu pocházející výhradně z~textu programu,
+$\mathit{mid}$ hodnotu, jejíž \emph{struktura} byla ověřena schématem, a
+$\top$ hodnotu plně řízenou útočníkem.
+\end{definice}
+
+\begin{definice}[Osa kontextů]
+\label{def:kontexty}
+Zápis $\Ctxs = \{\mathit{html},\, \mathit{script},\, \mathit{url},\, \mathit{res}\}$ značí konečnou množinu \emph{výstupních kontextů}. Odpovídají jim bezpečné typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2. Podmnožina $K \subseteq \Ctxs$ vyjadřuje, ve~kterých kontextech je hodnota \emph{inertní} ve smyslu definice~\ref{def:inertnost}.
+\end{definice}
+
+Zásadní je, že obě osy nesou uspořádání v~opačném smyslu. Vyšší provenience znamená \emph{méně} důvěry, zatímco větší množina kontextů znamená \emph{více} bezpečí. Bezpečnostní štítek je proto prvkem součinu,~ve kterém je druhá složka uspořádána obráceně.
+
+\begin{definice}[Bezpečnostní mřížka]
+\label{def:mrizka}
+Bezpečnostní štítek je dvojice $\ell = (i, K) \in \Prov \times \mathcal{P}(\Ctxs)$. Na množině štítků definujeme
+\begin{align}
+    (i, K) \sqsubseteq (i', K') &\;\;\overset{\text{def}}{\Longleftrightarrow}\;\; i \sqsubseteq_{\Prov} i' \;\wedge\; K \supseteq K',
+    \label{eq:m-order}\\
+    (i, K) \sqcup (i', K') &\;\;=\;\; \bigl(\, i \sqcup_{\Prov} i',\;\; K \cap K' \,\bigr),
+    \label{eq:m-join}\\
+    (i, K) \sqcap (i', K') &\;\;=\;\; \bigl(\, i \sqcap_{\Prov} i',\;\; K \cup K' \,\bigr).
+    \label{eq:m-meet}
+\end{align}
+Vzniklá struktura se značí $\Lat = \bigl(\Prov \times \mathcal{P}(\Ctxs),\, \sqsubseteq,\, \sqcup\bigr)$. Její nejmenší prvek je $\bot_{\Lat} = (\bot, \Ctxs)$ a~největší $\top_{\Lat} = (\top, \emptyset)$.
+\end{definice}
+
+\begin{lemma}[Korektnost mřížky]
+\label{lem:mrizka}
+Struktura $\Lat$ je konečný svaz a~splňuje Denningovy axiomy \ref{ax:finitness} až \ref{ax:join} ze sekce~\ref{eq:lattice}.
+\end{lemma}
+
+\begin{proof}
+$\Prov$ je konečný řetězec o~třech prvcích, tedy svaz. $\bigl(\mathcal{P}(\Ctxs), \supseteq\bigr)$ je duál Booleovy algebry podmnožin konečné množiny, tedy také konečný svaz,~ve kterém supremum odpovídá průniku a~infimum sjednocení. Kartézský součin dvou svazů s~po složkách definovaným uspořádáním je svaz a~supremum se počítá po složkách. Rovnice~\eqref{eq:m-order} až \eqref{eq:m-meet} tuto konstrukci pouze rozepisují. Odtud:
+\ref{ax:finitness} plyne z~$|\Lat| = 3 \cdot 2^{|\Ctxs|} = 48$;
+\ref{ax:order} z~toho, že součin částečných uspořádání je částečné uspořádání;
+\ref{ax:bottom} z~existence nejmenších prvků obou složek, tedy $\bot_{\Lat} = (\bot, \Ctxs)$;
+\ref{ax:join} z~existence suprem v~obou složkách a~z~jejich jednoznačnosti ve svazu.
+\end{proof}
+
+Součinovou strukturu znázorňuje diagram~\ref{fig:mrizka-soucin}. Model tímto krokem \emph{zpřesňuje} tvrzení uvedené v~popisu diagramu~\ref{fig:join-action}: spojení dvou hodnot bezpečných v~různých kontextech nedává $\top_{\Lat}$, ale $(\bot, \emptyset)$. Výsledek je sice neinertní ve všech kontextech, jeho provenience však zůstává důvěryhodná. Toto rozlišení není akademické. Právě ono umožňuje v~pravidle~\textsc{T-Out} připustit programátorem zapsaný literál obsahující značky HTML.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\scriptsize},
+        n/.style={draw, circle, inner sep=1.2pt, minimum size=5.5mm, fill=white, font=\tiny},
+        b/.style={draw, rounded corners=2pt, inner sep=2.5pt, align=center, font=\tiny, fill=white},
+        e/.style={-, thick, gray!65!black},
+        hi/.style={draw=red!70!black, thick, fill=red!8},
+        lo/.style={draw=green!50!black, thick, fill=green!10},
+        pan/.style={font=\footnotesize\itshape}
+    ]
+        % ---------- (a) provenance axis ----------
+        \node[pan] at (0, 4.5) {(a) provenience $\Prov$};
+        \node[n] (i0) at (0, 0.6) {$\bot$};
+        \node[n] (i1) at (0, 2.0) {$\mathit{mid}$};
+        \node[n] (i2) at (0, 3.4) {$\top$};
+        \draw[e] (i0) -- (i1) -- (i2);
+        \node[right=1.5mm of i0, font=\tiny] {text programu};
+        \node[right=1.5mm of i1, font=\tiny] {ověřená struktura};
+        \node[right=1.5mm of i2, font=\tiny] {vstup útočníka};
+
+        % ---------- (b) context axis ----------
+        \begin{scope}[xshift=44mm]
+            \node[pan] at (0, 4.5) {(b) kontexty $\mathcal{P}(\Ctxs)^{op}$};
+            \node[n] (k0) at ( 0,   0.6) {$\Ctxs$};
+            \node[n] (kh) at (-1.2, 2.0) {$\{h\}$};
+            \node[n] (ks) at ( 1.2, 2.0) {$\{s\}$};
+            \node[n] (ke) at ( 0,   3.4) {$\emptyset$};
+            \draw[e] (k0) -- (kh); \draw[e] (k0) -- (ks);
+            \draw[e] (kh) -- (ke); \draw[e] (ks) -- (ke);
+            \node[below=1.5mm of k0, font=\tiny] {inertní všude};
+            \node[above=1.5mm of ke, font=\tiny] {inertní nikde};
+        \end{scope}
+
+        % ---------- (c) product ----------
+        \begin{scope}[xshift=88mm]
+            \node[pan] at (1.95, 4.5) {(c) součin $\Lat = \Prov \times \mathcal{P}(\Ctxs)^{op}$};
+            \foreach \r/\y in {0/0.6, 1/2.0, 2/3.4}
+              \foreach \c/\x in {0/0, 1/1.95, 2/3.9}
+                \coordinate (g\r\c) at (\x, \y);
+
+            \node[b, lo] (p00) at (g00) {$(\bot,\Ctxs)$};
+            \node[b]     (p01) at (g01) {$(\bot,\{h\})$};
+            \node[b]     (p02) at (g02) {$(\bot,\emptyset)$};
+            \node[b]     (p10) at (g10) {$(\mathit{mid},\Ctxs)$};
+            \node[b]     (p11) at (g11) {$(\mathit{mid},\{h\})$};
+            \node[b]     (p12) at (g12) {$(\mathit{mid},\emptyset)$};
+            \node[b]     (p20) at (g20) {$(\top,\Ctxs)$};
+            \node[b]     (p21) at (g21) {$(\top,\{h\})$};
+            \node[b, hi] (p22) at (g22) {$(\top,\emptyset)$};
+
+            \foreach \r in {0,1,2} {
+              \draw[e] (p\r0) -- (p\r1); \draw[e] (p\r1) -- (p\r2);
+            }
+            \foreach \c in {0,1,2} {
+              \draw[e] (p0\c) -- (p1\c); \draw[e] (p1\c) -- (p2\c);
+            }
+            \node[below=1mm of p00, font=\tiny, green!45!black] {$\bot_{\Lat}$};
+            \node[above=1mm of p22, font=\tiny, red!70!black] {$\top_{\Lat}$};
+        \end{scope}
+    \end{tikzpicture}
+    \caption{Bezpečnostní mřížka jako součin dvou os. Panel~(a) zachycuje osu provenience, panel~(b) osu kontextů pro dvouprvkovou množinu $\{h, s\}$ (v~modelu jde o~čtyřprvkovou množinu, tedy o~čtyřrozměrnou krychli o~šestnácti vrcholech). Panel~(c) ukazuje výřez součinu: směrem vzhůru roste kontaminace, směrem vpravo ubývá inertních kontextů. Obě cesty vedou vzhůru v~uspořádání~$\sqsubseteq$. Hodnota \texttt{SafeHtml} odpovídá sloupci $\{h\}$ nezávisle na řádku. Právě tato nezávislost obou os je jádrem modelu.}
+    \label{fig:mrizka-soucin}
+\end{figure}
