@@ -353,3 +353,54 @@ Pro schéma~$S$ s~jazykem $L(S) \subseteq \Sigma^{*}$ klademe
 \end{definice}
 
 Například schéma \verb|z.enum(["asc","desc"])| má $D(S) = \Ctxs$, zatímco \verb|z.string()| má $D(S) = \emptyset$. Model tím dává formální odpověď na otázku,~která v~praxi vede k~nejasnostem: kdy je validace zároveň sanitací. Odpověď zní: právě tehdy, pokud je jazyk schématu podmnožinou inertních řetězců daného kontextu.
+
+\subsection{Jazyk \texorpdfstring{$\lxss$}{lambda-XSS}: syntaxe a~typy}
+\label{sec:model-jazyk}
+
+Model je formulován nad malým jazykem $\lxss$. Jazyk volně sleduje vzor $\lambda^{SEC}$ \parencite{volpano1996sound} a~je doplněn o~čtyři primitiva,~kterými se backendová aplikace stýká s~okolím: zdroj požadavku, validaci schématem, sanitaci a~propast. Jazyk je záměrně chudý. Obsahuje právě tolik, kolik je třeba k~vyslovení a~dokázání bezpečnostní záruky, a~nic navíc.
+
+\paragraph{Syntaxe.}
+Zde $\Sigma$ je konečná abeceda znaků, $x$ probíhá proměnné, $c \in \Ctxs$ kontexty, $n \in \mathbb{N}$ pořadová čísla vstupů a~$S$ schémata. Termy, hodnoty a~typy jazyka $\lxss$ jsou dány gramatikou
+\begin{align*}
+    e \;::=\;\; & x \;\mid\; s \;\mid\; \mathsf{true} \;\mid\; \mathsf{false} \;\mid\; () \;\mid\; \mErr
+      \;\mid\; e_1 \oplus e_2
+      \;\mid\; \lambda x{:}\tau.\, e \;\mid\; e_1\, e_2 \\[2pt]
+      &\mid\; \mathsf{let}\; x = e_1 \;\mathsf{in}\; e_2
+      \;\mid\; \mathsf{if}\; e_1 \;\mathsf{then}\; e_2 \;\mathsf{else}\; e_3 \\[2pt]
+      &\mid\; \mSrc_n \;\mid\; \mVal_S(e) \;\mid\; \sigma_c(e) \;\mid\; \mOut_c(e) \\[6pt]
+    v \;::=\;\; & \hat{s} \;\mid\; \mathsf{true} \;\mid\; \mathsf{false} \;\mid\; () \;\mid\; \lambda x{:}\tau.\, e \\[6pt]
+    \tau \;::=\;\; & \tUnit \;\mid\; \tBool^{\ell} \;\mid\; \tStr^{\ell} \;\mid\; \tau_1 \to \tau_2,
+      \qquad \ell \in \Lat .
+\end{align*}
+
+Význam jednotlivých primitiv:
+\begin{itemize}
+    \item $\mSrc_n$ je $n$-tý vstup HTTP požadavku, formální protějšek výrazu \texttt{req.body.x};
+    \item $\mVal_S(e)$ je ověření, že hodnota patří do jazyka schématu~$S$, protějškem je volání \texttt{parse} nad schématem knihovny Zod;
+    \item $\sigma_c(e)$ je sanitace pro kontext~$c$, protějšek funkce \texttt{sanitizeHtml} a~jejích obdob;
+    \item $\mOut_c(e)$ je odeslání hodnoty do propasti kontextu~$c$, protějšek volání \texttt{res.send}.
+\end{itemize}
+
+\subsection{Operační sémantika}
+\label{sec:model-semantika-op}
+
+Vyhodnocení probíhá v~konfiguraci $\langle e, t \rangle$, kde $t \in (\Ctxs \times (\Sigma \times \{\circ,\bullet\})^{*})^{*}$ je \emph{výstupní stopa}, tedy posloupnost hodnot,~které program dosud odeslal do propastí. Stopa je jediná pozorovatelná veličina modelu. Právě o~ní mluví bezpečnostní věty. Vstupy útočníka jsou dány prostředím $\iota : \mathbb{N} \to \Sigma^{*}$,~které je po dobu běhu neměnné.
+
+Vyhodnocovací kontexty a~redukční pravidla jsou standardní. Uvedena jsou pouze ta,~která se týkají čtyř zavedených primitiv:
+\begin{align}
+    \langle \mSrc_n, t \rangle \;&\longrightarrow_{\iota}\; \langle \bullet(\iota(n)), t \rangle,
+    \tag{E-Src} \label{ev:src}\\[2pt]
+    \langle \mVal_S(\hat{s}), t \rangle \;&\longrightarrow\; \langle \hat{s}, t \rangle,
+      \quad w \in L(S),
+    \tag{E-Val} \label{ev:val}\\[2pt]
+    \langle \mVal_S(\hat{s}), t \rangle \;&\longrightarrow\; \langle \mErr, t \rangle,
+      \quad w \notin L(S),
+    \tag{E-Val-Err} \label{ev:valerr}\\[2pt]
+    \langle \sigma_c(\hat{s}), t \rangle \;&\longrightarrow\; \langle \mu(\hat{s})(\San_c(w)), t \rangle,
+    \tag{E-San} \label{ev:san}\\[2pt]
+    \langle \mOut_c(\hat{s}), t \rangle \;&\longrightarrow\; \langle (), t \cdot (c, \hat{s}) \rangle .
+    \tag{E-Out} \label{ev:out}
+\end{align}
+Zápis $w$ zde jako dříve značí podkladový řetězec $\lfloor \hat{s} \rfloor$ a~zápis $\bullet(w)$ stejný řetězec se všemi znaky značkovanými symbolem~$\bullet$. V~pravidle~\eqref{ev:san} je $\mu(\hat{s}) = \bullet$, pokud $\hat{s}$ obsahuje alespoň jeden značkovaný znak, jinak $\mu(\hat{s}) = \circ$. Výstup sanitace tedy dědí značku celého vstupu. Tato úmluva je vědomě konzervativní: značkuje více znaků, než je nutné, a~dokazovanou vlastnost tím dělá silnější, nikoliv slabší.
+
+Zřetězení $\oplus$ působí na značkované řetězce po složkách, takže značky přežívají skladbu beze změny. Chyba~$\mErr$ se šíří všemi vyhodnocovacími kontexty a~běh ukončuje. Validace tedy selhává způsobem,~který do stopy nic nepřidá.
