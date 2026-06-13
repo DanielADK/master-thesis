@@ -560,3 +560,62 @@ Rozdíl mezi programem,~který typový systém přijme, a~programem,~který odm�
     \caption{Dvě odvození stejného vzorce, lišící se pouze okolními literály. V~případě~(a) mají oba literály neprázdnou množinu kontextů, průnik v~pravidle \textsc{T-Concat} zachová $\{\mathit{html}\}$ a~pravidlo \textsc{T-Out} odvození uzavře. V~případě~(b) jsou literály neinertní podle podmínky \eqref{in:okoli} (schéma~\ref{fig:inertnost}c), jejich množina kontextů je prázdná, průnik ji propaguje a~postranní podmínka \textsc{T-Out} selhává. Model tak odmítne hodnotu sanitovanou pro tělo HTML v~atributové pozici, aniž by o~atributech obsahoval jediné zvláštní pravidlo.}
     \label{fig:odvozeni}
 \end{figure}
+
+\subsection{Korektnost typování}
+\label{sec:model-korektnost}
+
+Důkazy se vedou syntaktickou metodou \textcite{wright1994syntactic}, tedy dvojicí vět o~zachování typu a~o~pokroku. Aby bylo možné o~běhových hodnotách vůbec mluvit, rozšiřuje se typový systém o~jediné pravidlo,~které se na zdrojové programy nevztahuje. Ty totiž značkované řetězce neobsahují.
+
+\begin{definice}[Řádné označkování hodnoty]
+\label{def:radne}
+Značkovaný řetězec $\hat{s}$ je \emph{řádně označkován štítkem} $(i, K)$, zapsáno $\hat{s} \models (i,K)$, pokud platí
+\begin{enumerate}[label=(\alph*)]
+    \item $i = \bot \;\Longrightarrow\; \Marked(\hat{s}) = \emptyset$;
+    \item $\forall c \in K : \hat{s} \in \Inert_c$.
+\end{enumerate}
+\end{definice}
+
+\begin{mathpar}
+\inferrule{\hat{s} \models (i, K)}{\Gamma \vdash \hat{s} : \tStr^{(i,K)}}\;\textsc{(T-Str)}
+\end{mathpar}
+
+Pravidlo \textsc{T-Str} je zobecněním pravidla \textsc{T-Lit}: pro literál~$s$ je $\Marked(s) = \emptyset$, takže podmínka~(a) platí, a~podmínka~(b) se pro $K = \CtxOf(s)$ redukuje na definici~\ref{def:ctxof}. Obě podmínky definice~\ref{def:radne} jsou přitom právě těmi dvěma tvrzeními,~která bezpečnostní záruka o~hodnotě potřebuje. Věta o~zachování typu tedy současně dokazuje, že si běh tyto vlastnosti udrží.
+
+\begin{lemma}[Substituce]
+\label{lem:subst}
+Pokud $\Gamma, x{:}\tau' \vdash e : \tau$ a~$\Gamma \vdash v : \tau'$, pak $\Gamma \vdash e[v/x] : \tau$.
+\end{lemma}
+
+\begin{proof}
+Indukcí podle odvození $\Gamma, x{:}\tau' \vdash e : \tau$. Postup je standardní \parencite[věta 9.3.8]{pierce2002types}. Bezpečnostní štítky přitom nehrají žádnou roli: všechna pravidla zavedená v~podsekci~\ref{sec:model-typy} jsou vůči typovému prostředí syntaktická a~štítek výsledku počítají výhradně ze štítků premis.
+\end{proof}
+
+\begin{veta}[Zachování typu]
+\label{thm:preservation}
+Nechť $\vdash e : \tau$ a~$\langle e, t \rangle \longrightarrow_{\iota} \langle e', t' \rangle$. Pak $\vdash e' : \tau$.
+\end{veta}
+
+\begin{proof}
+Indukcí podle odvození redukce. Případy pro $\beta$-redukci, \textsf{let} a~podmínku plynou z~lemmatu~\ref{lem:subst} a~jsou standardní. Případ vyhodnocovacího kontextu plyne z~indukčního předpokladu. Uvedeny jsou čtyři případy,~které se týkají štítků. V~každém z~nich stačí podle pravidla \textsc{T-Str} ověřit obě podmínky definice~\ref{def:radne}.
+
+\emph{Případ \eqref{ev:src}.} Podle \textsc{T-Src} je $\tau = \tStr^{(\top, \emptyset)}$ a~$e' = \bullet(\iota(n))$. Podmínka~(a) platí prázdně, protože $\top \neq \bot$. Podmínka~(b) platí také prázdně, protože $K = \emptyset$.
+
+\emph{Případ \eqref{ev:val}.} Podle \textsc{T-Val} je $e = \mVal_S(\hat{s})$ s~$\vdash \hat{s} : \tStr^{(i,K)}$, $\tau = \tStr^{(i \sqcap \mathit{mid},\, K \cup D(S))}$ a~$e' = \hat{s}$. Pokud $i \sqcap \mathit{mid} = \bot$, je nutně $i = \bot$, protože infimum na řetězci je minimum. Z~indukčního předpokladu pak $\Marked(\hat{s}) = \emptyset$, což dává~(a). Pro (b) se rozliší dva případy. Pokud $c \in K$, plyne $\hat{s} \in \Inert_c$ z~indukčního předpokladu. Pokud $c \in D(S)$, plyne z~postranní podmínky pravidla~\eqref{ev:val}, že $\lfloor \hat{s} \rfloor \in L(S)$, a~z~definice~\ref{def:inertS}, že $\bullet(\lfloor \hat{s} \rfloor) \in \Inert_c$. Podle lemmatu~\ref{lem:znacky} je pak $\hat{s} \in \Inert_c$. Pravidlo~\eqref{ev:valerr} dává $e' = \mErr$,~který je typovatelný libovolným typem.
+
+\emph{Případ \eqref{ev:san}.} Podle \textsc{T-San} je $e = \sigma_c(\hat{s})$ s~$\vdash \hat{s} : \tStr^{(i,K)}$, $i \sqsubseteq \mathit{mid}$ a~$\tau = \tStr^{(i, \{c\})}$. Pokud $i = \bot$, je $\Marked(\hat{s}) = \emptyset$, tedy $\mu(\hat{s}) = \circ$ a~výsledek je neznačkovaný: podmínka~(a). Podmínka~(b) plyne pro $\mu(\hat{s}) = \bullet$ přímo z~předpokladu~\ref{ass:san} a~pro $\mu(\hat{s}) = \circ$ ze stejného předpokladu spolu s~lemmatem~\ref{lem:znacky}.
+
+\emph{Případ zřetězení.} Je $e = \hat{s}_1 \oplus \hat{s}_2$ s~$\vdash \hat{s}_k : \tStr^{(i_k, K_k)}$ a~$\tau = \tStr^{(i_1 \sqcup i_2,\; K_1 \cap K_2)}$. Pokud $i_1 \sqcup i_2 = \bot$, je $i_1 = i_2 = \bot$, oba operandy jsou neznačkované a~stejné platí o~jejich zřetězení: podmínka~(a). Pro $c \in K_1 \cap K_2$ je $\hat{s}_1, \hat{s}_2 \in \Inert_c$, a~lemma~\ref{lem:monoid} dává $\hat{s}_1 \hat{s}_2 \in \Inert_c$: podmínka~(b).
+
+\emph{Případ \eqref{ev:out}.} Je $\tau = \tUnit$ a~$e' = ()$, což je typovatelné pravidlem pro jednotku. Prodloužení stopy typ neovlivňuje.
+\end{proof}
+
+Stojí za zdůraznění, která z~dosud dokázaných tvrzení se v~důkazu skutečně uplatnila. Případ zřetězení stojí a~padá s~lemmatem~\ref{lem:monoid}, tedy s~podmínkou kontextové neutrality~\eqref{in:okoli}. Případ sanitace stojí na předpokladu~\ref{ass:san} a~případ validace na definici~\ref{def:inertS}. Právě tyto tři body jsou nosnými prvky celého modelu. Vše ostatní je rutina.
+
+\begin{veta}[Pokrok]
+\label{thm:progress}
+Pro uzavřený term~$e$ s~$\vdash e : \tau$ nastává právě jedna ze tří možností: $e$ je hodnota, $e = \mErr$, nebo existuje konfigurace $\langle e', t' \rangle$ taková, že $\langle e, t \rangle \longrightarrow_{\iota} \langle e', t' \rangle$.
+\end{veta}
+
+\begin{proof}
+Indukcí podle odvození $\vdash e : \tau$ s~pomocnou úvahou o~kanonických tvarech: uzavřená hodnota typu $\tStr^{\ell}$ je značkovaný řetězec, hodnota typu $\tau_1 \to \tau_2$ je abstrakce a~hodnota typu $\tBool^{\ell}$ je $\mathsf{true}$ či $\mathsf{false}$ \parencite[kapitola 9]{pierce2002types}. V~případech \textsc{T-Val}, \textsc{T-San} a~\textsc{T-Out} je podterm buď hodnotou, nebo není. Pokud hodnotou je, je podle kanonických tvarů značkovaným řetězcem a~příslušné redukční pravidlo je použitelné. Pravidla \eqref{ev:val} a~\eqref{ev:valerr} přitom pokrývají obě možné odpovědi schématu, takže vyhodnocení nikdy neuvázne. Pokud hodnotou není, dává indukční předpoklad krok,~který lze provést uvnitř vyhodnocovacího kontextu. Pravidlo \textsc{T-Src} je vždy použitelné, protože prostředí~$\iota$ je totální.
+\end{proof}
