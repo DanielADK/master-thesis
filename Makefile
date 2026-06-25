@@ -1,7 +1,11 @@
 MAIN = main
 LATEX = xelatex -interaction=nonstopmode -shell-escape
-BIBER = biber
 PYTHON = python3
+
+BIBER_SYS := $(shell command -v biber)
+BIBER := $(shell test -x "$(BIBER_SYS)" && "$(BIBER_SYS)" --version >/dev/null 2>&1 \
+                 && echo "$(BIBER_SYS)" || echo .cache/biber)
+BIBER_DEP := $(filter .cache/biber,$(BIBER))
 
 # minted v3 (TeX Live 2025+) requires TEXMF_OUTPUT_DIRECTORY for output
 export TEXMF_OUTPUT_DIRECTORY = .
@@ -9,11 +13,16 @@ export TEXMF_OUTPUT_DIRECTORY = .
 .PHONY: build draft watch clean cleanall typo typo-apply
 
 # Build: 3× xelatex + biber + typo-apply.
-build: typo-apply
+build: typo-apply $(BIBER_DEP)
 	$(LATEX) $(MAIN).tex
 	$(BIBER) $(MAIN)
 	$(LATEX) $(MAIN).tex
 	$(LATEX) $(MAIN).tex
+
+.cache/biber: $(BIBER_SYS)
+	@test -n "$<" || { echo "biber required (TeX Live)"; exit 1; }
+	@mkdir -p $(@D)
+	lipo "$<" -thin $$(uname -m) -output $@ && chmod +x $@
 
 # Draft: 1× xelatex + typo-apply without biber.
 draft: typo-apply

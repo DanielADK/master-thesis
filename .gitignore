@@ -46,6 +46,9 @@ _minted*/
 *.config.minted
 *.pyg
 
+# biber slice (see Makefile)
+.cache/
+
 # Python
 __pycache__/
 
