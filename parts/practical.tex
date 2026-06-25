@@ -619,3 +619,144 @@ Pro uzavřený term~$e$ s~$\vdash e : \tau$ nastává právě jedna ze tří mo�
 \begin{proof}
 Indukcí podle odvození $\vdash e : \tau$ s~pomocnou úvahou o~kanonických tvarech: uzavřená hodnota typu $\tStr^{\ell}$ je značkovaný řetězec, hodnota typu $\tau_1 \to \tau_2$ je abstrakce a~hodnota typu $\tBool^{\ell}$ je $\mathsf{true}$ či $\mathsf{false}$ \parencite[kapitola 9]{pierce2002types}. V~případech \textsc{T-Val}, \textsc{T-San} a~\textsc{T-Out} je podterm buď hodnotou, nebo není. Pokud hodnotou je, je podle kanonických tvarů značkovaným řetězcem a~příslušné redukční pravidlo je použitelné. Pravidla \eqref{ev:val} a~\eqref{ev:valerr} přitom pokrývají obě možné odpovědi schématu, takže vyhodnocení nikdy neuvázne. Pokud hodnotou není, dává indukční předpoklad krok,~který lze provést uvnitř vyhodnocovacího kontextu. Pravidlo \textsc{T-Src} je vždy použitelné, protože prostředí~$\iota$ je totální.
 \end{proof}
+
+\subsection{Bezpečnostní záruka}
+\label{sec:model-zaruka}
+
+Věta~\ref{thm:preservation} říká, že typy zůstávají v~platnosti. Teprve nyní z~ní plyne tvrzení o~bezpečnosti. Nejprve je třeba říci, co se vlastně má dokázat. Právě zde se model rozchází s~naivní formulací neinterference.
+
+\begin{definice}[Výstup bez injektáže]
+\label{def:bezinjektaze}
+Dvojice $(c, \hat{s})$ ve výstupní stopě je \emph{bez injektáže}, pokud platí
+\[
+    \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \;\cap\; \Marked(\hat{s}) \;=\; \emptyset .
+\]
+\end{definice}
+
+Definice~\ref{def:bezinjektaze} je přepisem pojmu injektážního útoku, jak ho zavedli \textcite{su2006essence}, do značkovaného zápisu: útok nastává právě tehdy, pokud vstup útočníka přesáhne hranice datové pozice a~stane se součástí řídicí struktury výstupu. Podstatné je, čeho se definice \emph{netýká}: nezakazuje, aby výstup na vstupu útočníka závisel. Vypsání sanitovaného komentáře je tedy legitimní. Tím je splněn požadavek~R2. Rozdíl mezi oběma situacemi zachycuje schéma~\ref{fig:konfinace}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\scriptsize},
+        el/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny},
+        dat/.style={draw, minimum width=32mm, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny},
+        exn/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=red!16, draw=red!75!black, thick, double, font=\ttfamily\tiny},
+        e/.style={-, gray!55!black},
+        hdr/.style={font=\scriptsize\bfseries},
+        note/.style={font=\tiny\itshape, align=center}
+    ]
+        % ---------- safe ----------
+        \node[hdr, green!40!black] at (2.1, 3.1) {(a) výstup bez injektáže};
+        \node[el]  (ah) at (2.1, 2.3) {html};
+        \node[el]  (ab) at (2.1, 1.4) {body};
+        \node[el]  (ap) at (2.1, 0.5) {p};
+        \node[dat] (at) at (2.1, -0.4) {\#text: \&lt;img src=x\&gt;};
+        \draw[e] (ah) -- (ab) -- (ap) -- (at);
+        \node[note, green!40!black] at (2.1, -1.35)
+            {značky jen v~datovém listu\\ $\Exec \cap \Marked = \emptyset$};
+
+        % ---------- vulnerable ----------
+        \begin{scope}[xshift=72mm]
+        \node[hdr, red!65!black] at (2.1, 3.1) {(b) injektáž};
+        \node[el]  (bh) at (2.1, 2.3) {html};
+        \node[el]  (bb) at (2.1, 1.4) {body};
+        \node[el]  (bp) at (2.1, 0.5) {p};
+        \node[el]  (bt) at (0.3, -0.4) {\#text};
+        \node[exn] (bs) at (3.3, -0.4) {img @onerror};
+        \node[dat] (bx) at (3.3, -1.35) {alert(1)};
+        \draw[e] (bh) -- (bb) -- (bp);
+        \draw[e] (bp) -- (bt); \draw[e] (bp) -- (bs); \draw[e] (bs) -- (bx);
+        \node[note, red!65!black] at (2.1, -2.2)
+            {značkovaný znak nese uzel řídicí struktury\\ $\Exec \cap \Marked \neq \emptyset$};
+        \end{scope}
+    \end{tikzpicture}
+    \caption{Stejný vstup útočníka ve dvou rozborech výstupu. Červeně znaky se značkou~$\bullet$, dvojitým rámečkem exekuovatelná pozice. V~případě~(a) prošel vstup sanitací, zůstal proto uvnitř textového uzlu a~ovlivňuje pouze obsah stránky. V~případě~(b) sanitace chybí, vstup vytvořil vlastní uzel s~obsluhou události a~stal se součástí řídicí struktury dokumentu. Věta~\ref{thm:konfinace} tvrdí, že dobře typovaný program případ~(b) nikdy nevytvoří. Nezakazuje však případ~(a), a~aplikace tedy nadále může vypsat uživatelský obsah.}
+    \label{fig:konfinace}
+\end{figure}
+
+\begin{veta}[Konfinace]
+\label{thm:konfinace}
+Pro uzavřený program~$P$ s~$\vdash P : \tUnit$, každé prostředí~$\iota$ a~každý běh $\langle P, \varepsilon \rangle \longrightarrow^{*}_{\iota} \langle e, t \rangle$ je každá dvojice $(c, \hat{s}) \in t$ bez injektáže.
+\end{veta}
+
+\begin{proof}
+Dvojice $(c, \hat{s})$ mohla do stopy vstoupit jedině krokem~\eqref{ev:out}, tedy redukcí termu $\mOut_c(\hat{s})$. Podle věty~\ref{thm:preservation} je tento term v~okamžiku redukce dobře typovaný. Protože $\mOut_c$ zavádí pouze pravidlo \textsc{T-Out}, existuje štítek $(i,K)$ takový, že $\vdash \hat{s} : \tStr^{(i,K)}$ a~současně $i = \bot$ nebo $c \in K$. Z~pravidla \textsc{T-Str} plyne $\hat{s} \models (i,K)$.
+
+Pokud $i = \bot$, dává podmínka~(a) definice~\ref{def:radne} rovnost $\Marked(\hat{s}) = \emptyset$ a~tvrzení platí triviálně.
+
+Pokud $c \in K$, dává podmínka~(b) vztah $\hat{s} \in \Inert_c$. Podle předpokladu~\ref{ass:parse} je kořenová dvojice $(\varepsilon, \varepsilon)$ prvkem~$H_c$. Podmínka~\eqref{in:vlastni} definice~\ref{def:inertnost} pro ni dává
+\[
+    \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \;\cap\; \bigl(0 + \Marked(\hat{s})\bigr) \;=\; \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \cap \Marked(\hat{s}) \;=\; \emptyset,
+\]
+což je přesně podmínka definice~\ref{def:bezinjektaze}.
+\end{proof}
+
+\begin{dusledek}[Absence XSS]
+\label{cor:xss}
+Pokud platí předpoklad~\ref{ass:san}, neexistuje pro dobře typovaný program~$P$ žádný vstup útočníka, při kterém by se znak odvozený od tohoto vstupu ocitl na exekuovatelné pozici výstupu. Zranitelnost XSS ve smyslu definice~\ref{def:bezinjektaze} je tedy vyloučena konstrukcí, nikoliv detekcí.
+\end{dusledek}
+
+Zbývá dostát požadavku~R5, tedy pojmenovat množinu míst,~kterým je nutno důvěřovat. Věta~\ref{thm:preservation} totiž nepřímo říká i~to, odkud se inertnost v~programu může vzít. Seznam je krátký.
+
+\begin{veta}[Uzavřenost pramenů inertnosti]
+\label{thm:audit}
+Pro $\Gamma \vdash e : \tStr^{(i,K)}$ s~$c \in K$, kde žádná proměnná v~$\Gamma$ nemá typ $\tStr^{(i',K')}$ s~$c \in K'$, obsahuje odvození alespoň jedno použití některého ze tří pravidel:
+\textsc{T-Lit} pro literál~$s$ s~$c \in \CtxOf(s)$;
+\textsc{T-San} pro kontext~$c$;
+\textsc{T-Val} pro schéma~$S$ s~$c \in D(S)$.
+\end{veta}
+
+\begin{proof}
+Indukcí podle odvození. Pravidlo \textsc{T-Src} dává $K = \emptyset$, předpoklad $c \in K$ je tedy sporný a~případ nenastane. Pravidlo \textsc{T-Var} je vyloučeno předpokladem o~prostředí~$\Gamma$. Pravidlo \textsc{T-Concat} dává $c \in K_1 \cap K_2$, tedy $c \in K_1$, a~indukční předpoklad se použije na levou premisu. Pravidlo \textsc{T-Sub} dává $K' \subseteq K$, tedy $c \in K$, a~indukční předpoklad se použije na premisu. Zbývající tři pravidla,~která mohou zavést $c$ do množiny kontextů, jsou právě ta tři vyjmenovaná.
+\end{proof}
+
+Věta~\ref{thm:audit} je formálním protějškem robustní deklasifikace \textcite{zdancewic2003robust} a~zároveň zadáním pro kontrolní pravidlo z~dílčího cíle~4. Ze tří vyjmenovaných pramenů jsou totiž dva ověřitelné strojově: příslušnost literálu do $\Inert_c$ i~vztah $L(S) \subseteq \Inert_c$ jsou vlastnosti rozhodnutelné bez znalosti zbytku programu. Jediným pramenem,~který vyžaduje lidský audit, je tedy \textsc{T-San}, tj.~samotné sanitační funkce. Auditní plocha se tím smršťuje na množinu definic sanitačních funkcí. Její velikost je právě tou veličinou,~kterou hodnocení dle rámce SPACE (sekce~\ref{sec:space}) měří v~dimenzi \emph{Performance}.
+
+Vzájemnou závislost všech dokázaných tvrzení shrnuje schéma~\ref{fig:dukazy}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\tiny},
+        nd/.style={draw, rounded corners=2pt, minimum width=27mm, minimum height=8.5mm, align=center, font=\tiny},
+        ass/.style={nd, fill=orange!14, draw=orange!70!black, dashed},
+        lem/.style={nd, fill=blue!8,   draw=blue!55!black},
+        thm/.style={nd, fill=green!10, draw=green!45!black, thick},
+        goal/.style={nd, fill=green!22, draw=green!50!black, very thick},
+        e/.style={->, >=Stealth, gray!60!black}
+    ]
+        \node[ass] (ap)  at (0,    4.2) {\textbf{P\ref{ass:parse}} model prohlížeče\\$\Exec_c$, $H_c$, kořenová díra};
+        \node[ass] (as)  at (0,    2.6) {\textbf{P\ref{ass:san}} adekvátnost $\San_c$};
+        \node[lem] (lz)  at (0,    1.0) {\textbf{L\ref{lem:znacky}} monotonie značek};
+
+        \node[lem] (lm)  at (3.6,  4.2) {\textbf{L\ref{lem:monoid}} $\Inert_c$ je monoid};
+        \node[lem] (ll)  at (3.6,  2.6) {\textbf{L\ref{lem:mrizka}} $\Lat$ je svaz};
+        \node[lem] (ls)  at (3.6,  1.0) {\textbf{L\ref{lem:subst}} substituce};
+
+        \node[thm] (pr)  at (7.4,  3.4) {\textbf{V\ref{thm:preservation}} zachování typu};
+        \node[thm] (pg)  at (7.4,  1.0) {\textbf{V\ref{thm:progress}} pokrok};
+
+        \node[thm]  (kf) at (11.0, 3.4) {\textbf{V\ref{thm:konfinace}} konfinace};
+        \node[goal] (dx) at (11.0, 1.7) {\textbf{D\ref{cor:xss}} absence XSS};
+        \node[thm]  (au) at (11.0, 0.0) {\textbf{V\ref{thm:audit}} auditní plocha};
+
+        \draw[e] (lm) -- (pr);
+        \draw[e] (as) -- (pr);
+        \draw[e] (lz) -- (pr);
+        \draw[e] (ll) -- (pr);
+        \draw[e] (ls) -- (pr);
+        \draw[e] (ls) -- (pg);
+        \draw[e] (pr) -- (kf);
+        \draw[e] (pg) to[bend right=12] (kf);
+        \draw[e] (ap) to[bend left=16] (kf);
+        \draw[e] (kf) -- (dx);
+        \draw[e] (as) to[bend right=22] (dx);
+        \draw[e] (ll) to[bend right=10] (au);
+
+        \node[font=\tiny\itshape, gray!60!black, anchor=west] at (-1.4, -0.9)
+            {\textcolor{orange!70!black}{přerušovaně} předpoklady (nedokazují se), \textcolor{blue!55!black}{modře} lemmata, \textcolor{green!45!black}{zeleně} věty a~důsledek};
+    \end{tikzpicture}
+    \caption{Závislosti mezi tvrzeními modelu. Cílovým uzlem je důsledek~\ref{cor:xss}. Vedou do něj právě dvě cesty zvenčí: předpoklad o~věrnosti modelu prohlížeče a~předpoklad o~adekvátnosti sanitačních funkcí. Vše ostatní je dokázáno. Schéma tak zároveň slouží jako mapa toho, co je v~řešení nutno ověřit ručně: obsah dvou přerušovaných uzlů, nic víc.}
+    \label{fig:dukazy}
+\end{figure}
