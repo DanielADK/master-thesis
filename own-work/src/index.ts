@@ -26,7 +26,7 @@ const escapeHtml = (s: string): string => s.replace(/[&<>"']/g, c => `&#${c.char
 export const SAN: Record<Ctx, (s: string) => string> = {
   html: escapeHtml,
   script: s => s.replace(/[^\w ,.-]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`),
-  url: s => escapeHtml(/^https?:|^[^:]*$/i.test(s) ? s : 'about:invalid'),
+  url: s => escapeHtml(/^(?:https?|mailto):|^[^:]*$/i.test(s) ? s : 'about:invalid'),
   res: s => (/^https:\/\//i.test(s) ? escapeHtml(s) : 'about:invalid'),
 };
 
