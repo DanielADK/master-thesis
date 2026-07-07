@@ -834,3 +834,103 @@ Pro odpovídající si dvojice $(c, \hat{s})$ a~$(c, \hat{s}')$ se dále použij
 Podmínka o~shodném výsledku validace není technickou vsuvkou, ale poctivým přiznáním jednoho zbylého kanálu: selhání validace se navenek projeví, a~útočník tak z~chování aplikace zjistí, zda jeho vstup schématu vyhověl. Jde o~únik v~rozsahu jediného bitu na jedno volání, navíc záměrný, protože ohlášení neplatného vstupu je žádoucí chování. Zamlčet ho by znamenalo dokazovat větu o~jiném programu, než jaký se ve skutečnosti píše.
 
 Pro realizaci v~TypeScriptu je podstatné, že rozšíření o~$\mathit{pc}$ je právě tou částí modelu,~která se přenést \emph{nedá}. Typový systém TypeScriptu nesleduje řídicí tok v~bezpečnostním smyslu a~neexistuje způsob, jak v~něm podmínku $\mathit{pc} = \bot$ vynutit. Knihovna z~dílčího cíle~2 tedy realizuje jádro modelu, a~s~ním větu~\ref{thm:konfinace} a~důsledek~\ref{cor:xss}. Větu~\ref{thm:ni} nikoliv. Toto rozhraní mezi dokázaným a~nepřenositelným je jedním z~konkrétních obsahů obecného vymezení ze~sekce~\ref{sec:hranice-zaruky}.
+
+\subsection{Realizace modelu v~TypeScriptu}
+\label{sec:model-typescript}
+
+Model byl dosud formulován v~kalkulu. Požadavek~R4 však žádá, aby ho vynucoval překladač skutečného jazyka. Právě zde se dvouosá stavba štítku vyplácí: obě osy mají v~TypeScriptu přímý protějšek, a~operátor spojení dokonce protějšek jediný.
+
+\paragraph{Osa provenience -- svazové uspořádání sjednocením.}
+Úroveň~$i$ se zakóduje jako množina literálových typů,~která je tím větší, čím vyšší je kontaminace: $\bot \mapsto \texttt{'lit'}$, $\mathit{mid} \mapsto \texttt{'lit'|'val'}$ a~$\top \mapsto \texttt{'lit'|'val'|'raw'}$. Přiřaditelnost mezi objekty s~touto vlastností je pak právě inkluzí množin, tedy relací~$\sqsubseteq_{\Prov}$.
+
+\paragraph{Osa kontextů -- svazové uspořádání průnikem značek.}
+Množina~$K$ se zakóduje jako průnik nominálních značek, po jedné pro každý kontext. Typ s~více značkami je přiřaditelný do typu s~méně značkami. Tím vzniká uspořádání $K \supseteq K'$, tedy druhá složka relace~\eqref{eq:m-order}.
+
+\begin{minted}{typescript}
+declare const prov: unique symbol;
+
+type Ctx   = 'html' | 'script' | 'url' | 'res';
+type Level = 'lit' | 'val' | 'raw';               // bot <= mid <= top
+
+type Prov<I extends Level>  = { readonly [prov]: I };
+type Inert<K extends Ctx>   = { readonly [C in K as `__inert_${C}`]: true };
+type Str<I extends Level, K extends Ctx> = string & Prov<I> & Inert<K>;
+
+type SafeHtml   = Str<Level, 'html'>;             // (i, {html}) pro libovolne i
+type Literal    = Str<'lit', Ctx>;                // nejmensi prvek mrizky (bot, C)
+\end{minted}
+
+\paragraph{Operátor spojení.}
+Zásadní pozorování zní, že spojení~$\sqcup$ nepotřebuje v~TypeScriptu žádnou zvláštní konstrukci -- realizuje je sjednocení typů.
+
+\begin{tvrzeni}[Spojení je sjednocení]
+\label{claim:join}
+Pro libovolné štítky $\ell_1, \ell_2$ je typ $\llbracket \ell_1 \rrbracket \,|\, \llbracket \ell_2 \rrbracket$ přiřaditelný právě do těch typů $\llbracket \ell \rrbracket$, pro které $\ell_1 \sqcup \ell_2 \sqsubseteq \ell$. Platí tedy $\llbracket \ell_1 \sqcup \ell_2 \rrbracket = \llbracket \ell_1 \rrbracket \,|\, \llbracket \ell_2 \rrbracket$ až na vzájemnou přiřaditelnost.
+\end{tvrzeni}
+
+\begin{proof}[Zdůvodnění]
+Sjednocení je přiřaditelné do cílového typu právě tehdy, pokud je do~něj přiřaditelný každý jeho člen. Pro provenienci to znamená $I_1 \subseteq I \wedge I_2 \subseteq I$, tedy $I \supseteq I_1 \cup I_2$. Pro kontexty to znamená $K_1 \supseteq K \wedge K_2 \supseteq K$, tedy $K \subseteq K_1 \cap K_2$. Nejmenším takovým štítkem je $(i_1 \sqcup i_2,\; K_1 \cap K_2)$,~což je podle rovnice~\eqref{eq:m-join} právě $\ell_1 \sqcup \ell_2$.
+\end{proof}
+
+Podpis zřetězení se tím smrští na jediný řádek,~ve kterém se žádná mřížka nevyskytuje:
+
+\begin{minted}{typescript}
+declare function cat<A extends string, B extends string>(a: A, b: B): A | B;
+
+// propast: disjunkce z pravidla T-Out se vyjadri dvojici pretizeni
+declare function send(res: Response, h: Str<'lit', never>): void;   // i = bot
+declare function send(res: Response, h: SafeHtml): void;            // html in K
+
+declare function sanitize<C extends Ctx>(c: C, s: Str<'lit'|'val', Ctx>): Str<'lit'|'val', C>;
+declare function parse<S extends Schema>(s: S, u: unknown): Str<'lit'|'val', InertOf<S>>;
+\end{minted}
+
+Podpis funkce \texttt{sanitize} zároveň vynucuje postranní podmínku $i \sqsubseteq \mathit{mid}$ pravidla \textsc{T-San}: parametr typu \texttt{Str<'lit'|'val', Ctx>} hodnotu se štítkem~$\top$ nepřijme, takže sanitaci musí předcházet validace. Celý přenos shrnuje schéma~\ref{fig:vnoreni}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\scriptsize},
+        lft/.style={draw, rounded corners=2pt, minimum width=40mm, minimum height=8mm, align=center, fill=orange!10, draw=orange!65!black, font=\scriptsize},
+        rgt/.style={draw, rounded corners=2pt, minimum width=52mm, minimum height=8mm, align=center, fill=blue!8, draw=blue!55!black, font=\ttfamily\tiny},
+        hi/.style={draw=green!50!black, fill=green!14, thick},
+        gap/.style={draw=red!70!black, fill=red!8, thick, dashed},
+        a/.style={->, >=Stealth, gray!60!black},
+        hh/.style={font=\scriptsize\bfseries}
+    ]
+        \node[hh, orange!70!black] at (2.0, 4.7) {kalkul $\lxss$};
+        \node[hh, blue!60!black]   at (9.4, 4.7) {TypeScript};
+
+        \node[lft] (l1) at (2.0, 4.0) {$\tStr^{(i,K)}$};
+        \node[rgt] (r1) at (9.4, 4.0) {string \& Prov<I> \& Inert<K>};
+
+        \node[lft, hi] (l2) at (2.0, 2.9) {$\ell_1 \sqcup \ell_2$};
+        \node[rgt, hi] (r2) at (9.4, 2.9) {A | B};
+
+        \node[lft] (l3) at (2.0, 1.8) {\textsc{T-San}, $i \sqsubseteq \mathit{mid}$};
+        \node[rgt] (r3) at (9.4, 1.8) {sanitize<C>(c, s: Str<'lit'|'val', Ctx>)};
+
+        \node[lft] (l4) at (2.0, 0.7) {\textsc{T-Out}, $i = \bot \vee c \in K$};
+        \node[rgt] (r4) at (9.4, 0.7) {dvojice přetížení send(\ldots)};
+
+        \node[lft] (l5) at (2.0, -0.4) {\textsc{T-Lit}, $\CtxOf(s)$};
+        \node[rgt] (r5) at (9.4, -0.4) {kontrolor tagované šablony};
+
+        \node[lft, gap] (l6) at (2.0, -1.7) {\textsc{T-Out-pc}, $\mathit{pc} = \bot$};
+        \node[rgt, gap] (r6) at (9.4, -1.7) {\normalfont\itshape bez protějšku};
+
+        \foreach \k in {1,2,3,4,5} { \draw[a] (l\k) -- (r\k); }
+        \draw[a, red!70!black, dashed] (l6) -- node[above, font=\tiny\itshape, red!70!black] {nepřenositelné} (r6);
+
+        \node[font=\tiny\itshape, green!40!black, align=center] at (5.7, 3.35) {jádro tvrzení~\ref{claim:join}};
+    \end{tikzpicture}
+    \caption{Přenos jednotlivých částí modelu do TypeScriptu. Zeleně zvýrazněný řádek je jádrem celého vnoření: operátor spojení bezpečnostní mřížky se realizuje sjednocením typů, a~nevyžaduje proto ani zvláštní datovou strukturu, ani rozšíření překladače. Červeně přerušovaný řádek je jediná část modelu,~která protějšek nemá: štítek řídicího toku, a~s~ním věta~\ref{thm:ni}.}
+    \label{fig:vnoreni}
+\end{figure}
+
+\begin{tvrzeni}[Adekvátnost vnoření]
+\label{claim:adekvatnost}
+Pro každý term~$e$ kalkulu $\lxss$ bez rozšíření o~$\mathit{pc}$ platí: pokud $\vdash e : \tau$, je překlad $\llbracket e \rrbracket$ dobře typovaný program TypeScriptu typu $\llbracket \tau \rrbracket$. Obráceně, pokud je program TypeScriptu dobře typovaný a~náleží do \emph{ukázněného fragmentu}, tedy neobsahuje přetypování \texttt{as}, typ \texttt{any}, direktivu \texttt{@ts-ignore} ani deklaraci bez implementace, odpovídá mu term $\lxss$ stejného typu.
+\end{tvrzeni}
+
+Tvrzení~\ref{claim:adekvatnost} je uvedeno záměrně jako tvrzení, nikoliv jako věta, a~doprovázeno náčrtem namísto důkazu. Důvod je zásadní a~nemá smysl ho zastírat: TypeScript nemá úplnou formální sémantiku, vůči které by bylo možné takovou větu dokázat, a~jeho typový systém je navíc vědomě nekorektní ve prospěch použitelnosti (sekce~\ref{sec:hranice-zaruky}). První polovina tvrzení je ověřitelná mechanicky: překlad každého pravidla se zkontroluje překladačem na testovací sadě. Druhá polovina se opírá o~vymezení ukázněného fragmentu. Jeho dodržení nevynucuje typová kontrola, ale kontrolní pravidlo z~dílčího cíle~4. Právě proto je toto pravidlo součástí řešení, a~nikoliv jeho příslušenstvím.

@@ -4,7 +4,9 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

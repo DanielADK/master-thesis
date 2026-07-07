@@ -2,10 +2,13 @@
   "name": "own-work",
   "version": "0.1.0",
   "private": true,
-  "description": "Branded types against XSS in TypeScript, a prototype for sec:branded",
+  "description": "TypeScript realization of the label model of lambda-XSS",
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

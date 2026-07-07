@@ -474,6 +474,8 @@ Definice pravidel, jak se příznak šíří při operacích s~daty. Pro $n$-ár
 \end{equation}
 Spojení je horní mezí štítků všech operandů (axiom~\ref{ax:join}). Pokud je tedy kontaminován alespoň jeden z~operandů, je kontaminován i~výsledek. Sanitační status nelze získat „zředěním“.
 
+TypeScript sám štítky tímto způsobem nešíří. Zřetězení operátorem \texttt{+} dává prostý \texttt{string} bez značky, a~to i~tehdy, pokud některý z~operandů značku nese. V~navrženém řešení proto spojení štítků počítají funkce knihovny, například funkce zřetězení \texttt{cat} (podsekce~\ref{sec:model-typescript}), a~hodnotu vzniklou mimo ně bezpečná propast odmítne jako řetězec bez značky.
+
 \paragraph{3. Kontrola a~sanitace (\emph{sanitization}).}
 V~okamžiku, kdy data dosáhnou propasti, kontrolor ověří přítomnost příznaku. V~klasickém dvouúrovňovém obrazu značí $\sigma : \tau_\top \to \tau_\bot$ schválenou sanitační funkci a~$\mathit{sink}_\bot$ citlivé rozhraní,~které vyžaduje důvěryhodný vstup. Analýza pak povolí zápis právě tehdy, když
 \begin{equation}
@@ -504,7 +506,7 @@ type TaintedString = string;                    // řetězec bez značky
 type SafeHtml      = Brand<string, "SafeHtml">;
 \end{minted}
 
-Tato konstrukce zajišťuje, že programátor nemůže omylem přiřadit hodnotu typu \texttt{TaintedString} do proměnné typu \texttt{SafeHtml}, přestože oba jsou v~jádru řetězce. Opačné přiřazení typová kontrola dovolí, takže přiřaditelnost odpovídá uspořádání $\bot \sqsubseteq \top$ dvouprvkové mřížky. Značku smí hodnotě přidat pouze auditovaný modul knihovny (dílčí cíl~2). Jeho funkce hodnotu nejprve ověří, např.~sanitací nebo validací za běhu, a~teprve poté jí přetypováním (\emph{type casting}) značku „přidají“.
+Tato konstrukce zajišťuje, že programátor nemůže omylem přiřadit hodnotu typu \texttt{TaintedString} do proměnné typu \texttt{SafeHtml}, přestože oba jsou v~jádru řetězce. Opačné přiřazení typová kontrola dovolí, takže přiřaditelnost odpovídá uspořádání $\bot \sqsubseteq \top$ dvouprvkové mřížky. Dvě samostatné značky by naopak byly vzájemně nesrovnatelné a~toto uspořádání by nezachytily. Model práce proto úrovně původu zapisuje dolními množinami (podsekce~\ref{sec:model-typescript}). Značku smí hodnotě přidat pouze auditovaný modul knihovny (dílčí cíl~2). Jeho funkce hodnotu nejprve ověří, např.~sanitací nebo validací za běhu, a~teprve poté jí přetypováním (\emph{type casting}) značku „přidají“.
 
 Rozsáhlý kontrolovaný experiment \textcite{hanenberg2014maintainability} zjistil, že statické typování měřitelně pomáhá při porozumění nedokumentovanému kódu a~při opravě typových chyb. \emph{Při opravě chyb sémantických však žádný prokazatelný přínos nepřináší.} Zranitelnost typu XSS je přitom chybou právě sémantickou: stejný řetězec je nezávadný jako datová hodnota a~nebezpečný jako fragment HTML, aniž by se jeho struktura jakkoliv lišila. Samo zavedení TypeScriptu proti XSS proto nepomůže, protože bezpečný i~nebezpečný řetězec v~něm mají stejný typ \texttt{string}. Smysl značkovaných typů je v~tom, že sémantickou vlastnost „tato hodnota již prošla schválenou politikou“ převedou na vlastnost typovou. Tím ji přesunou do oblasti,~ve které je přínos typového systému doložen.
 
