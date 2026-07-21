@@ -1,9 +1,49 @@
-\chapter{Cíl práce a~metodika}
+\chapter{Cíl a~metodika}
+\label{chap:cil}
 
 \section{Cíl práce}
 
-% Hlavní a dílčí cíle práce.
+Hlavním cílem diplomové práce je navrhnout a~implementovat typově řízený model toku informací pro backendové webové aplikace postavené nad Node.js a~jazykem TypeScript. Tento model převádí zranitelnost Cross-Site Scripting z~chyby,~která se projeví až za běhu, na chybu zjistitelnou již typovou kontrolou (\texttt{tsc --noEmit}). Práce proto stojí na pomezí formálního a~aplikovaného výzkumu: z~teorie mřížek a~bezpečnostních typových systémů jsou odvozena konkrétní typová pravidla,~která jsou následně realizována jako znovupoužitelný balík pro Node.js.
+
+\noindent Hlavní cíl je rozpracován do čtyř dílčích cílů:
+\begin{enumerate}
+    \item \textbf{Formální specifikace.} Definovat jednoduchý model řízení toku informací (\emph{information flow control}) pro Node.js. Model musí mapovat tříúrovňovou mřížku integrity ($\bot,\;\mathit{mid},\;\top$) na strukturální a~nominální typy TypeScriptu a~musí formálně zachycovat krok validace schématu i~krok sanitace. Součástí je doložení korektnosti modelu matematickým důkazem.
+    \item \textbf{Návrh typového API.} Navrhnout sadu deklarací a~obalujících funkcí,~které na základě výše uvedené specifikace zavádějí typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl}. Součástí jsou i~odpovídající konstruktory, šablonové adaptéry a~úniky z~typového systému,~které lze v~praxi použít pouze v~auditovaném modulu.
+    \item \textbf{Integrace se SSR.} Implementovat ukázkový SSR modul (volitelně nad frameworkem Next.js) demonstrující, že je rozhraní pro odeslání odpovědi schopno odmítnout přiřazení hodnoty typu \texttt{string} tam, kde je očekáván typ \texttt{SafeHtml}.
+    \item \textbf{Auditovatelnost politik.} Doplnit knihovnu o~sadu pravidel pro ESLint,~která vymezí ukázněný fragment TypeScriptu a~ohlásí každé místo, kde ho kód opouští, například přetypováním na \texttt{SafeHtml} nebo hodnotou typu \texttt{any}. Sanitace tak zůstává pouze v~auditovaném modulu a~ohlášená místa tvoří auditní plochu,~jejíž velikost je jedním z~ukazatelů hodnocení.
+\end{enumerate}
 
 \section{Metodika}
 
-% Použité metody a postupy.
+Práce postupuje v~pěti metodicky odlišených fázích,~které na sebe navazují a~současně odpovídají struktuře kapitol.
+
+\paragraph{Rešerše a~formální základ.}
+V~první fázi proběhne studium primárních zdrojů z~oblasti řízení toku informací \parencite{denning1976lattice,sabelfeld2003language}, bezpečnostních typových systémů \parencite{volpano1996sound,zdancewic2003robust} a~referenčních dokumentů standardu Trusted Types \parencite{w3cTrustedTypes,mdnTrustedTypes}. Součástí rešerše je i~průzkum veřejně dostupných databází a~korpusů skutečných zranitelností,~ze kterého vzejde datový podklad pro závěrečné ověření. Výstupem je formální model s~doloženou korektností,~který slouží jako podklad pro odvození vlastních typových pravidel.
+
+\paragraph{Konstruktivní návrh.}
+Z~formálního modelu jsou odvozena typová pravidla pro jednotlivé propasti (\emph{sinks}) v~prostředí Node.js. Návrh se opírá o~existující praxi knihovny \texttt{safevalues} \parencite{googleSafevalues}, validační vrstvu zajišťuje Zod. Výstupem fáze jsou typová pravidla a~podpisy funkcí knihovny.
+
+\paragraph{Implementace.}
+Kód knihovny je překládán ve striktním režimu TypeScriptu (volba \texttt{strict},~která zahrnuje i~\texttt{noImplicitAny}) a~s~volbou \texttt{noUncheckedIndexedAccess}. Volbu \texttt{strict} předpokládá záruka i~u~aplikace,~která knihovnu používá. Hodnoty typu \texttt{any},~které pocházejí z~typových deklarací jiných knihoven (např.~tělo požadavku v~Expressu), nejsou těmito volbami zachyceny. Zachyceny jsou až pravidly z~dílčího cíle~4. Výstupem je balík ve formátu npm,~který lze přidat jako závislost do libovolné aplikace nad Express, Fastify či Next.js. V~zájmu dlouhodobé udržovatelnosti je každý veřejný symbol opatřen automatizovaným testem a~doprovodnou dokumentací.
+
+\paragraph{Hodnocení.}
+Hodnocení proběhne ve dvou rovinách. Bezpečnostní pokrytí se ověřuje na vzorku skutečných zranitelností typu XSS. Vzorek je sestaven podle předem stanovených kritérií. Na základě provedené rešerše je pramenem korpus OpenSSF CVE Benchmark \parencite{ossfCveBenchmark}. Pro každý případ je ověřeno, zda typová kontrola s~nasazenou knihovnou spolu s~pravidly z~dílčího cíle~4 odmítne zranitelnou verzi kódu a~přijme verzi opravenou.
+
+Pravidla nasazení knihovny jsou stanovena předem a~uplatněna mechanicky, nezávisle na znalosti chyby. Ve zranitelném i~v~opraveném commitu jsou podle stejného pravidla otypovány všechny propasti odpovědi a~všechny zdroje požadavku dotčeného modulu. Chyba typové kontroly nebo hlášení pravidel z~dílčího cíle~4 v~neupravené oficiální opravě se počítá jako falešně pozitivní nález. U~takové opravy je vykazován počet přepisů nutných k~tomu, aby prošla typovou kontrolou i~těmito pravidly. Tento počet vstupuje i~do ukazatele rozsahu zásahů uvedeného níže.
+
+Chyby uvnitř sanitačních a~escapovacích funkcí model odhalit nemůže, protože jejich korektnost předpokládá. Model nic nezaručuje ani v~oblastech,~které tabulka~\ref{tab:puvod} vede jako mimo záruku (např.~u~odpovědi odesílané po částech). Takové případy jsou proto vykazovány zvlášť jako případy mimo model a~ze vzorku nejsou vyřazeny. Úplné změny kódu,~kterými se knihovna do jednotlivých případů nasadí, se zveřejní v~příloze práce.
+
+Nástroje statické analýzy se spustí nad stejnými zranitelnými i~opravenými commity, ale bez nasazené knihovny. Korpus k~tomu obsahuje hotová napojení nástrojů ESLint (s~bezpečnostními pravidly), NodeJSScan a~CodeQL. Oba přístupy se tak posuzují na stejných commitech a~jejich vstupy se liší pouze nasazením knihovny podle zveřejněných pravidel.
+
+Korpus OpenSSF CVE Benchmark, naposledy změněný v~listopadu 2023, obsahuje 223 záznamů a~83 z~nich nese označení CWE-79. Předběžná klasifikace mezi nimi nachází čtrnáct případů XSS na straně serveru, z~toho tři jsou chybami uvnitř sanitačních či escapovacích funkcí. Vzorek je malý a~výsledky mají povahu případové studie, nikoliv statistického odhadu. Předem je stanoveno i~kritérium vyvrácení: tvrzenou typovou záruku vyvrátí již jediný případ v~rozsahu modelu,~u~kterého zranitelná verze s~nasazenou knihovnou projde typovou kontrolou i~pravidly z~dílčího cíle~4. Do rozsahu modelu patří každé XSS na straně serveru,~které nemá příčinu v~sanitační či escapovací funkci ani v~oblasti,~kterou tabulka~\ref{tab:puvod} vede jako mimo záruku.
+
+Vývojářská stránka řešení se posuzuje třemi ukazateli,~které lze stanovit měřením bez účasti respondentů:
+\begin{itemize}
+    \item doba od vzniku chyby k~jejímu ohlášení, měřená zvlášť pro typovou kontrolu v~editoru, pro sestavovací řetězec a~pro ruční revizi;
+    \item rozsah zásahů nutných k~zavedení knihovny do existující aplikace;
+    \item velikost plochy kódu,~která zůstává předmětem bezpečnostního auditu, zjištěná pravidly z~dílčího cíle~4.
+\end{itemize}
+Ukazatele vycházejí z~pojmu zpětnovazebních smyček (\emph{feedback loops}),~který rámec DevEx vymezuje jako rychlost a~kvalitu odezvy na provedenou akci \parencite{noda2023devex}. První ukazatel měří délku těchto smyček přímo. Druhý udává cenu, za kterou se ověřování bezpečnosti přesune do typové kontroly. Třetí určuje rozsah kódu, na který typová kontrola nedosáhne a~který zůstává odkázán na ruční revizi. Rámec SPACE \parencite{forsgren2021space} slouží jen jako pozadí. Hodnocení bez respondentů nemůže vyhovět doporučení jeho autorů zahrnout mezi metriky měřítko založené na vnímání vývojářů (podsekce~\ref{sec:space}). Práce proto netvrdí, že hodnotí podle rámce SPACE.
+
+\paragraph{Doporučení.}
+V~závěrečné fázi jsou z~výsledků hodnocení odvozena doporučení pro úpravu procesu vývoje, shrnutá v~kapitole „Zhodnocení a~doporučení“. Doporučení navazují zejména na ukazatele vývojářské stránky. Z~doby ohlášení chyby plyne, kam zařadit typovou kontrolu (\texttt{tsc --noEmit}) a~pravidla z~dílčího cíle~4 (editor, sestavovací řetězec). Z~rozsahu zásahů plyne postup zavedení knihovny do existující aplikace a~z~velikosti auditní plochy rozsah ruční revize.
