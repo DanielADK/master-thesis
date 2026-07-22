@@ -677,7 +677,7 @@ Definice~\ref{def:bezinjektaze} je přepisem pojmu injektážního útoku, jak h
 
 \begin{veta}[Konfinace]
 \label{thm:konfinace}
-Pro uzavřený program~$P$ s~$\vdash P : \tUnit$, každé prostředí~$\iota$ a~každý běh $\langle P, \varepsilon \rangle \longrightarrow^{*}_{\iota} \langle e, t \rangle$ je každá dvojice $(c, \hat{s}) \in t$ bez injektáže.
+Pro uzavřený program~$P$ s~$\vdash P : \tUnit$,~který neobsahuje značkované literály, každé prostředí~$\iota$ a~každý běh $\langle P, \varepsilon \rangle \longrightarrow^{*}_{\iota} \langle e, t \rangle$ je každá dvojice $(c, \hat{s}) \in t$ bez injektáže.
 \end{veta}
 
 \begin{proof}
@@ -694,7 +694,7 @@ což je přesně podmínka definice~\ref{def:bezinjektaze}.
 
 \begin{dusledek}[Absence XSS]
 \label{cor:xss}
-Pokud platí předpoklad~\ref{ass:san}, neexistuje pro dobře typovaný program~$P$ žádný vstup útočníka, při kterém by se znak odvozený od tohoto vstupu ocitl na exekuovatelné pozici výstupu. Zranitelnost XSS ve smyslu definice~\ref{def:bezinjektaze} je tedy vyloučena konstrukcí, nikoliv detekcí.
+Pokud platí předpoklady~\ref{ass:parse} a~\ref{ass:san}, neexistuje pro dobře typovaný program~$P$ žádný vstup útočníka, při kterém by se znak odvozený od tohoto vstupu ocitl na exekuovatelné pozici výstupu. Zranitelnost XSS ve smyslu definice~\ref{def:bezinjektaze} je tedy vyloučena konstrukcí, nikoliv detekcí.
 \end{dusledek}
 
 Zbývá dostát požadavku~R5, tedy pojmenovat množinu míst,~kterým je nutno důvěřovat. Věta~\ref{thm:preservation} totiž nepřímo říká i~to, odkud se inertnost v~programu může vzít. Seznam je krátký.
