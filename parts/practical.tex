@@ -218,54 +218,135 @@ Tuto vlastnost má model dokázat a~ostatní pojmy zavádí kvůli jejímu důka
     \source{vlastní zpracování}
 \end{figure}
 
-\subsection{Bezpečnostní mřížka: provenience a~kontextová inertnost}
-\label{sec:model-mrizka}
+\subsection{Způsobilost hodnoty pro kontext}
+\label{sec:model-inertnost}
 
-Teoretická kapitola pracovala se dvěma mřížkami odděleně: s~lineární mřížkou integrity $\bot \sqsubseteq \mathit{mid} \sqsubseteq \top$ (schéma~\ref{fig:pipeline}) a~s~mřížkou kontextově specifických typů (diagram~\ref{fig:mrizka-kontextova}). Požadavek~R1 velí obě spojit, nikoliv však sloučit. Jde totiž o~dvě nezávislé vlastnosti stejné hodnoty.
+Pokud má model o~celém výstupu dokázat, že je bez injektáže, musí stejné tvrzení umět vyslovit i~o~jeho částech, protože výstup vzniká skládáním. K~tomu potřebuje vlastnost jednotlivé hodnoty,~která se ze skládaných částí přenese na celek.
 
-\begin{definice}[Osa provenience]
-\label{def:provenience}
-Označme $\Prov = \{\bot, \mathit{mid}, \top\}$ s~uspořádáním $\bot \sqsubseteq \mathit{mid} \sqsubseteq \top$, kde
-$\bot$ značí hodnotu pocházející výhradně z~textu programu,
-$\mathit{mid}$ hodnotu, jejíž \emph{struktura} byla ověřena schématem, a
-$\top$ hodnotu plně řízenou útočníkem.
-\end{definice}
-
-\begin{definice}[Osa kontextů]
-\label{def:kontexty}
-Zápis $\Ctxs = \{\mathit{html},\, \mathit{script},\, \mathit{url},\, \mathit{res}\}$ značí konečnou množinu \emph{výstupních kontextů}. Odpovídají jim bezpečné typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2. Podmnožina $K \subseteq \Ctxs$ vyjadřuje, ve~kterých kontextech je hodnota \emph{inertní} ve smyslu definice~\ref{def:inertnost}.
-\end{definice}
-
-Zásadní je, že obě osy nesou uspořádání v~opačném smyslu. Vyšší provenience znamená \emph{méně} důvěry, zatímco větší množina kontextů znamená \emph{více} bezpečí. Bezpečnostní štítek je proto prvkem součinu,~ve kterém je druhá složka uspořádána obráceně.
-
-\begin{definice}[Bezpečnostní mřížka]
-\label{def:mrizka}
-Bezpečnostní štítek je dvojice $\ell = (i, K) \in \Prov \times \mathcal{P}(\Ctxs)$. Na množině štítků definujeme
+\begin{definice}[Způsobilost pro kontext]
+\label{def:inertnost}
+Řetězec~$s$ je \emph{způsobilý pro kontext~$c$}, pokud pro každý řetězec~$p$ končící v~datové díře kontextu~$c$ a~pro každý řetězec~$q$ platí obojí:
 \begin{align}
-    (i, K) \sqsubseteq (i', K') &\;\;\overset{\text{def}}{\Longleftrightarrow}\;\; i \sqsubseteq_{\Prov} i' \;\wedge\; K \supseteq K',
-    \label{eq:m-order}\\
-    (i, K) \sqcup (i', K') &\;\;=\;\; \bigl(\, i \sqcup_{\Prov} i',\;\; K \cap K' \,\bigr),
-    \label{eq:m-join}\\
-    (i, K) \sqcap (i', K') &\;\;=\;\; \bigl(\, i \sqcap_{\Prov} i',\;\; K \cup K' \,\bigr).
-    \label{eq:m-meet}
+    &\text{žádný znak útočníka z~}s\text{ neleží ve~}V_c(p\,s\,q)\text{;}
+    \tag{P1} \label{in:vlastni}\\[2pt]
+    &\text{řetězec~}p\,s\text{ opět končí v~datové díře kontextu~}c\text{.}
+    \tag{P2} \label{in:okoli}
 \end{align}
-Vzniklá struktura se značí $\Lat = \bigl(\Prov \times \mathcal{P}(\Ctxs),\, \sqsubseteq,\, \sqcup\bigr)$. Její nejmenší prvek je $\bot_{\Lat} = (\bot, \Ctxs)$ a~největší $\top_{\Lat} = (\top, \emptyset)$.
+Řetězec~$p$ zde představuje text před místem vložení, $q$ text za ním. Podmínka~\eqref{in:vlastni} se nazývá \emph{vlastní netečnost}: vložením~$s$ se žádný znak útočníka nedostane na vykonávané ani řídicí místo. Podmínka~\eqref{in:okoli} se nazývá \emph{kontextová neutralita}: za~$s$ zůstane datová díra, takže $s$ nezmění postavení textu,~který za~ním následuje. Požadavek, aby každý výstup sanitace byl způsobilý pro~$c$, je zvláštním případem korektnosti sanitace pro přechod z~kontextu~$c$ zpět do~$c$, jak ji definují \textcite{samuel2011context}. Takto ošetřený vstup autoři neformálně nazývají \emph{inertním}.
 \end{definice}
 
-\begin{lemma}[Korektnost mřížky]
-\label{lem:mrizka}
-Struktura $\Lat$ je konečný svaz a~splňuje Denningovy axiomy \ref{ax:finitness} až \ref{ax:join} ze sekce~\ref{eq:lattice}.
-\end{lemma}
+Podmínka~\eqref{in:vlastni} se týká pouze znaků útočníka. Text,~který napsal programátor, ji splňuje vždy a~způsobilost se u~něj redukuje na kontextovou neutralitu: \emph{programátor smí do výstupu zapsat kód, nesmí však otevřít kontext, do~kterého by poté vtekla data útočníka.} Obecněji způsobilosti neuškodí, pokud v~řetězci ubude znaků útočníka.
+
+\begin{tvrzeni}[Méně znaků útočníka neuškodí]
+\label{lem:monotonie}
+Pro řetězce $s$ a~$s'$ ze stejných znaků s~$U(s') \subseteq U(s)$ platí: pokud je $s$ způsobilý pro kontext~$c$, je pro~$c$ způsobilý i~$s'$.
+\end{tvrzeni}
 
 \begin{proof}
-$\Prov$ je konečný řetězec o~třech prvcích, tedy svaz. $\bigl(\mathcal{P}(\Ctxs), \supseteq\bigr)$ je duál Booleovy algebry podmnožin konečné množiny, tedy také konečný svaz,~ve kterém supremum odpovídá průniku a~infimum sjednocení. Kartézský součin dvou svazů s~po složkách definovaným uspořádáním je svaz a~supremum se počítá po složkách. Rovnice~\eqref{eq:m-order} až \eqref{eq:m-meet} tuto konstrukci pouze rozepisují. Odtud:
-\ref{ax:finitness} plyne z~$|\Lat| = 3 \cdot 2^{|\Ctxs|} = 48$;
-\ref{ax:order} z~toho, že součin částečných uspořádání je částečné uspořádání;
-\ref{ax:bottom} z~existence nejmenších prvků obou složek, tedy $\bot_{\Lat} = (\bot, \Ctxs)$;
-\ref{ax:join} z~existence suprem v~obou složkách a~z~jejich jednoznačnosti ve svazu.
+Množina $V_c(p\,s\,q)$ a~podmínka~\eqref{in:okoli} závisejí jen na znacích, a~jsou tak pro $s$ i~$s'$ stejné. Znaky útočníka z~$s'$ jsou znaky útočníka i~v~$s$, takže podmínku~\eqref{in:vlastni} splňují.
 \end{proof}
 
-Součinovou strukturu znázorňuje diagram~\ref{fig:mrizka-soucin}. Model tímto krokem \emph{zpřesňuje} tvrzení uvedené v~popisu diagramu~\ref{fig:join-action}: spojení dvou hodnot bezpečných v~různých kontextech nedává $\top_{\Lat}$, ale $(\bot, \emptyset)$. Výsledek je sice neinertní ve všech kontextech, jeho provenience však zůstává důvěryhodná. Toto rozlišení není akademické. Právě ono umožňuje v~pravidle~\textsc{T-Out} připustit programátorem zapsaný literál obsahující značky HTML.
+Tři typické případy vložení ukazuje schéma~\ref{fig:inertnost}. V~panelu~(a) je \texttt{<p>} řetězcem~$p$,~který končí v~datové díře, a~\texttt{</p>} pokračováním~$q$. Znaky útočníka ve výstupu jsou, žádný však neleží na vykonávaném ani řídicím místě. Panel~(b) porušuje vlastní netečnost. Panel~(c) porušuje kontextovou neutralitu, ačkoliv vkládaný řetězec je literál programátora,~který žádný znak útočníka neobsahuje a~podmínku~\eqref{in:vlastni} splňuje. Tento literál však otevře atribut a~místo za~ním přestane být datovou dírou kontextu \emph{html}. Data útočníka,~která do něj vtečou později, se pak stanou hodnotou obsluhy události.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\scriptsize},
+        seg/.style={draw, minimum height=6.5mm, inner xsep=3pt, font=\ttfamily\scriptsize},
+        lit/.style={seg, fill=gray!14, draw=gray!55!black},
+        mrk/.style={seg, fill=red!16,  draw=red!60!black},
+        exe/.style={seg, fill=red!16,  draw=red!75!black, thick, double},
+        sub/.style={seg, fill=gray!14, draw=blue!60!black, thick},
+        tag/.style={font=\scriptsize\itshape, gray!50!black, anchor=west},
+        ok/.style={font=\scriptsize\bfseries, green!45!black, anchor=west},
+        no/.style={font=\scriptsize\bfseries, red!70!black, anchor=west},
+        br/.style={decorate, decoration={brace, amplitude=4pt, mirror}, thick, blue!55!black}
+    ]
+        % =============== (a) inert ===============
+        \node[tag] at (-0.2, 1.2) {(a) způsobilé vložení: sanitovaná data útočníka};
+        \node[lit] (a1) at (0,0) {<p>};
+        \node[mrk, right=0pt of a1] (a2) {Ahoj \&lt;b\&gt;};
+        \node[lit, right=0pt of a2] (a3) {</p>};
+        \draw[br] ([yshift=-1mm]a2.south west) -- ([yshift=-1mm]a2.south east)
+              node[midway, below=4pt, font=\tiny] {vkládaný řetězec~$s$};
+        \node[ok] at ($(a3.east)+(4mm,0)$) {\eqref{in:vlastni}~\checkmark\quad\eqref{in:okoli}~\checkmark};
+
+        % =============== (b) P1 violated ===============
+        \begin{scope}[yshift=-26mm]
+            \node[tag] at (-0.2, 1.2) {(b) porušena \eqref{in:vlastni}: znak útočníka na vykonávaném místě};
+            \node[lit] (b1) at (0,0) {<p>};
+            \node[mrk, right=0pt of b1] (b2) {<script>};
+            \node[exe, right=0pt of b2] (b3) {alert(1)};
+            \node[mrk, right=0pt of b3] (b4) {</script>};
+            \node[lit, right=0pt of b4] (b5) {</p>};
+            \draw[br] ([yshift=-1mm]b2.south west) -- ([yshift=-1mm]b4.south east)
+                  node[midway, below=4pt, font=\tiny] {nesanitovaná data útočníka};
+            \node[no] at ($(b5.east)+(4mm,0)$) {\eqref{in:vlastni}~$\times$};
+        \end{scope}
+
+        % =============== (c) P2 violated ===============
+        \begin{scope}[yshift=-52mm]
+            \node[tag] at (-0.2, 1.2) {(c) porušena \eqref{in:okoli}: literál otevře kontext pro data útočníka};
+            \node[lit] (c1) at (0,0) {<p>};
+            \node[sub, right=0pt of c1] (c2) {<div title=};
+            \node[mrk, right=0pt of c2] (c3) {x~onmouseover=};
+            \node[exe, right=0pt of c3] (c4) {f()};
+            \node[lit, right=0pt of c4] (c5) {>};
+            \draw[br] ([yshift=-1mm]c2.south west) -- ([yshift=-1mm]c2.south east)
+                  node[midway, below=4pt, font=\tiny] {literál programátora};
+            \node[no] at ($(c5.east)+(4mm,0)$) {\eqref{in:okoli}~$\times$};
+        \end{scope}
+    \end{tikzpicture}
+    \caption[Tři vložení řetězce do datové díry kontextu \emph{html}]{Tři vložení řetězce do datové díry kontextu \emph{html}. Šedě text programu, červeně znaky útočníka, dvojitým rámečkem místa,~která prohlížeč vykoná.}
+    \label{fig:inertnost}
+    \source{vlastní zpracování}
+\end{figure}
+
+\begin{tvrzeni}[Způsobilé řetězce lze skládat]
+\label{lem:monoid}
+Prázdný řetězec je způsobilý pro každý kontext. Pokud jsou řetězce~$s_1$ a~$s_2$ způsobilé pro kontext~$c$, je pro~$c$ způsobilé i~jejich zřetězení~$s_1 s_2$.
+\end{tvrzeni}
+
+\begin{proof}
+Prázdný řetězec neobsahuje žádný znak útočníka a~$p$ s~ním zůstane beze změny, obě podmínky tak splňuje. Pro neprázdný případ jsou dány řetězce $s_1$ a~$s_2$ způsobilé pro~$c$, řetězec~$p$ končící v~datové díře kontextu~$c$ a~libovolný řetězec~$q$. Způsobilost~$s_1$ se použije pro~$p$ a~pokračování~$s_2\,q$: podle~\eqref{in:vlastni} neleží žádný znak útočníka z~$s_1$ ve~$V_c(p\,s_1 s_2\,q)$ a~podle~\eqref{in:okoli} končí v~datové díře i~$p\,s_1$. Způsobilost~$s_2$ se pak použije pro~$p\,s_1$ a~pokračování~$q$: žádný znak útočníka z~$s_2$ neleží ve~$V_c(p\,s_1 s_2\,q)$ a~v~datové díře končí i~$p\,s_1 s_2$. Každý znak útočníka ve zřetězení $s_1 s_2$ pochází z~$s_1$ nebo z~$s_2$, takže $s_1 s_2$ splňuje obě podmínky.
+\end{proof}
+
+Podmínka~\eqref{in:okoli} je v~důkazu nezbytná: bez ní by $p\,s_1$ nemusel končit v~datové díře a~o~$s_2$ by nebylo možno nic tvrdit. Pro praxi z~tvrzení plyne, že \emph{skládat dvě hodnoty způsobilé pro stejný kontext je bezpečné}. O~hodnotách způsobilých pro různé kontexty tvrzení nic neříká a~jejich složení bezpečné být nemusí, jak ukazuje panel~(c) schématu~\ref{fig:inertnost}. Tvrzení tak zdůvodňuje, proč knihovna \texttt{safevalues} smí zřetězit dvě hodnoty \texttt{SafeHtml}. Zřetězení \texttt{SafeHtml} se \texttt{SafeScript} knihovna odmítá, protože pro ně žádná taková záruka neplatí.
+
+\subsection{Bezpečnostní štítek}
+\label{sec:model-mrizka}
+
+Hodnota nese dvě nezávislé vlastnosti: \emph{původ} a~\emph{způsobilost pro kontexty}. Jejich nezávislost ukazuje běžící příklad: hodnota \texttt{q} je i~po sanitaci od útočníka, protože její obsah zvolil on, a~přece je způsobilá pro vložení do těla HTML. Model s~jedinou osou by musel jednu z~obou informací pominout. Buď by sanitovanou hodnotu prohlásil za důvěryhodnou a~ztratil přehled o~původu, anebo by ji dál považoval za nebezpečnou a~zakázal její vypsání.
+
+Štítek je proto dvojice $\ell = (i, K)$, kde
+\[
+    i \in \{\bot,\; \mathit{mid},\; \top\}
+    \qquad\text{a}\qquad
+    K \subseteq \Ctxs = \{\mathit{html},\, \mathit{script},\, \mathit{url},\, \mathit{res}\}.
+\]
+Složka~$i$ udává původ hodnoty: $\bot$ značí text programu, $\mathit{mid}$ hodnotu s~ověřenou strukturou a~$\top$ hodnotu plně řízenou útočníkem. Úrovně jsou seřazeny $\bot \sqsubset \mathit{mid} \sqsubset \top$ od nejlepší po nejhorší, takže na~nich lze počítat minimum a~maximum. Množina~$K$ obsahuje kontexty, pro které je hodnota způsobilá. Odpovídají jim bezpečné typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2.
+
+Hodnotu se štítkem $(i,K)$ lze použít tam, kde se očekává štítek $(i',K')$, pokud nemá horší původ a~je způsobilá aspoň pro všechny požadované kontexty: $i \sqsubseteq i'$ a~$K \supseteq K'$. Zřetězení dvou hodnot obdrží jejich \emph{spojení}, nejlepší štítek,~který lze přiznat oběma zároveň
+\begin{equation}
+    (i,K) \sqcup (i',K') \;=\; \bigl(\max(i,i'),\; K \cap K'\bigr).
+    \label{eq:m-join}
+\end{equation}
+Původ se řídí horší z~obou částí a~kontext zůstane ve štítku zřetězení pouze tehdy, pokud ho obsahují štítky obou částí. Tento průnik má oporu v~tvrzení~\ref{lem:monoid}.
+
+\begin{tvrzeni}[Štítky tvoří bezpečnostní mřížku]
+\label{lem:mrizka}
+Štítky s~uvedeným uspořádáním a~spojením podle rovnice~\ref{eq:m-join} tvoří bezpečnostní mřížku ve smyslu rovnice~\ref{eq:lattice} a~splňují Denningovy axiomy A1 až A4.
+\end{tvrzeni}
+
+\begin{proof}
+Štítků je konečně mnoho, konkrétně $3 \cdot 2^4 = 48$ (A1). Uspořádání je posuzováno po složkách: na původu podle pořadí tří úrovní, na kontextech podle obrácené inkluze. Obě jsou částečná uspořádání, a~částečným uspořádáním je proto i~uspořádání dvojic (A2). Nejmenším prvkem je $(\bot, \Ctxs)$, text programu způsobilý pro všechny kontexty (A3). Pro A4 stačí ověřit, že rovnice~\ref{eq:m-join} dává nejlepší štítek,~který lze přiznat oběma zároveň: $\max(i,i')$ je nejlepší úroveň,~která je aspoň tak špatná jako $i$ i~$i'$, a~$K \cap K'$ je největší množina kontextů obsažená v~$K$ i~v~$K'$.
+\end{proof}
+
+V~důkazu konfinace není toto tvrzení využito. Tvrzení však zaručuje, že štítek zřetězení více hodnot nezávisí na pořadí,~ve kterém se spojení počítají.
+
+Model tím zpřesňuje tvrzení teoretické kapitoly ilustrované diagramem~\ref{fig:join-action}. Spojení dvou hodnot způsobilých každá pro jiný jediný kontext, jako \texttt{SafeHtml} a~\texttt{SafeScript}, nedává největší prvek. Štítek výsledku sice nepřizná žádný kontext, původ se však nezhorší, takže spojením dvou takových literálů vznikne $(\bot, \emptyset)$. Toto rozlišení umožní připustit programátorem zapsaný literál obsahující značky HTML.
+
+Obě osy štítku znázorňuje diagram~\ref{fig:mrizka-soucin}. Se všemi čtyřmi kontexty modelu by osa kontextů v~jeho panelu~(b) měla šestnáct vrcholů. V~panelu~(c) směrem vzhůru přibývá kontaminace a~směrem vpravo ubývá kontextů, pro které je hodnota způsobilá. Obojí štítek zhoršuje. Hodnotě \texttt{SafeHtml} odpovídá sloupec~$\{h\}$ v~kterémkoliv řádku, při jakémkoliv původu.
 
 \begin{figure}[htbp]
     \centering
@@ -279,7 +360,7 @@ Součinovou strukturu znázorňuje diagram~\ref{fig:mrizka-soucin}. Model tímto
         pan/.style={font=\footnotesize\itshape}
     ]
         % ---------- (a) provenance axis ----------
-        \node[pan] at (0, 4.5) {(a) provenience $\Prov$};
+        \node[pan] at (0, 4.5) {(a) původ hodnoty};
         \node[n] (i0) at (0, 0.6) {$\bot$};
         \node[n] (i1) at (0, 2.0) {$\mathit{mid}$};
         \node[n] (i2) at (0, 3.4) {$\top$};
@@ -290,20 +371,20 @@ Součinovou strukturu znázorňuje diagram~\ref{fig:mrizka-soucin}. Model tímto
 
         % ---------- (b) context axis ----------
         \begin{scope}[xshift=44mm]
-            \node[pan] at (0, 4.5) {(b) kontexty $\mathcal{P}(\Ctxs)^{op}$};
+            \node[pan] at (0, 4.5) {(b) způsobilé kontexty};
             \node[n] (k0) at ( 0,   0.6) {$\Ctxs$};
             \node[n] (kh) at (-1.2, 2.0) {$\{h\}$};
             \node[n] (ks) at ( 1.2, 2.0) {$\{s\}$};
             \node[n] (ke) at ( 0,   3.4) {$\emptyset$};
             \draw[e] (k0) -- (kh); \draw[e] (k0) -- (ks);
             \draw[e] (kh) -- (ke); \draw[e] (ks) -- (ke);
-            \node[below=1.5mm of k0, font=\tiny] {inertní všude};
-            \node[above=1.5mm of ke, font=\tiny] {inertní nikde};
+            \node[below=1.5mm of k0, font=\tiny] {způsobilá všude};
+            \node[above=1.5mm of ke, font=\tiny] {způsobilá nikde};
         \end{scope}
 
         % ---------- (c) product ----------
         \begin{scope}[xshift=88mm]
-            \node[pan] at (1.95, 4.5) {(c) součin $\Lat = \Prov \times \mathcal{P}(\Ctxs)^{op}$};
+            \node[pan] at (1.95, 4.5) {(c) štítek: obě osy dohromady};
             \foreach \r/\y in {0/0.6, 1/2.0, 2/3.4}
               \foreach \c/\x in {0/0, 1/1.95, 2/3.9}
                 \coordinate (g\r\c) at (\x, \y);
@@ -324,178 +405,38 @@ Součinovou strukturu znázorňuje diagram~\ref{fig:mrizka-soucin}. Model tímto
             \foreach \c in {0,1,2} {
               \draw[e] (p0\c) -- (p1\c); \draw[e] (p1\c) -- (p2\c);
             }
-            \node[below=1mm of p00, font=\tiny, green!45!black] {$\bot_{\Lat}$};
-            \node[above=1mm of p22, font=\tiny, red!70!black] {$\top_{\Lat}$};
+            \node[below=1mm of p00, font=\tiny, green!45!black] {nejlepší štítek};
+            \node[above=1mm of p22, font=\tiny, red!70!black] {nejhorší štítek};
         \end{scope}
     \end{tikzpicture}
-    \caption{Bezpečnostní mřížka jako součin dvou os. Panel~(a) zachycuje osu provenience, panel~(b) osu kontextů pro dvouprvkovou množinu $\{h, s\}$ (v~modelu jde o~čtyřprvkovou množinu, tedy o~čtyřrozměrnou krychli o~šestnácti vrcholech). Panel~(c) ukazuje výřez součinu: směrem vzhůru roste kontaminace, směrem vpravo ubývá inertních kontextů. Obě cesty vedou vzhůru v~uspořádání~$\sqsubseteq$. Hodnota \texttt{SafeHtml} odpovídá sloupci $\{h\}$ nezávisle na řádku. Právě tato nezávislost obou os je jádrem modelu.}
+    \caption[Dvě osy štítku a~výřez jejich kombinace]{Dvě osy štítku: původ~(a), způsobilé kontexty~(b) a~výřez jejich kombinace~(c). Panel~(b) je zjednodušen na kontexty $h$ (html) a~$s$ (script); $\Ctxs$ zde značí oba.}
     \label{fig:mrizka-soucin}
+    \source{vlastní zpracování}
 \end{figure}
 
-\subsection{Význam štítků: exekuovatelné pozice a~inertnost}
-\label{sec:model-semantika}
+Způsobilost má v~modelu pouze tři prameny: literál, validaci a~sanitaci. První dva popisuje následující definice, třetí předpoklad za ní. Tvrzení~\ref{thm:audit} ukazuje, že jiné prameny nejsou.
 
-Předchozí podsekce zavedla štítky jako symboly. Aby z~nich bylo možné cokoliv dokázat, musí být řečeno, \emph{co znamenají}. Model proto neodvozuje význam štítku od syntaxe programu, ale od chování prohlížeče: kontaminovaný znak je nebezpečný právě tehdy, pokud skončí na místě, kde ho prohlížeč vykoná. Tento pohled přebírá od~\textcite{su2006essence},~kteří injektážní útok obecně definovali jako situaci, kdy vstup útočníka přesáhne hranice jediného datového uzlu ve výsledném syntaktickém stromě.
-
-\paragraph{Značkované řetězce.}
-Hodnotami řetězcového typu nejsou prosté řetězce, ale \emph{značkované} řetězce $\hat{s} \in (\Sigma \times \{\circ, \bullet\})^{*}$. Značka~$\bullet$ označuje znak odvozený od vstupu útočníka a~značka~$\circ$ znak pocházející z~textu programu. Značkování je nástrojem \emph{důkazu}, nikoliv součástí implementace. V~přeloženém programu žádné značky neexistují. Slouží pouze k~tomu, aby bylo možné o~výsledném řetězci vyslovit tvrzení o~původu jeho znaků. Tento postup je standardní technikou v~pracích o~injektážních útocích \parencite{su2006essence}. Zavádí se zápis
-\[
-    \Marked(\hat{s}) \;=\; \{\, j \;\mid\; j\text{-tý znak } \hat{s} \text{ nese značku } \bullet \,\},
-    \qquad
-    \lfloor \hat{s} \rfloor \in \Sigma^{*} \;\text{ pro řetězec bez značek.}
-\]
-Řetězcový literál zapsaný v~programu má všechny znaky značkovány symbolem~$\circ$, tedy $\Marked(s) = \emptyset$.
-
-
-\begin{predpoklad}[Abstraktní model prohlížeče]
-\label{ass:parse}
-Pro každý kontext $c \in \Ctxs$ je dána parciální funkce $\Prs_c : \Sigma^{*} \rightharpoonup \mathit{Tree}$ (rozbor řetězce v~kontextu~$c$) a~zobrazení
-\[
-    \Exec_c : \Sigma^{*} \longrightarrow \mathcal{P}(\mathbb{N}),
-\]
-která řetězci $h$ přiřazuje množinu indexů těch znaků,~které v~rozboru $\Prs_c(h)$ leží na \emph{exekuovatelné pozici}, tj.~v~těle skriptu, v~hodnotě obsluhy události, nebo ve~schématu \texttt{javascript:} navigačního cíle. Dále platí $(\varepsilon, \varepsilon) \in H_c$: propast kontextu~$c$ zapisuje do kořenové datové pozice tohoto kontextu.
-\end{predpoklad}
-
-Předpoklad~\ref{ass:parse} je ryze deklarativní: model nepředepisuje, jak $\Prs_c$ vypadá, pouze že existuje. Tím se model odpoutává od konkrétní verze specifikace HTML a~zůstává platný i~pro kontexty,~které zde nejsou vyjmenovány. Za tuto obecnost se platí tím, že všechna tvrzení modelu jsou podmíněna věrností dvojice $(\Prs_c, \Exec_c)$ vůči skutečnému prohlížeči. Této otázce se věnuje podsekce~\ref{sec:model-hranice}.
-
-\begin{definice}[Datová díra kontextu]
-\label{def:dira}
-Dvojice řetězců $(p, q)$ je \emph{$c$-dírou}, pokud pozice $|p|$ leží v~rozboru $\Prs_c(p \cdot q)$ uvnitř datového terminálu kontextu~$c$ (obsah elementu, hodnota atributu v~uvozovkách, řetězcový literál skriptu, cesta v~URL). Množina všech $c$-děr se značí $H_c$.
+\begin{definice}[Prameny způsobilosti]
+\label{def:prameny}
+Pro literál~$s$ zapsaný v~programu značí $\CtxOf(s)$ množinu kontextů, pro které je~$s$ způsobilý. Pro schéma~$S$ značí $D(S)$ množinu kontextů různých od~\emph{res}, pro které je způsobilý \emph{každý} řetězec vyhovující schématu~$S$, i~když se celý pokládá za znaky útočníka.
 \end{definice}
 
-\begin{definice}[Inertnost]
-\label{def:inertnost}
-Značkovaný řetězec $\hat{s}$ je \emph{inertní v~kontextu~$c$}, zapsáno $\hat{s} \in \Inert_c$, pokud pro každou $c$-díru $(p, q) \in H_c$ tvořenou neznačkovanými řetězci platí současně
-\begin{align}
-    \Exec_c(p\,w\,q) \;\cap\; \bigl(|p| + \Marked(\hat{s})\bigr) &\;=\; \emptyset,
-    \tag{P1} \label{in:vlastni}\\[2pt]
-    (p\,w,\; q) &\;\in\; H_c ,
-    \tag{P2} \label{in:okoli}
-\end{align}
-kde $w = \lfloor \hat{s} \rfloor$ je podkladový řetězec bez značek a~$|p| + M$ značí množinu $\{\, |p| + j \mid j \in M \,\}$, tedy posun značkovaných pozic o~délku předpony. Podmínka~\eqref{in:vlastni}, \emph{vlastní netečnost}, žádá, aby žádný \emph{značkovaný} znak řetězce~$\hat{s}$ neskončil na exekuovatelné pozici. Podmínka~\eqref{in:okoli}, \emph{kontextová neutralita}, žádá, aby $\hat{s}$ nezměnil postavení okolí, takže díra za~$\hat{s}$ zůstává stejnou datovou dírou.
-\end{definice}
+Štítek literálu je \emph{počítán} z~jeho obsahu, a~to pro každý kontext zvlášť. Literály \verb|"Dobrý den"| a~\verb|"<h1>"| obdrží všechny čtyři kontexty, protože značka \texttt{<h1>} nic neotevře ani v~řetězcovém literálu skriptu, ani v~hodnotě atributu v~uvozovkách. Literály \verb|"<div title="| a~\verb|"<script>"| obdrží $\{\mathit{script}, \mathit{url}, \mathit{res}\}$: v~textu elementu otevírají kontext,~který neuzavřou, a~kontext \emph{html} jim proto chybí, jak vyžaduje požadavek~R3. Uzavřený literál \verb|"<script>init()</script>"| obdrží $\{\mathit{html}, \mathit{url}, \mathit{res}\}$: neobsahuje žádný znak útočníka, podmínku~\eqref{in:vlastni} splňuje a~za ním zůstane text elementu. V~řetězcovém literálu skriptu by naopak jeho značka \verb|</script>| ukončila celý skript.
 
-Omezení podmínky~\eqref{in:vlastni} na značkované znaky není zjemněním, ale jádrem věci. Pro neznačkovaný řetězec, tedy pro text zapsaný programátorem, je \eqref{in:vlastni} splněna prázdně a~inertnost se redukuje na samotnou kontextovou neutralitu. Model tím vyslovuje přesně to, o~co v~prevenci XSS jde: \emph{programátor smí do výstupu zapsat kód, nesmí však otevřít kontext, do~kterého by poté vtekla cizí data.} Obě podmínky i~případ inertního vložení ukazuje schéma~\ref{fig:inertnost}.
+Obdobně $D(S)$ vymezuje případy, kdy je validace zároveň sanitací, hranici,~která bývá v~praxi nejasná. Schéma \verb|z.enum(["asc","desc"])| má $D(S) = \{\mathit{html}, \mathit{script}, \mathit{url}\}$, zatímco \verb|z.string()| prázdné.
 
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        seg/.style={draw, minimum height=6.5mm, inner xsep=3pt, font=\ttfamily\scriptsize},
-        lit/.style={seg, fill=gray!14, draw=gray!55!black},
-        mrk/.style={seg, fill=red!16,  draw=red!60!black},
-        exe/.style={seg, fill=red!16,  draw=red!75!black, thick, double},
-        sub/.style={seg, fill=gray!14, draw=blue!60!black, thick},
-        tag/.style={font=\scriptsize\itshape, gray!50!black, anchor=west},
-        ok/.style={font=\scriptsize\bfseries, green!45!black, anchor=west},
-        no/.style={font=\scriptsize\bfseries, red!70!black, anchor=west},
-        br/.style={decorate, decoration={brace, amplitude=4pt, mirror}, thick, blue!55!black}
-    ]
-        % =============== (a) inert ===============
-        \node[tag] at (-0.2, 1.2) {(a) $\hat{s} \in \Inert_{\mathit{html}}$ -- sanitovaná cizí data};
-        \node[lit] (a1) at (0,0) {<p>};
-        \node[mrk, right=0pt of a1] (a2) {Ahoj \&lt;b\&gt;};
-        \node[lit, right=0pt of a2] (a3) {</p>};
-        \draw[br] ([yshift=-1mm]a2.south west) -- ([yshift=-1mm]a2.south east)
-              node[midway, below=4pt, font=\tiny] {$\hat{s}$};
-        \node[ok] at ($(a3.east)+(4mm,0)$) {\eqref{in:vlastni}~\checkmark\quad\eqref{in:okoli}~\checkmark};
+Kontext \emph{res} není do $D(S)$ definicí zahrnut, protože hodnota adresy skriptu je podle předpokladu~\ref{ass:parse} řídicím místem celá. Pro \emph{res} není způsobilý žádný neprázdný řetězec složený pouze ze znaků útočníka: jeho první znak nemůže ukončit hodnotu v~uvozovkách i~v~apostrofech zároveň, takže v~jedné z~nich leží na řídicím místě. Kontext \emph{res} by proto v~$D(S)$ mohl stát pouze u~schématu,~kterému vyhovuje nanejvýš prázdný řetězec.
 
-        % =============== (b) P1 violated ===============
-        \begin{scope}[yshift=-22mm]
-            \node[tag] at (-0.2, 1.2) {(b) porušena \eqref{in:vlastni} -- vlastní exekuovatelná pozice};
-            \node[lit] (b1) at (0,0) {<p>};
-            \node[mrk, right=0pt of b1] (b2) {<script>};
-            \node[exe, right=0pt of b2] (b3) {alert(1)};
-            \node[mrk, right=0pt of b3] (b4) {</script>};
-            \node[lit, right=0pt of b4] (b5) {</p>};
-            \draw[br] ([yshift=-1mm]b2.south west) -- ([yshift=-1mm]b4.south east)
-                  node[midway, below=4pt, font=\tiny] {$\hat{s}$ -- nesanitovaná cizí data};
-            \node[no] at ($(b5.east)+(4mm,0)$) {\eqref{in:vlastni}~$\times$};
-        \end{scope}
+Obě množiny závisejí na předpokladu~\ref{ass:parse},~který model ponechává abstraktní. Strojově je lze určit pouze vůči konkrétnímu regulárnímu modelu tokenizéru HTML, a~to $\CtxOf(s)$ pro každý literál a~$D(S)$ pro vymezenou podmnožinu schémat: \texttt{z.enum}, \texttt{z.literal} a~regulární výrazy bez \texttt{refine} a~\texttt{transform}. U~ostatních schémat je $D(S)$ pokládáno za prázdné. Pravidla tím zůstanou korektní, protože důkazy v~podsekci~\ref{sec:model-korektnost} využívají pouze to, že každý přiznaný kontext je oprávněný. Menší množina kontextů vede nanejvýš k~odmítnutí bezpečného programu.
 
-        % =============== (c) P2 violated ===============
-        \begin{scope}[yshift=-46mm]
-            \node[tag] at (-0.2, 1.2) {(c) porušena \eqref{in:okoli} -- literál otevře cizí kontext};
-            \node[lit] (c1) at (0,0) {<p>};
-            \node[sub, right=0pt of c1] (c2) {<div title=};
-            \node[mrk, right=0pt of c2] (c3) {x};
-            \node[exe, right=0pt of c3] (c4) {~onmouseover=f()};
-            \node[lit, right=0pt of c4] (c5) {>};
-            \draw[br] ([yshift=-1mm]c2.south west) -- ([yshift=-1mm]c2.south east)
-                  node[midway, below=4pt, font=\tiny] {$\hat{s}$ -- literál, $\Marked = \emptyset$};
-            \node[no] at ($(c5.east)+(4mm,0)$) {\eqref{in:okoli}~$\times$};
-        \end{scope}
-    \end{tikzpicture}
-    \caption{Tři vložení řetězce~$\hat{s}$ do datové díry kontextu \emph{html}. Šedě znaky se značkou~$\circ$ (text programu), červeně znaky se značkou~$\bullet$ (odvozené od vstupu útočníka), dvojitým rámečkem exekuovatelné pozice. Panel~(a) je inertní vložení: značky sice ve výstupu jsou, ale žádná neleží na exekuovatelné pozici. Panel~(b) porušuje vlastní netečnost. Panel~(c) je nejzajímavější: vkládaný řetězec je programátorův literál, sám tedy žádnou značku nenese a~podmínku~\eqref{in:vlastni} splňuje prázdně. Otevře však atribut, a~pozice za~ním tak přestane být datovou dírou kontextu \emph{html}. Cizí data,~která do ní vtečou později, se stanou hodnotou obsluhy události. Právě proto obdrží literál \texttt{"<div title="} podle definice~\ref{def:ctxof} prázdnou množinu kontextů.}
-    \label{fig:inertnost}
-\end{figure}
-
-Z~tvaru podmínky~\eqref{in:vlastni} plyne bezprostředně ještě jedno pozorování,~které bude v~důkazech opakovaně potřeba: ubývání značek inertnost neruší.
-
-\begin{lemma}[Monotonie vůči značkám]
-\label{lem:znacky}
-Pro řetězce $\hat{s}$ a~$\hat{s}'$ se stejným podkladovým řetězcem, $\lfloor \hat{s} \rfloor = \lfloor \hat{s}' \rfloor$, a~s~$\Marked(\hat{s}') \subseteq \Marked(\hat{s})$ platí: z~$\hat{s} \in \Inert_c$ plyne $\hat{s}' \in \Inert_c$.
-\end{lemma}
-
-\begin{proof}
-Podmínka~\eqref{in:okoli} závisí pouze na~$\lfloor \hat{s} \rfloor$, a~je tedy splněna beze změny. V~podmínce~\eqref{in:vlastni} se průnik bere s~menší množinou pozic, takže zůstává prázdný.
-\end{proof}
-
-Podmínka~\eqref{in:okoli} má nenápadný, ale pro celý model rozhodující důsledek: dělá z~inertních řetězců algebraickou strukturu uzavřenou na zřetězení.
-
-\begin{lemma}[Inertní řetězce tvoří monoid]
-\label{lem:monoid}
-Pro každý kontext $c \in \Ctxs$ platí $\varepsilon \in \Inert_c$ a~pro libovolné značkované řetězce $\hat{s}_1, \hat{s}_2 \in \Inert_c$ platí $\hat{s}_1 \cdot \hat{s}_2 \in \Inert_c$. Množina $\Inert_c$ je tedy podmonoidem monoidu značkovaných řetězců.
-\end{lemma}
-
-\begin{proof}
-Pro $\varepsilon$ platí $p \cdot \varepsilon \cdot q = p \cdot q$, takže \eqref{in:vlastni} je splněna prázdně a~\eqref{in:okoli} triviálně.
-
-Pro $\hat{s}_1, \hat{s}_2 \in \Inert_c$ s~$w_k = \lfloor \hat{s}_k \rfloor$ a~libovolnou $c$-díru $(p, q) \in H_c$ se řetězec $\hat{s}_1$ použije na díru $(p,\; w_2 \cdot q)$: podle~\eqref{in:vlastni} neleží žádný značkovaný znak $\hat{s}_1$ v~$\Exec_c(p \cdot w_1 w_2 \cdot q)$ a~podle~\eqref{in:okoli} je $(p \cdot w_1,\; w_2 \cdot q) \in H_c$. Tato dvojice je tedy opět $c$-dírou a~lze na~ni použít $\hat{s}_2$: žádný značkovaný znak $\hat{s}_2$ neleží v~$\Exec_c(p \cdot w_1 w_2 \cdot q)$ a~$(p \cdot w_1 w_2,\; q) \in H_c$. Množina značkovaných pozic $\hat{s}_1 \hat{s}_2$ je sjednocením obou dílčích množin, takže spojení obou kroků dává
-\[
-    \Exec_c\bigl(p \cdot w_1 w_2 \cdot q\bigr) \cap \bigl\{\, |p| + j \;\bigm|\; j \in \Marked(\hat{s}_1 \hat{s}_2) \,\bigr\} = \emptyset
-    \qquad\text{a}\qquad
-    (p \cdot w_1 w_2,\; q) \in H_c,
-\]
-což je právě \eqref{in:vlastni} a~\eqref{in:okoli} pro $\hat{s}_1 \hat{s}_2$. Protože díra $(p,q)$ byla volena libovolně, je $\hat{s}_1 \hat{s}_2 \in \Inert_c$. Krok s~podmínkou~\eqref{in:okoli} je v~důkazu nezbytný: bez kontextové neutrality by dvojice $(p \cdot w_1, w_2 q)$ nemusela být $c$-dírou a~předpoklad o~$\hat{s}_2$ by nebylo možné použít.
-\end{proof}
-
-Lemma~\ref{lem:monoid} je místem, kde se rozhoduje o~tvaru operátoru spojení. Kdyby $\Inert_c$ nebyla uzavřena na zřetězení, nemohlo by pravidlo pro operátor~$\oplus$ zachovávat inertnost a~jakákoliv skladba řetězců by musela procházet sanitací znovu. Průnik $K_1 \cap K_2$ v~rovnici~\eqref{eq:m-join} tedy není konvence převzatá z~literatury, ale nejlepší štítek,~který lze o~zřetězení dvou hodnot dokázat: kontext přežije spojení právě tehdy, pokud přežil v~obou operandech.
-
-Zbývá vysvětlit, odkud inertnost vůbec pochází. Model připouští tři prameny a~žádný jiný. Tato uzavřenost je později obsahem věty~\ref{thm:audit}.
-
-\begin{definice}[Kontexty literálu]
-\label{def:ctxof}
-Pro řetězcový literál $s$ zapsaný v~textu programu klademe
-\[
-    \CtxOf(s) \;=\; \{\, c \in \Ctxs \;\mid\; s \in \Inert_c \,\}.
-\]
-\end{definice}
-
-Štítek literálu se tedy \emph{počítá}, nikoliv deklaruje. Literál \verb|"Dobrý den"| obdrží $\CtxOf = \Ctxs$, literál \verb|"<p>"| obdrží $\{\mathit{html}\}$, zatímco \verb|"<div title="| i~\verb|"<script>"| obdrží $\emptyset$, protože oba otevírají kontext,~který neuzavřou. \emph{Uzavřený} literál \verb|"<script>init()</script>"| však obdrží $\{\mathit{html}\}$: neobsahuje žádný značkovaný znak, takže podmínku~\eqref{in:vlastni} splňuje prázdně, a~kontext,~který otevřel, sám zavírá. Model tedy programátorovi nezakazuje vložit do stránky vlastní skript. Zakazuje mu pouze ponechat kontext otevřený pro cizí data. V~realizaci tuto úlohu plní kontrolor tagované šablony, jak popisuje podsekce~\ref{sec:model-typescript}.
-
-\begin{predpoklad}[Adekvátnost sanitační funkce]
+\begin{predpoklad}[Korektnost sanitační funkce]
 \label{ass:san}
-Pro každý kontext $c \in \Ctxs$ je dána totální funkce $\San_c : \Sigma^{*} \to \Sigma^{*}$ splňující
-\[
-    \forall w \in \Sigma^{*} : \; \bullet\!\left(\San_c(w)\right) \in \Inert_c ,
-\]
-tedy: výsledek sanitace je inertní i~tehdy, pokud se \emph{všechny} jeho znaky pokládají za odvozené od útočníka.
+Pro každý kontext~$c$ různý od~\emph{res} je dána sanitační funkce~$\San_c$,~jejíž výsledek je způsobilý pro kontext~$c$, i~když se celý pokládá za znaky útočníka.
 \end{predpoklad}
 
-Předpoklad~\ref{ass:san} je jediným místem, kde model důvěřuje cizímu kódu. Odpovídá čtvrtému předpokladu vymezenému v~sekci~\ref{sec:hranice-zaruky}. Model ho neověřuje a~ověřit ani nemůže. Právě proto je množina sanitačních funkcí auditní plochou, nikoliv jejím doplňkem.
+Pro kontext \emph{res} není v~předpokladu sanitační funkce zavedena, protože výsledek sanitace je celý pokládán za znaky útočníka a~pro \emph{res} není způsobilý žádný neprázdný řetězec složený pouze z~nich. Pravidlo \textsc{T-San} proto platí jen pro $c \neq \mathit{res}$ (podsekce~\ref{sec:model-jazyk}) a~způsobilost pro \emph{res} vzniká jedině z~literálu programu pravidlem \mbox{\textsc{T-Lit}}. Obdobně postupuje knihovna \texttt{safevalues}: hodnotu \texttt{TrustedResourceUrl} vytváří šablona,~ve které první literál pevně určuje počátek adresy, a~dosazené hodnoty za ním kóduje \parencite{googleSafevalues}. Model je přísnější a~dosazení nepřipouští, protože celá hodnota adresy je řídicím místem.
 
-Třetím pramenem inertnosti je validace schématem. Není totiž pravda, že by validace nikdy nezaručila bezpečnost. Schéma,~které připouští pouze řetězce z~jazyka $L(S)$, dává hodnotě inertnost ve všech kontextech, do kterých se celý jazyk~$L(S)$ vejde.
-
-\begin{definice}[Inertní obal schématu]
-\label{def:inertS}
-Pro schéma~$S$ s~jazykem $L(S) \subseteq \Sigma^{*}$ klademe
-\[
-    D(S) \;=\; \bigl\{\, c \in \Ctxs \;\bigm|\; \forall w \in L(S) : \bullet\!\left(w\right) \in \Inert_c \,\bigr\}.
-\]
-\end{definice}
-
-Například schéma \verb|z.enum(["asc","desc"])| má $D(S) = \Ctxs$, zatímco \verb|z.string()| má $D(S) = \emptyset$. Model tím dává formální odpověď na otázku,~která v~praxi vede k~nejasnostem: kdy je validace zároveň sanitací. Odpověď zní: právě tehdy, pokud je jazyk schématu podmnožinou inertních řetězců daného kontextu.
+Předpoklad~\ref{ass:san} odpovídá předpokladu o~korektnosti sanitačních funkcí ze sekce~\ref{sec:hranice-zaruky}. Spolu s~předpokladem~\ref{ass:parse} tvoří jediná místa, kde samotný model důvěřuje cizímu kódu (sanitačním funkcím a~prohlížeči). Realizací v~TypeScriptu je k~nim přidána důvěra ve validaci, jádro knihovny a~překladač (předpoklad~\ref{ass:jadro} v~podsekci~\ref{sec:model-typescript}).
 
 \subsection{Jazyk \texorpdfstring{$\lxss$}{lambda-XSS}: syntaxe a~typy}
 \label{sec:model-jazyk}
