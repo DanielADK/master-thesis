@@ -438,212 +438,106 @@ Pro kontext \emph{res} není v~předpokladu sanitační funkce zavedena, protož
 
 Předpoklad~\ref{ass:san} odpovídá předpokladu o~korektnosti sanitačních funkcí ze sekce~\ref{sec:hranice-zaruky}. Spolu s~předpokladem~\ref{ass:parse} tvoří jediná místa, kde samotný model důvěřuje cizímu kódu (sanitačním funkcím a~prohlížeči). Realizací v~TypeScriptu je k~nim přidána důvěra ve validaci, jádro knihovny a~překladač (předpoklad~\ref{ass:jadro} v~podsekci~\ref{sec:model-typescript}).
 
-\subsection{Jazyk \texorpdfstring{$\lxss$}{lambda-XSS}: syntaxe a~typy}
+\subsection{Pravidla pro výpočet štítku}
 \label{sec:model-jazyk}
 
-Model je formulován nad malým jazykem $\lxss$. Jazyk volně sleduje vzor $\lambda^{SEC}$ \parencite{volpano1996sound} a~je doplněn o~čtyři primitiva,~kterými se backendová aplikace stýká s~okolím: zdroj požadavku, validaci schématem, sanitaci a~propast. Jazyk je záměrně chudý. Obsahuje právě tolik, kolik je třeba k~vyslovení a~dokázání bezpečnostní záruky, a~nic navíc.
-
-\paragraph{Syntaxe.}
-Zde $\Sigma$ je konečná abeceda znaků, $x$ probíhá proměnné, $c \in \Ctxs$ kontexty, $n \in \mathbb{N}$ pořadová čísla vstupů a~$S$ schémata. Termy, hodnoty a~typy jazyka $\lxss$ jsou dány gramatikou
-\begin{align*}
-    e \;::=\;\; & x \;\mid\; s \;\mid\; \mathsf{true} \;\mid\; \mathsf{false} \;\mid\; () \;\mid\; \mErr
-      \;\mid\; e_1 \oplus e_2
-      \;\mid\; \lambda x{:}\tau.\, e \;\mid\; e_1\, e_2 \\[2pt]
-      &\mid\; \mathsf{let}\; x = e_1 \;\mathsf{in}\; e_2
-      \;\mid\; \mathsf{if}\; e_1 \;\mathsf{then}\; e_2 \;\mathsf{else}\; e_3 \\[2pt]
-      &\mid\; \mSrc_n \;\mid\; \mVal_S(e) \;\mid\; \sigma_c(e) \;\mid\; \mOut_c(e) \\[6pt]
-    v \;::=\;\; & \hat{s} \;\mid\; \mathsf{true} \;\mid\; \mathsf{false} \;\mid\; () \;\mid\; \lambda x{:}\tau.\, e \\[6pt]
-    \tau \;::=\;\; & \tUnit \;\mid\; \tBool^{\ell} \;\mid\; \tStr^{\ell} \;\mid\; \tau_1 \to \tau_2,
-      \qquad \ell \in \Lat .
-\end{align*}
-
-Význam jednotlivých primitiv:
+V~modelu je sledováno pouze to, co je k~záruce třeba: řetězce, jejich skládání a~čtyři operace,~kterými se aplikace stýká s~okolím.
 \begin{itemize}
-    \item $\mSrc_n$ je $n$-tý vstup HTTP požadavku, formální protějšek výrazu \texttt{req.body.x};
-    \item $\mVal_S(e)$ je ověření, že hodnota patří do jazyka schématu~$S$, protějškem je volání \texttt{parse} nad schématem knihovny Zod;
-    \item $\sigma_c(e)$ je sanitace pro kontext~$c$, protějšek funkce \texttt{sanitizeHtml} a~jejích obdob;
-    \item $\mOut_c(e)$ je odeslání hodnoty do propasti kontextu~$c$, protějšek volání \texttt{res.send}.
+    \item Literál~$s$ je řetězec zapsaný v~programu, jeho znaky napsal programátor.
+    \item $\mSrc_n$ je $n$-tý vstup požadavku (\texttt{req.query.q}). Všechny jeho znaky jsou znaky útočníka.
+    \item $e_1 \oplus e_2$ je zřetězení. Znaky v~něm zachovávají svůj původ.
+    \item $\mVal_S(e)$ je ověření schématem~$S$ (volání \texttt{parse} nad schématem Zod). Hodnotu nemění, a~pokud hodnota schématu nevyhovuje, běh skončí chybou.
+    \item $\sigma_c(e)$ je sanitace pro kontext~$c$ funkcí~$\San_c$. Její výsledek se celý pokládá za znaky útočníka.
+    \item $\mOut_c(e)$ je odeslání do propasti kontextu~$c$ (\texttt{res.send}).
 \end{itemize}
+Program je posloupnost odeslání a~jeho výstupem je posloupnost dvojic \emph{(kontext, řetězec)}. Nic jiného model nepozoruje. Každé odeslání je modelem posuzováno samostatně, jako by jím začínal nový dokument. Důsledky pro odpověď odesílanou po částech uvádí podsekce~\ref{sec:model-hranice}. Pojmenované mezivýsledky (\texttt{const q = \ldots}) model nepotřebuje, protože štítek nese hodnota, nikoliv proměnná,~ve které je uložena.
 
-\subsection{Operační sémantika}
-\label{sec:model-semantika-op}
+Funkce, podmínky ani cykly model neobsahuje. Jde o~vědomé zjednodušení: konfinace je posuzována u~každého odeslání zvlášť, a~cesta,~kterou program k~odeslání dospěl, proto nehraje roli. Formálně tuto úvahu model nedokazuje. Na řídicím toku závisí až silnější vlastnost, o~které pojednává podsekce~\ref{sec:model-neinterference}.
 
-Vyhodnocení probíhá v~konfiguraci $\langle e, t \rangle$, kde $t \in (\Ctxs \times (\Sigma \times \{\circ,\bullet\})^{*})^{*}$ je \emph{výstupní stopa}, tedy posloupnost hodnot,~které program dosud odeslal do propastí. Stopa je jediná pozorovatelná veličina modelu. Právě o~ní mluví bezpečnostní věty. Vstupy útočníka jsou dány prostředím $\iota : \mathbb{N} \to \Sigma^{*}$,~které je po dobu běhu neměnné.
+Úmluva, že je výsledek sanitace celý pokládán za znaky útočníka, je vědomě opatrná: považuje za ně i~znaky,~které jimi být nemusí. Ubývání znaků útočníka však způsobilosti neškodí (tvrzení~\ref{lem:monotonie}), takže úmluva záruku pouze zesiluje.
 
-Vyhodnocovací kontexty a~redukční pravidla jsou standardní. Uvedena jsou pouze ta,~která se týkají čtyř zavedených primitiv:
-\begin{align}
-    \langle \mSrc_n, t \rangle \;&\longrightarrow_{\iota}\; \langle \bullet(\iota(n)), t \rangle,
-    \tag{E-Src} \label{ev:src}\\[2pt]
-    \langle \mVal_S(\hat{s}), t \rangle \;&\longrightarrow\; \langle \hat{s}, t \rangle,
-      \quad w \in L(S),
-    \tag{E-Val} \label{ev:val}\\[2pt]
-    \langle \mVal_S(\hat{s}), t \rangle \;&\longrightarrow\; \langle \mErr, t \rangle,
-      \quad w \notin L(S),
-    \tag{E-Val-Err} \label{ev:valerr}\\[2pt]
-    \langle \sigma_c(\hat{s}), t \rangle \;&\longrightarrow\; \langle \mu(\hat{s})(\San_c(w)), t \rangle,
-    \tag{E-San} \label{ev:san}\\[2pt]
-    \langle \mOut_c(\hat{s}), t \rangle \;&\longrightarrow\; \langle (), t \cdot (c, \hat{s}) \rangle .
-    \tag{E-Out} \label{ev:out}
-\end{align}
-Zápis $w$ zde jako dříve značí podkladový řetězec $\lfloor \hat{s} \rfloor$ a~zápis $\bullet(w)$ stejný řetězec se všemi znaky značkovanými symbolem~$\bullet$. V~pravidle~\eqref{ev:san} je $\mu(\hat{s}) = \bullet$, pokud $\hat{s}$ obsahuje alespoň jeden značkovaný znak, jinak $\mu(\hat{s}) = \circ$. Výstup sanitace tedy dědí značku celého vstupu. Tato úmluva je vědomě konzervativní: značkuje více znaků, než je nutné, a~dokazovanou vlastnost tím dělá silnější, nikoliv slabší.
+Štítek každého výrazu je počítán zdola nahoru, obdobně jako je vyčíslován aritmetický výraz. Všechna pravidla shrnuje tabulka~\ref{tab:pravidla}.
 
-Zřetězení $\oplus$ působí na značkované řetězce po složkách, takže značky přežívají skladbu beze změny. Chyba~$\mErr$ se šíří všemi vyhodnocovacími kontexty a~běh ukončuje. Validace tedy selhává způsobem,~který do stopy nic nepřidá.
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{výraz} & \textbf{štítek výsledku} & \textbf{podmínka} & \textbf{značka} \\
+        \midrule
+        literál $s$      & $\bigl(\bot,\; \CtxOf(s)\bigr)$ & žádná & \textsc{T-Lit} \\
+        $\mSrc_n$        & $\bigl(\top,\; \emptyset\bigr)$ & žádná & \textsc{T-Src} \\
+        $e_1 \oplus e_2$ & $\bigl(\max(i_1,i_2),\; K_1 \cap K_2\bigr)$ & žádná & \textsc{T-Concat} \\
+        $\mVal_S(e)$     & $\bigl(\min(i,\, \mathit{mid}),\; K \cup D(S)\bigr)$ & žádná & \textsc{T-Val} \\
+        $\sigma_c(e)$    & $\bigl(\mathit{mid},\; \{c\}\bigr)$ & $i \neq \top$ a~$c \neq \mathit{res}$ & \textsc{T-San} \\
+        \midrule
+        $\mOut_c(e)$     & \emph{(program, štítek nemá)} & $i = \bot$ \;nebo\; $c \in K$ & \textsc{T-Out} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Pravidla pro výpočet štítku}
+    \label{tab:pravidla}
+    \source{vlastní zpracování}
+\end{table}
 
-\subsection{Typový systém}
-\label{sec:model-typy}
+\noindent
+Program je \emph{dobře typovaný}, pokud lze štítek každého jeho výrazu spočítat a~pokud jsou splněny všechny podmínky ve třetím sloupci.
 
-Typový úsudek má tvar $\Gamma \vdash e : \tau$. Pravidla pro proměnnou, abstrakci, aplikaci, \textsf{let}, podmínku a~jednotku jsou standardní \parencite{pierce2002types}. Zajímavá jsou pravidla,~která se týkají bezpečnostních štítků. Ta jsou uvedena v~úplnosti.
+Pravidlem \textsc{T-Lit} je literálu přiznán štítek podle jeho vlastního obsahu (definice~\ref{def:prameny}). Vzorec \texttt{"<div title="} $\oplus\; \sigma_{\mathit{html}}(v) \;\oplus$ \texttt{">"} tak selže bez zvláštního opatření. První literál nemá mezi svými kontexty \emph{html}, a~průnik v~\textsc{T-Concat} proto kontext \emph{html} nepřizná ani výsledku. Pravidlem \textsc{T-Out} je pak výsledek odmítnut, jak žádá požadavek~R3.
 
-\begin{mathpar}
-\inferrule{ }{\Gamma \vdash s : \tStr^{(\bot,\, \CtxOf(s))}}\;\textsc{(T-Lit)}
-\and
-\inferrule{ }{\Gamma \vdash \mSrc_n : \tStr^{(\top,\, \emptyset)}}\;\textsc{(T-Src)}
-\and
-\inferrule{\Gamma \vdash e_1 : \tStr^{\ell_1} \\ \Gamma \vdash e_2 : \tStr^{\ell_2}}
-          {\Gamma \vdash e_1 \oplus e_2 : \tStr^{\ell_1 \sqcup \ell_2}}\;\textsc{(T-Concat)}
-\and
-\inferrule{\Gamma \vdash e : \tStr^{(i,\, K)}}
-          {\Gamma \vdash \mVal_S(e) : \tStr^{(i \,\sqcap\, \mathit{mid},\; K \,\cup\, D(S))}}\;\textsc{(T-Val)}
-\and
-\inferrule{\Gamma \vdash e : \tStr^{(i,\, K)} \\ i \sqsubseteq \mathit{mid}}
-          {\Gamma \vdash \sigma_c(e) : \tStr^{(i,\, \{c\})}}\;\textsc{(T-San)}
-\and
-\inferrule{\Gamma \vdash e : \tStr^{(i,\, K)} \\ i = \bot \;\vee\; c \in K}
-          {\Gamma \vdash \mOut_c(e) : \tUnit}\;\textsc{(T-Out)}
-\and
-\inferrule{\Gamma \vdash e : \tau \\ \tau <: \tau'}{\Gamma \vdash e : \tau'}\;\textsc{(T-Sub)}
-\and
-\inferrule{\ell \sqsubseteq \ell'}{\tStr^{\ell} <: \tStr^{\ell'}}\;\textsc{(S-Str)}
-\end{mathpar}
+Pravidly \textsc{T-Val} a~\textsc{T-San} jsou validace a~sanitace zachyceny jako dva různé kroky, jak žádá požadavek~R1. Po validaci má hodnota původ nejhůře $\mathit{mid}$ a~k~jejím kontextům \emph{přibudou} kontexty plynoucí ze schématu. Sanitace naopak množinu kontextů \emph{nahradí} jediným kontextem~$c$, a~to pouze pro $c \neq \mathit{res}$. Sanitace navíc vyžaduje, aby vstup nejprve prošel validací a~neměl původ~$\top$.
 
-Čtyři z~uvedených pravidel nesou vlastní myšlenku modelu a~zaslouží komentář.
+Na konfinaci prostřední úroveň vliv nemá. Relace „odpovídá“ z~podsekce~\ref{sec:model-korektnost} rozlišuje pouze $\bot$ a~ostatní úrovně, takže věta~\ref{thm:konfinace} by platila, i~kdyby \textsc{T-San} přijímal vstup s~původem~$\top$. Úroveň $\mathit{mid}$ je metodická vrstva,~kterou vyžaduje požadavek~R1. Sanitace přijme pouze hodnotu,~jejíž strukturu ověřila validace, takže sanitační funkce nikdy nedostane např.~pole,~které Express vytvoří z~opakovaného parametru dotazu. Zúžit předpoklad~\ref{ass:san} pouze na validované vstupy by vyžadovalo, aby štítek nesl i~schéma. Tato informace je v~modelu pro jednoduchost vynechána.
 
-\paragraph{\textsc{T-Lit} -- štítek se počítá.}
-Literál neobdrží štítek,~který mu programátor přisoudí, ale ten,~který mu podle definice~\ref{def:ctxof} přiznává jeho vlastní obsah. Vzorec \texttt{"<div title="} $\oplus\; v \;\oplus$ \texttt{">"} tak selže bez jakéhokoliv zvláštního opatření: první literál má $\CtxOf = \emptyset$, průnik v~pravidle \textsc{T-Concat} tuto prázdnotu propaguje a~\textsc{T-Out} výsledek odmítne. Tím je splněn požadavek~R3.
+Podmínka pravidla \textsc{T-Out} je disjunkce: propasti stačí způsobilost pro daný kontext a~důvěryhodný původ nevyžaduje, takže sanitovaný vstup útočníka lze vypsat, jak žádá požadavek~R2. Alternativa $i = \bot$ dovoluje programátorovi zapsat do výstupu vlastní text obsahující značky.
 
-\paragraph{\textsc{T-Concat} -- průnik místo sjednocení.}
-Zdůvodnění tohoto pravidla dodává lemma~\ref{lem:monoid}: kontext přežije zřetězení právě tehdy, pokud v~něm byly inertní oba operandy. Sjednocení by bylo nekorektní, prosté zahození kontextů zbytečně slabé.
-
-\paragraph{\textsc{T-Val} versus \textsc{T-San} -- dva různé kroky.}
-Validace snižuje provenienci na~$\mathit{mid}$ a~\emph{přidává} kontexty,~které plynou z~jazyka schématu (definice~\ref{def:inertS}). Sanitace ponechává provenienci beze změny a~\emph{nahrazuje} množinu kontextů jediným kontextem~$c$. Tím je splněn požadavek~R1: každý krok mění jinou osu mřížky. Sanitace navíc vyžaduje $i \sqsubseteq \mathit{mid}$, tedy předchozí validaci. Tato podmínka není formalitou. Sanitační funkce se píší proti ohraničené doméně vstupů a~předpoklad~\ref{ass:san} je proto v~praxi třeba ověřit pouze na validované doméně, nikoliv na celém~$\Sigma^{*}$. Prostřední úroveň mřížky si tak kupuje \emph{slabší} důvěryhodnostní předpoklad. Právě v~tom je její užitečnost.
-
-\paragraph{\textsc{T-Out} -- disjunkce, nikoliv konjunkce.}
-Propast nepožaduje, aby hodnota byla důvěryhodného původu. Požaduje, aby byla v~daném kontextu inertní. Alternativa $i = \bot$ existuje proto, aby programátor směl do výstupu zapsat vlastní značkovaný text. Literál \verb|"<script>"| má sice $\CtxOf = \emptyset$, ale provenienci~$\bot$, a~jeho odeslání je tedy legitimní. Tím je splněn požadavek~R2: model nezakazuje vypsat sanitovaný uživatelský vstup ani programátorem zapsaný kód, zakazuje pouze jejich záměnu.
-
-Souhru statických štítků s~běhovým značkováním na konkrétním programu ukazuje schéma~\ref{fig:stopa}.
+Výpočet štítku podle tabulky~\ref{tab:pravidla} na běžícím příkladu, ve zranitelné i~opravené podobě, ukazuje schéma~\ref{fig:vypocet}. V~případě~(a) zúží průnik s~prázdnou množinou u~uzlu~$\oplus$ množinu kontextů na prázdnou, takže podmínka propasti selže v~obou svých alternativách. V~případě~(b) prošel vstup validací a~sanitací, jeho množina kontextů je $\{\mathit{html}\}$, průnik ji zachová a~podmínka propasti je splněna. Pokud má hledaný text zůstat libovolný, pro schéma s~$D(S) = \emptyset$ jako \texttt{z.string().max(100)} ve výpisu v~podsekci~\ref{sec:model-typescript}, jsou nejmenší změnou,~kterou typová kontrola přijme, dvě volání: validace a~sanitace~$\sigma_{\mathit{html}}$. Bezpečnosti by na tomto místě dosáhlo samo escapování, jak uvádí běžící příklad v~úvodu sekce. Validace před ním je modelem vyžadována kvůli požadavku~R1.
 
 \begin{figure}[htbp]
     \centering
     \begin{tikzpicture}[
         every node/.style={font=\scriptsize},
-        term/.style={anchor=west, font=\scriptsize},
-        lbl/.style={anchor=west, font=\scriptsize},
-        seg/.style={draw, minimum height=5.5mm, inner xsep=2.5pt, font=\ttfamily\tiny, anchor=west},
-        cl/.style={seg, fill=gray!14, draw=gray!60!black},
-        atk/.style={seg, fill=red!16,  draw=red!70!black},
-        hd/.style={font=\scriptsize\bfseries, anchor=west},
-        rl/.style={-, gray!35}
+        ex/.style={draw, rounded corners=2pt, inner sep=3pt, align=center, font=\scriptsize, fill=white},
+        lit/.style={ex, fill=gray!12, draw=gray!55!black},
+        src/.style={ex, fill=red!12, draw=red!65!black},
+        op/.style={ex, fill=blue!8, draw=blue!55!black},
+        okn/.style={ex, fill=green!14, draw=green!50!black, thick},
+        non/.style={ex, fill=red!14, draw=red!70!black, thick},
+        lb/.style={font=\tiny, gray!45!black},
+        e/.style={->, >=Stealth, gray!55!black},
+        hdr/.style={font=\scriptsize\bfseries}
     ]
-        \node[hd] at (0,     0.85) {krok vyhodnocení};
-        \node[hd] at (4.55,  0.85) {statický štítek};
-        \node[hd] at (7.15,  0.85) {běhová hodnota se značkami};
-        \draw[rl, thick] (-0.1, 0.55) -- (13.6, 0.55);
+        % =========== (a) vulnerable ===========
+        \node[hdr, red!65!black] at (2.6, 4.5) {(a) zranitelná podoba};
+        \node[lit] (a1) at (0,   0) {\verb|"<h1>…"|};   \node[lb, below=0.5mm of a1] {$(\bot,\Ctxs)$};
+        \node[src] (a2) at (2.6, 0) {$\mSrc_0$};        \node[lb, below=0.5mm of a2] {$(\top,\emptyset)$};
+        \node[lit] (a3) at (5.2, 0) {\verb|"</h1>"|};   \node[lb, below=0.5mm of a3] {$(\bot,\Ctxs)$};
+        \node[op]  (a4) at (2.6, 1.9) {$\oplus$};
+        \node[lb, right=1mm of a4, align=left] {$\bigl(\max(\bot,\top,\bot),\; \Ctxs \cap \emptyset \cap \Ctxs\bigr) = (\top, \emptyset)$};
+        \node[non] (a5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
+        \node[lb, right=1mm of a5, align=left, red!70!black] {podmínka: $i = \bot$? \emph{ne} \quad $\mathit{html} \in \emptyset$? \emph{ne}\\[1pt]\textbf{program se nepřeloží}};
+        \draw[e] (a1) -- (a4); \draw[e] (a2) -- (a4); \draw[e] (a3) -- (a4); \draw[e] (a4) -- (a5);
 
-        % --- 1
-        \node[term] at (0, 0)    {$\mSrc_0$};
-        \node[lbl]  at (4.55, 0) {$(\top,\, \emptyset)$};
-        \node[atk]  at (7.15, 0) {<img src=x onerror=alert(1)>};
-
-        % --- 2
-        \node[term] at (0, -1.0)    {$\mVal_S(\mSrc_0)$};
-        \node[lbl]  at (4.55, -1.0) {$(\mathit{mid},\, \emptyset)$};
-        \node[atk]  at (7.15, -1.0) {<img src=x onerror=alert(1)>};
-
-        % --- 3
-        \node[term] at (0, -2.0)    {$\sigma_{\mathit{html}}(\mVal_S(\mSrc_0))$};
-        \node[lbl]  at (4.55, -2.0) {$(\mathit{mid},\, \{\mathit{html}\})$};
-        \node[atk]  at (7.15, -2.0) {\&lt;img src=x onerror=alert(1)\&gt;};
-
-        % --- 4
-        \node[term] at (0, -3.0)    {\verb|"<p>"| $\oplus\;\cdots\;\oplus$ \verb|"</p>"|};
-        \node[lbl]  at (4.55, -3.0) {$(\mathit{mid},\, \{\mathit{html}\})$};
-        \node[cl]   (r4a) at (7.15, -3.0) {<p>};
-        \node[atk]  (r4b) at (7.75, -3.0) {\&lt;img src=x onerror=alert(1)\&gt;};
-        \node[cl]   (r4c) at ($(r4b.east)$) {</p>};
-
-        \draw[rl] (-0.1, -3.55) -- (13.6, -3.55);
-
-        % --- 5
-        \node[term] at (0, -4.05)    {$\mOut_{\mathit{html}}(\cdots)$};
-        \node[lbl, green!45!black] at (4.55, -4.05) {$\mathit{html} \in \{\mathit{html}\}$ \;\checkmark};
-        \node[lbl] at (7.15, -4.05) {stopa $t = (\mathit{html},\; \text{výše uvedený řetězec})$};
-
-        \node[anchor=west, font=\scriptsize\itshape, gray!55!black, align=left] at (0, -4.95)
-            {$\Marked$ zasahuje výhradně do obsahu textového uzlu; $\Exec_{\mathit{html}} \cap \Marked = \emptyset$};
-    \end{tikzpicture}
-    \caption{Souběh statického štítku a~běhového značkování na programu $\mathsf{let}\; k = \sigma_{\mathit{html}}(\mVal_S(\mSrc_0))\;\mathsf{in}\; \mOut_{\mathit{html}}(\texttt{"<p>"} \oplus k \oplus \texttt{"</p>"})$ pro schéma \texttt{z.string()\allowbreak.max(200)} s~prázdným inertním obalem, $D(S) = \emptyset$. Levý sloupec je odvozen typovým systémem před během, pravý vzniká za běhu při vstupu útočníka $\iota(0)$ rovném \texttt{<img src=x onerror=alert(1)>}. Červeně znaky se značkou~$\bullet$, šedě znaky se značkou~$\circ$. Sanitace v~kroku~3 kontaminaci \emph{neodstraňuje}, pouze dělá řetězec inertním,~což je přesně to, co propast v~kroku~5 vyžaduje.}
-    \label{fig:stopa}
-\end{figure}
-
-Rozdíl mezi programem,~který typový systém přijme, a~programem,~který odmítne, se nejlépe ukáže postavením obou odvozovacích stromů vedle sebe. Tak to dělá schéma~\ref{fig:odvozeni}.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\tiny},
-        j/.style={anchor=center, font=\tiny, inner sep=1.5pt},
-        rn/.style={font=\tiny\itshape, anchor=west, gray!55!black},
-        ln/.style={-, thick},
-        okc/.style={draw=green!50!black, fill=green!8,  rounded corners=2pt, thick, inner sep=3pt},
-        noc/.style={draw=red!70!black,   fill=red!8,    rounded corners=2pt, thick, inner sep=3pt},
-        side/.style={font=\tiny, anchor=west}
-    ]
-        % ============ LEFT: safe ============
-        \node[font=\scriptsize\bfseries, green!40!black] at (3.1, 6.3) {(a) program, který systém přijme};
-
-        \node[j] (Lp1) at (0.55, 5.5) {$\vdash \texttt{"<p>"} : \tStr^{(\bot,\{\mathit{html}\})}$};
-        \node[j] (Ls0) at (3.55, 5.5) {$\vdash \mSrc_0 : \tStr^{(\top,\emptyset)}$};
-        \node[j] (Lp2) at (6.2,  5.5) {$\vdash \texttt{"</p>"} : \tStr^{(\bot,\{\mathit{html}\})}$};
-
-        \draw[ln] (2.72, 5.15) -- (4.38, 5.15); \node[rn] at (4.45, 5.15) {T-Val};
-        \node[j] (Lv) at (3.55, 4.8) {$\vdash \mVal_S(\mSrc_0) : \tStr^{(\mathit{mid},\emptyset)}$};
-
-        \draw[ln] (2.72, 4.45) -- (4.38, 4.45); \node[rn] at (4.45, 4.45) {T-San};
-        \node[j] (Ls) at (3.55, 4.1) {$\vdash \sigma_{\mathit{html}}(\cdots) : \tStr^{(\mathit{mid},\{\mathit{html}\})}$};
-
-        \draw[ln] (0.1, 3.75) -- (6.6, 3.75); \node[rn] at (6.67, 3.75) {T-Concat};
-        \node[j] (Lc) at (3.35, 3.4) {$\vdash \texttt{"<p>"} \oplus \sigma_{\mathit{html}}(\cdots) \oplus \texttt{"</p>"} : \tStr^{(\mathit{mid},\{\mathit{html}\})}$};
-
-        \draw[ln] (1.1, 3.05) -- (5.6, 3.05); \node[rn] at (5.67, 3.05) {T-Out};
-        \node[j, okc] (Lo) at (3.35, 2.62) {$\vdash \mOut_{\mathit{html}}(\cdots) : \tUnit$};
-        \node[side, green!45!black] at (0.0, 2.1) {postranní podmínka: $\mathit{html} \in \{\mathit{html}\}$ \;\checkmark};
-
-        % ============ RIGHT: vulnerable ============
-        \begin{scope}[yshift=-58mm]
-        \node[font=\scriptsize\bfseries, red!65!black] at (3.1, 6.3) {(b) tentýž vzorec v~atributové pozici -- systém odmítne};
-
-        \node[j, noc] (Rp1) at (0.85, 5.5) {$\vdash \texttt{"<div title="} : \tStr^{(\bot,\,\emptyset)}$};
-        \node[j] (Rs0) at (3.85, 5.5) {$\vdash \mSrc_0 : \tStr^{(\top,\emptyset)}$};
-        \node[j, noc] (Rp2) at (6.4,  5.5) {$\vdash \texttt{">"} : \tStr^{(\bot,\,\emptyset)}$};
-
-        \draw[ln] (3.02, 5.1) -- (4.68, 5.1); \node[rn] at (4.75, 5.1) {T-Val};
-        \node[j] (Rv) at (3.85, 4.75) {$\vdash \mVal_S(\mSrc_0) : \tStr^{(\mathit{mid},\emptyset)}$};
-
-        \draw[ln] (3.02, 4.4) -- (4.68, 4.4); \node[rn] at (4.75, 4.4) {T-San};
-        \node[j] (Rs) at (3.85, 4.05) {$\vdash \sigma_{\mathit{html}}(\cdots) : \tStr^{(\mathit{mid},\{\mathit{html}\})}$};
-
-        \draw[ln] (0.1, 3.7) -- (6.9, 3.7); \node[rn] at (6.97, 3.7) {T-Concat};
-        \node[j] (Rc) at (3.5, 3.35) {$\vdash \texttt{"<div title="} \oplus \sigma_{\mathit{html}}(\cdots) \oplus \texttt{">"} : \tStr^{(\mathit{mid},\; \emptyset \cap \{\mathit{html}\} \cap \emptyset)}$};
-
-        \draw[ln, red!70!black] (1.2, 3.0) -- (5.8, 3.0); \node[rn, red!70!black] at (5.87, 3.0) {T-Out};
-        \node[j, noc] (Ro) at (3.5, 2.55) {\textbf{odvození nelze uzavřít}};
-        \node[side, red!70!black, align=left] at (0.0, 1.95)
-            {postranní podmínka selhává: $\mathit{html} \notin \emptyset$ \; a~zároveň \; $\mathit{mid} \neq \bot$};
+        % =========== (b) fixed ===========
+        \begin{scope}[yshift=-70mm]
+        \node[hdr, green!40!black] at (2.6, 4.5) {(b) opravená podoba: přibyla dvě volání};
+        \node[lit] (b1) at (0,   0) {\verb|"<h1>…"|};  \node[lb, below=0.5mm of b1] {$(\bot,\Ctxs)$};
+        \node[src] (b0) at (2.6, -2.4) {$\mSrc_0$};    \node[lb, right=1mm of b0] {$(\top,\emptyset)$};
+        \node[op]  (bv) at (2.6, -1.2) {$\mVal_S$};    \node[lb, right=1mm of bv] {$(\mathit{mid},\emptyset)$};
+        \node[op]  (bs) at (2.6,  0)   {$\sigma_{\mathit{html}}$}; \node[lb, right=1mm of bs] {$(\mathit{mid},\{\mathit{html}\})$};
+        \node[lit] (b3) at (6.7, 0) {\verb|"</h1>"|};  \node[lb, below=0.5mm of b3] {$(\bot,\Ctxs)$};
+        \node[op]  (b4) at (2.6, 1.9) {$\oplus$};
+        \node[lb, right=1mm of b4, align=left] {$\bigl(\mathit{mid},\; \Ctxs \cap \{\mathit{html}\} \cap \Ctxs\bigr) = (\mathit{mid}, \{\mathit{html}\})$};
+        \node[okn] (b5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
+        \node[lb, right=1mm of b5, align=left, green!40!black] {podmínka: $\mathit{html} \in \{\mathit{html}\}$? \emph{ano}\\[1pt]\textbf{program se přeloží}};
+        \draw[e] (b0) -- (bv); \draw[e] (bv) -- (bs);
+        \draw[e] (b1) -- (b4); \draw[e] (bs) -- (b4); \draw[e] (b3) -- (b4); \draw[e] (b4) -- (b5);
         \end{scope}
     \end{tikzpicture}
-    \caption{Dvě odvození stejného vzorce, lišící se pouze okolními literály. V~případě~(a) mají oba literály neprázdnou množinu kontextů, průnik v~pravidle \textsc{T-Concat} zachová $\{\mathit{html}\}$ a~pravidlo \textsc{T-Out} odvození uzavře. V~případě~(b) jsou literály neinertní podle podmínky \eqref{in:okoli} (schéma~\ref{fig:inertnost}c), jejich množina kontextů je prázdná, průnik ji propaguje a~postranní podmínka \textsc{T-Out} selhává. Model tak odmítne hodnotu sanitovanou pro tělo HTML v~atributové pozici, aniž by o~atributech obsahoval jediné zvláštní pravidlo.}
-    \label{fig:odvozeni}
+    \caption{Výpočet štítku pro zranitelnou~(a) a~opravenou~(b) podobu běžícího příkladu}
+    \label{fig:vypocet}
+    \source{vlastní zpracování}
 \end{figure}
+
 
 \subsection{Korektnost typování}
 \label{sec:model-korektnost}
