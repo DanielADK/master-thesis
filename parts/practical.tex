@@ -539,279 +539,65 @@ Výpočet štítku podle tabulky~\ref{tab:pravidla} na běžícím příkladu, v
 \end{figure}
 
 
-\subsection{Korektnost typování}
+\subsection{Korektnost modelu}
 \label{sec:model-korektnost}
 
-Důkazy se vedou syntaktickou metodou \textcite{wright1994syntactic}, tedy dvojicí vět o~zachování typu a~o~pokroku. Aby bylo možné o~běhových hodnotách vůbec mluvit, rozšiřuje se typový systém o~jediné pravidlo,~které se na zdrojové programy nevztahuje. Ty totiž značkované řetězce neobsahují.
-
-\begin{definice}[Řádné označkování hodnoty]
-\label{def:radne}
-Značkovaný řetězec $\hat{s}$ je \emph{řádně označkován štítkem} $(i, K)$, zapsáno $\hat{s} \models (i,K)$, pokud platí
+Celá záruka stojí na tom, že spočtený štítek hodnotu věrně popisuje. Řetězec~$s$ \emph{odpovídá} štítku $(i,K)$, pokud platí
 \begin{enumerate}[label=(\alph*)]
-    \item $i = \bot \;\Longrightarrow\; \Marked(\hat{s}) = \emptyset$;
-    \item $\forall c \in K : \hat{s} \in \Inert_c$.
+    \item pokud $i = \bot$, je $U(s) = \emptyset$ ($s$ neobsahuje žádný znak útočníka);
+    \item pro každý kontext $c \in K$ je $s$ způsobilý pro~$c$.
 \end{enumerate}
-\end{definice}
 
-\begin{mathpar}
-\inferrule{\hat{s} \models (i, K)}{\Gamma \vdash \hat{s} : \tStr^{(i,K)}}\;\textsc{(T-Str)}
-\end{mathpar}
-
-Pravidlo \textsc{T-Str} je zobecněním pravidla \textsc{T-Lit}: pro literál~$s$ je $\Marked(s) = \emptyset$, takže podmínka~(a) platí, a~podmínka~(b) se pro $K = \CtxOf(s)$ redukuje na definici~\ref{def:ctxof}. Obě podmínky definice~\ref{def:radne} jsou přitom právě těmi dvěma tvrzeními,~která bezpečnostní záruka o~hodnotě potřebuje. Věta o~zachování typu tedy současně dokazuje, že si běh tyto vlastnosti udrží.
-
-\begin{lemma}[Substituce]
-\label{lem:subst}
-Pokud $\Gamma, x{:}\tau' \vdash e : \tau$ a~$\Gamma \vdash v : \tau'$, pak $\Gamma \vdash e[v/x] : \tau$.
-\end{lemma}
+\begin{tvrzeni}[Korektnost štítků]
+\label{lem:stitky}
+Pokud lze výrazu přiřadit štítek podle tabulky~\ref{tab:pravidla}, pak výsledek jeho vyhodnocení tomuto štítku odpovídá, ať útočník pošle cokoliv. (Pokud validace selže, žádný výsledek nevzniká a~tvrzení je splněno triviálně.)
+\end{tvrzeni}
 
 \begin{proof}
-Indukcí podle odvození $\Gamma, x{:}\tau' \vdash e : \tau$. Postup je standardní \parencite[věta 9.3.8]{pierce2002types}. Bezpečnostní štítky přitom nehrají žádnou roli: všechna pravidla zavedená v~podsekci~\ref{sec:model-typy} jsou vůči typovému prostředí syntaktická a~štítek výsledku počítají výhradně ze štítků premis.
+Důkaz je veden indukcí podle stavby výrazu. Tvrzení se ověří pro literál a~vstup,~ze kterých se skládají všechny výrazy. U~každé ze tří zbývajících operací se pak ukáže, že pokud tvrzení platí pro její části (\emph{indukční předpoklad}), platí i~pro výsledek. Každá forma výrazu má v~tabulce~\ref{tab:pravidla} jediné pravidlo, takže jsou tím pokryty všechny výrazy.
+\begin{itemize}
+    \item \emph{Literál~$s$} má štítek $(\bot, \CtxOf(s))$. Neobsahuje žádný znak útočníka, takže $U(s) = \emptyset$,~což je~(a). Podmínka~(b) plyne přímo z~definice~$\CtxOf$ (definice~\ref{def:prameny}).
+    \item \emph{Vstup~$\mSrc_n$} má štítek $(\top, \emptyset)$, takže se na~něj nevztahuje ani~(a), ani~(b).
+    \item \emph{Zřetězení $e_1 \oplus e_2$} má štítek $(\max(i_1,i_2),\, K_1 \cap K_2)$. Pokud $\max(i_1,i_2) = \bot$, je $i_1 = i_2 = \bot$. Podle indukčního předpokladu pak žádná z~obou částí neobsahuje znak útočníka a~stejné platí pro jejich zřetězení,~což je~(a). Pokud $c \in K_1 \cap K_2$, jsou podle indukčního předpokladu obě části způsobilé pro~$c$ a~podle tvrzení~\ref{lem:monoid} je pro~$c$ způsobilé i~jejich zřetězení,~což je~(b).
+    \item \emph{Validace $\mVal_S(e)$} hodnotu nemění a~má štítek $(\min(i,\mathit{mid}),\, K \cup D(S))$. Původ~$\bot$ může mít pouze při $i = \bot$, a~pak (a) plyne z~indukčního předpokladu. Pro $c \in K$ plyne~(b) také z~indukčního předpokladu. Pro $c \in D(S)$ plyne z~toho, že validace uspěla pouze u~řetězce vyhovujícího schématu~$S$. Takový řetězec je pro~$c$ způsobilý podle definice~\ref{def:prameny}, i~kdyby všechny jeho znaky byly znaky útočníka, a~podle tvrzení~\ref{lem:monotonie} pak i~se skutečnými znaky útočníka.
+    \item \emph{Sanitace $\sigma_c(e)$} má štítek $(\mathit{mid}, \{c\})$, takže se na~ni nevztahuje~(a). Pravidlo \mbox{\textsc{T-San}} vyžaduje $c \neq \mathit{res}$, takže na~$c$ se vztahuje předpoklad~\ref{ass:san}, a~ten je přímo podmínkou~(b).\qedhere
+\end{itemize}
 \end{proof}
-
-\begin{veta}[Zachování typu]
-\label{thm:preservation}
-Nechť $\vdash e : \tau$ a~$\langle e, t \rangle \longrightarrow_{\iota} \langle e', t' \rangle$. Pak $\vdash e' : \tau$.
-\end{veta}
-
-\begin{proof}
-Indukcí podle odvození redukce. Případy pro $\beta$-redukci, \textsf{let} a~podmínku plynou z~lemmatu~\ref{lem:subst} a~jsou standardní. Případ vyhodnocovacího kontextu plyne z~indukčního předpokladu. Uvedeny jsou čtyři případy,~které se týkají štítků. V~každém z~nich stačí podle pravidla \textsc{T-Str} ověřit obě podmínky definice~\ref{def:radne}.
-
-\emph{Případ \eqref{ev:src}.} Podle \textsc{T-Src} je $\tau = \tStr^{(\top, \emptyset)}$ a~$e' = \bullet(\iota(n))$. Podmínka~(a) platí prázdně, protože $\top \neq \bot$. Podmínka~(b) platí také prázdně, protože $K = \emptyset$.
-
-\emph{Případ \eqref{ev:val}.} Podle \textsc{T-Val} je $e = \mVal_S(\hat{s})$ s~$\vdash \hat{s} : \tStr^{(i,K)}$, $\tau = \tStr^{(i \sqcap \mathit{mid},\, K \cup D(S))}$ a~$e' = \hat{s}$. Pokud $i \sqcap \mathit{mid} = \bot$, je nutně $i = \bot$, protože infimum na řetězci je minimum. Z~indukčního předpokladu pak $\Marked(\hat{s}) = \emptyset$, což dává~(a). Pro (b) se rozliší dva případy. Pokud $c \in K$, plyne $\hat{s} \in \Inert_c$ z~indukčního předpokladu. Pokud $c \in D(S)$, plyne z~postranní podmínky pravidla~\eqref{ev:val}, že $\lfloor \hat{s} \rfloor \in L(S)$, a~z~definice~\ref{def:inertS}, že $\bullet(\lfloor \hat{s} \rfloor) \in \Inert_c$. Podle lemmatu~\ref{lem:znacky} je pak $\hat{s} \in \Inert_c$. Pravidlo~\eqref{ev:valerr} dává $e' = \mErr$,~který je typovatelný libovolným typem.
-
-\emph{Případ \eqref{ev:san}.} Podle \textsc{T-San} je $e = \sigma_c(\hat{s})$ s~$\vdash \hat{s} : \tStr^{(i,K)}$, $i \sqsubseteq \mathit{mid}$ a~$\tau = \tStr^{(i, \{c\})}$. Pokud $i = \bot$, je $\Marked(\hat{s}) = \emptyset$, tedy $\mu(\hat{s}) = \circ$ a~výsledek je neznačkovaný: podmínka~(a). Podmínka~(b) plyne pro $\mu(\hat{s}) = \bullet$ přímo z~předpokladu~\ref{ass:san} a~pro $\mu(\hat{s}) = \circ$ ze stejného předpokladu spolu s~lemmatem~\ref{lem:znacky}.
-
-\emph{Případ zřetězení.} Je $e = \hat{s}_1 \oplus \hat{s}_2$ s~$\vdash \hat{s}_k : \tStr^{(i_k, K_k)}$ a~$\tau = \tStr^{(i_1 \sqcup i_2,\; K_1 \cap K_2)}$. Pokud $i_1 \sqcup i_2 = \bot$, je $i_1 = i_2 = \bot$, oba operandy jsou neznačkované a~stejné platí o~jejich zřetězení: podmínka~(a). Pro $c \in K_1 \cap K_2$ je $\hat{s}_1, \hat{s}_2 \in \Inert_c$, a~lemma~\ref{lem:monoid} dává $\hat{s}_1 \hat{s}_2 \in \Inert_c$: podmínka~(b).
-
-\emph{Případ \eqref{ev:out}.} Je $\tau = \tUnit$ a~$e' = ()$, což je typovatelné pravidlem pro jednotku. Prodloužení stopy typ neovlivňuje.
-\end{proof}
-
-Stojí za zdůraznění, která z~dosud dokázaných tvrzení se v~důkazu skutečně uplatnila. Případ zřetězení stojí a~padá s~lemmatem~\ref{lem:monoid}, tedy s~podmínkou kontextové neutrality~\eqref{in:okoli}. Případ sanitace stojí na předpokladu~\ref{ass:san} a~případ validace na definici~\ref{def:inertS}. Právě tyto tři body jsou nosnými prvky celého modelu. Vše ostatní je rutina.
-
-\begin{veta}[Pokrok]
-\label{thm:progress}
-Pro uzavřený term~$e$ s~$\vdash e : \tau$ nastává právě jedna ze tří možností: $e$ je hodnota, $e = \mErr$, nebo existuje konfigurace $\langle e', t' \rangle$ taková, že $\langle e, t \rangle \longrightarrow_{\iota} \langle e', t' \rangle$.
-\end{veta}
-
-\begin{proof}
-Indukcí podle odvození $\vdash e : \tau$ s~pomocnou úvahou o~kanonických tvarech: uzavřená hodnota typu $\tStr^{\ell}$ je značkovaný řetězec, hodnota typu $\tau_1 \to \tau_2$ je abstrakce a~hodnota typu $\tBool^{\ell}$ je $\mathsf{true}$ či $\mathsf{false}$ \parencite[kapitola 9]{pierce2002types}. V~případech \textsc{T-Val}, \textsc{T-San} a~\textsc{T-Out} je podterm buď hodnotou, nebo není. Pokud hodnotou je, je podle kanonických tvarů značkovaným řetězcem a~příslušné redukční pravidlo je použitelné. Pravidla \eqref{ev:val} a~\eqref{ev:valerr} přitom pokrývají obě možné odpovědi schématu, takže vyhodnocení nikdy neuvázne. Pokud hodnotou není, dává indukční předpoklad krok,~který lze provést uvnitř vyhodnocovacího kontextu. Pravidlo \textsc{T-Src} je vždy použitelné, protože prostředí~$\iota$ je totální.
-\end{proof}
-
-\subsection{Bezpečnostní záruka}
-\label{sec:model-zaruka}
-
-Věta~\ref{thm:preservation} říká, že typy zůstávají v~platnosti. Teprve nyní z~ní plyne tvrzení o~bezpečnosti. Nejprve je třeba říci, co se vlastně má dokázat. Právě zde se model rozchází s~naivní formulací neinterference.
-
-\begin{definice}[Výstup bez injektáže]
-\label{def:bezinjektaze}
-Dvojice $(c, \hat{s})$ ve výstupní stopě je \emph{bez injektáže}, pokud platí
-\[
-    \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \;\cap\; \Marked(\hat{s}) \;=\; \emptyset .
-\]
-\end{definice}
-
-Definice~\ref{def:bezinjektaze} je přepisem pojmu injektážního útoku, jak ho zavedli \textcite{su2006essence}, do značkovaného zápisu: útok nastává právě tehdy, pokud vstup útočníka přesáhne hranice datové pozice a~stane se součástí řídicí struktury výstupu. Podstatné je, čeho se definice \emph{netýká}: nezakazuje, aby výstup na vstupu útočníka závisel. Vypsání sanitovaného komentáře je tedy legitimní. Tím je splněn požadavek~R2. Rozdíl mezi oběma situacemi zachycuje schéma~\ref{fig:konfinace}.
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        el/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny},
-        dat/.style={draw, minimum width=32mm, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny},
-        exn/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=red!16, draw=red!75!black, thick, double, font=\ttfamily\tiny},
-        e/.style={-, gray!55!black},
-        hdr/.style={font=\scriptsize\bfseries},
-        note/.style={font=\tiny\itshape, align=center}
-    ]
-        % ---------- safe ----------
-        \node[hdr, green!40!black] at (2.1, 3.1) {(a) výstup bez injektáže};
-        \node[el]  (ah) at (2.1, 2.3) {html};
-        \node[el]  (ab) at (2.1, 1.4) {body};
-        \node[el]  (ap) at (2.1, 0.5) {p};
-        \node[dat] (at) at (2.1, -0.4) {\#text: \&lt;img src=x\&gt;};
-        \draw[e] (ah) -- (ab) -- (ap) -- (at);
-        \node[note, green!40!black] at (2.1, -1.35)
-            {značky jen v~datovém listu\\ $\Exec \cap \Marked = \emptyset$};
-
-        % ---------- vulnerable ----------
-        \begin{scope}[xshift=72mm]
-        \node[hdr, red!65!black] at (2.1, 3.1) {(b) injektáž};
-        \node[el]  (bh) at (2.1, 2.3) {html};
-        \node[el]  (bb) at (2.1, 1.4) {body};
-        \node[el]  (bp) at (2.1, 0.5) {p};
-        \node[el]  (bt) at (0.3, -0.4) {\#text};
-        \node[exn] (bs) at (3.3, -0.4) {img @onerror};
-        \node[dat] (bx) at (3.3, -1.35) {alert(1)};
-        \draw[e] (bh) -- (bb) -- (bp);
-        \draw[e] (bp) -- (bt); \draw[e] (bp) -- (bs); \draw[e] (bs) -- (bx);
-        \node[note, red!65!black] at (2.1, -2.2)
-            {značkovaný znak nese uzel řídicí struktury\\ $\Exec \cap \Marked \neq \emptyset$};
-        \end{scope}
-    \end{tikzpicture}
-    \caption{Stejný vstup útočníka ve dvou rozborech výstupu. Červeně znaky se značkou~$\bullet$, dvojitým rámečkem exekuovatelná pozice. V~případě~(a) prošel vstup sanitací, zůstal proto uvnitř textového uzlu a~ovlivňuje pouze obsah stránky. V~případě~(b) sanitace chybí, vstup vytvořil vlastní uzel s~obsluhou události a~stal se součástí řídicí struktury dokumentu. Věta~\ref{thm:konfinace} tvrdí, že dobře typovaný program případ~(b) nikdy nevytvoří. Nezakazuje však případ~(a), a~aplikace tedy nadále může vypsat uživatelský obsah.}
-    \label{fig:konfinace}
-\end{figure}
 
 \begin{veta}[Konfinace]
 \label{thm:konfinace}
-Pro uzavřený program~$P$ s~$\vdash P : \tUnit$,~který neobsahuje značkované literály, každé prostředí~$\iota$ a~každý běh $\langle P, \varepsilon \rangle \longrightarrow^{*}_{\iota} \langle e, t \rangle$ je každá dvojice $(c, \hat{s}) \in t$ bez injektáže.
+Pokud platí předpoklady~\ref{ass:parse} a~\ref{ass:san}, pak pro každé odeslání $\mOut_c(e)$ dobře typovaného programu a~výsledek~$s$ výrazu~$e$ platí $U(s) \cap V_c(s) = \emptyset$, ať útočník pošle cokoliv. Každé odeslání je tak bez injektáže ve smyslu definice~\ref{def:bezinjektaze}.
 \end{veta}
 
 \begin{proof}
-Dvojice $(c, \hat{s})$ mohla do stopy vstoupit jedině krokem~\eqref{ev:out}, tedy redukcí termu $\mOut_c(\hat{s})$. Podle věty~\ref{thm:preservation} je tento term v~okamžiku redukce dobře typovaný. Protože $\mOut_c$ zavádí pouze pravidlo \textsc{T-Out}, existuje štítek $(i,K)$ takový, že $\vdash \hat{s} : \tStr^{(i,K)}$ a~současně $i = \bot$ nebo $c \in K$. Z~pravidla \textsc{T-Str} plyne $\hat{s} \models (i,K)$.
-
-Pokud $i = \bot$, dává podmínka~(a) definice~\ref{def:radne} rovnost $\Marked(\hat{s}) = \emptyset$ a~tvrzení platí triviálně.
-
-Pokud $c \in K$, dává podmínka~(b) vztah $\hat{s} \in \Inert_c$. Podle předpokladu~\ref{ass:parse} je kořenová dvojice $(\varepsilon, \varepsilon)$ prvkem~$H_c$. Podmínka~\eqref{in:vlastni} definice~\ref{def:inertnost} pro ni dává
-\[
-    \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \;\cap\; \bigl(0 + \Marked(\hat{s})\bigr) \;=\; \Exec_c\bigl(\lfloor \hat{s} \rfloor\bigr) \cap \Marked(\hat{s}) \;=\; \emptyset,
-\]
-což je přesně podmínka definice~\ref{def:bezinjektaze}.
+Řetězec se do výstupu dostane pouze odesláním $\mOut_c(e)$. V~dobře typovaném programu má výraz~$e$ štítek $(i,K)$ splňující podmínku pravidla \textsc{T-Out} ($i = \bot$ nebo $c \in K$), a~podle tvrzení~\ref{lem:stitky} mu výsledek~$s$ odpovídá. Pokud $i = \bot$, je podle~(a) $U(s) = \emptyset$ a~průnik je prázdný. Pokud $c \in K$, je $s$ podle~(b) způsobilý pro~$c$. Prázdný řetězec končí v~datové díře kontextu~$c$ (předpoklad~\ref{ass:parse}), takže podmínka~\eqref{in:vlastni} pro prázdné $p$ i~$q$ dává, že žádný znak útočníka z~$s$ neleží ve~$V_c(s)$.
 \end{proof}
 
-\begin{dusledek}[Absence XSS]
-\label{cor:xss}
-Pokud platí předpoklady~\ref{ass:parse} a~\ref{ass:san}, neexistuje pro dobře typovaný program~$P$ žádný vstup útočníka, při kterém by se znak odvozený od tohoto vstupu ocitl na exekuovatelné pozici výstupu. Zranitelnost XSS ve smyslu definice~\ref{def:bezinjektaze} je tedy vyloučena konstrukcí, nikoliv detekcí.
-\end{dusledek}
+Zranitelnost XSS tak v~modelu vylučuje už konstrukce programu a~heuristická detekce k~tomu potřeba není. Pokud kód projde typovou kontrolou a~náleží do ukázněného fragmentu (definice~\ref{def:fragment}), není třeba jednotlivá místa výstupu prověřovat kvůli opomenuté sanitaci. Každé z~nich je bez injektáže, pokud platí tvrzení~\ref{claim:adekvatnost} o~věrnosti přenosu do TypeScriptu,~které dokázáno není. Důkaz neověřuje své předpoklady (korektnost sanitačních funkcí a~věrnost modelu prohlížeče), ke kterým realizace přidává předpoklad~\ref{ass:jadro}. Nevztahuje se ani na místa, kde byla typová kontrola obejita.
 
-Zbývá dostát požadavku~R5, tedy pojmenovat množinu míst,~kterým je nutno důvěřovat. Věta~\ref{thm:preservation} totiž nepřímo říká i~to, odkud se inertnost v~programu může vzít. Seznam je krátký.
+Požadavek~R5 žádá vymezit místa, kde smí vzniknout bezpečná hodnota.
 
-\begin{veta}[Uzavřenost pramenů inertnosti]
+\begin{tvrzeni}[Uzavřenost pramenů způsobilosti]
 \label{thm:audit}
-Pro $\Gamma \vdash e : \tStr^{(i,K)}$ s~$c \in K$, kde žádná proměnná v~$\Gamma$ nemá typ $\tStr^{(i',K')}$ s~$c \in K'$, obsahuje odvození alespoň jedno použití některého ze tří pravidel:
-\textsc{T-Lit} pro literál~$s$ s~$c \in \CtxOf(s)$;
-\textsc{T-San} pro kontext~$c$;
-\textsc{T-Val} pro schéma~$S$ s~$c \in D(S)$.
-\end{veta}
+Pokud má výraz štítek $(i,K)$ a~$c \in K$, použil jeho výpočet aspoň jedno ze tří pravidel: \textup{\textsc{T-Lit}} s~literálem způsobilým pro~$c$, \textup{\textsc{T-San}} pro kontext~$c$, nebo \textup{\textsc{T-Val}} se schématem~$S$, u~kterého $c \in D(S)$.
+\end{tvrzeni}
 
 \begin{proof}
-Indukcí podle odvození. Pravidlo \textsc{T-Src} dává $K = \emptyset$, předpoklad $c \in K$ je tedy sporný a~případ nenastane. Pravidlo \textsc{T-Var} je vyloučeno předpokladem o~prostředí~$\Gamma$. Pravidlo \textsc{T-Concat} dává $c \in K_1 \cap K_2$, tedy $c \in K_1$, a~indukční předpoklad se použije na levou premisu. Pravidlo \textsc{T-Sub} dává $K' \subseteq K$, tedy $c \in K$, a~indukční předpoklad se použije na premisu. Zbývající tři pravidla,~která mohou zavést $c$ do množiny kontextů, jsou právě ta tři vyjmenovaná.
+Indukcí podle stavby výrazu. U~vstupu je $K = \emptyset$ a~případ nenastane. U~literálu a~sanitace jde přímo o~jeden z~vyjmenovaných případů. U~zřetězení plyne z~$c \in K_1 \cap K_2$ i~$c \in K_1$ a~hledané pravidlo se podle indukčního předpokladu najde ve výpočtu štítku levé části. U~validace je buď $c \in D(S)$,~což je vyjmenovaný případ, nebo $c \in K$ a~pravidlo se najde ve výpočtu štítku validované hodnoty.
 \end{proof}
 
-Věta~\ref{thm:audit} je formálním protějškem robustní deklasifikace \textcite{zdancewic2003robust} a~zároveň zadáním pro kontrolní pravidlo z~dílčího cíle~4. Ze tří vyjmenovaných pramenů jsou totiž dva ověřitelné strojově: příslušnost literálu do $\Inert_c$ i~vztah $L(S) \subseteq \Inert_c$ jsou vlastnosti rozhodnutelné bez znalosti zbytku programu. Jediným pramenem,~který vyžaduje lidský audit, je tedy \textsc{T-San}, tj.~samotné sanitační funkce. Auditní plocha se tím smršťuje na množinu definic sanitačních funkcí. Její velikost je právě tou veličinou,~kterou hodnocení dle rámce SPACE (sekce~\ref{sec:space}) měří v~dimenzi \emph{Performance}.
+Pro kontext \emph{res} zbývá z~vyjmenovaných pravidel pouze \textsc{T-Lit}, protože \textsc{T-San} vyžaduje $c \neq \mathit{res}$ a~$D(S)$ kontext \emph{res} neobsahuje.
 
-Vzájemnou závislost všech dokázaných tvrzení shrnuje schéma~\ref{fig:dukazy}.
+Sanitace i~validace zvyšují integritu hodnoty: jsou \emph{povýšením} (\emph{endorsement}),~které \textcite{zdancewic2003robust} označuje za integritní protějšek deklasifikace. Tvrzením~\ref{thm:audit} je vymezeno, \emph{kde} k~povýšení smí dojít. Obdobou robustnosti,~kterou stejná práce požaduje u~deklasifikace, by byl požadavek, aby útočník neovlivnil samo rozhodnutí o~povýšení. K~tomu by model potřeboval štítek řídicího toku z~podsekce~\ref{sec:model-neinterference}, a~takovou robustnost proto nezaručuje.
 
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\tiny},
-        nd/.style={draw, rounded corners=2pt, minimum width=27mm, minimum height=8.5mm, align=center, font=\tiny},
-        ass/.style={nd, fill=orange!14, draw=orange!70!black, dashed},
-        lem/.style={nd, fill=blue!8,   draw=blue!55!black},
-        thm/.style={nd, fill=green!10, draw=green!45!black, thick},
-        goal/.style={nd, fill=green!22, draw=green!50!black, very thick},
-        e/.style={->, >=Stealth, gray!60!black}
-    ]
-        \node[ass] (ap)  at (0,    4.2) {\textbf{P\ref{ass:parse}} model prohlížeče\\$\Exec_c$, $H_c$, kořenová díra};
-        \node[ass] (as)  at (0,    2.6) {\textbf{P\ref{ass:san}} adekvátnost $\San_c$};
-        \node[lem] (lz)  at (0,    1.0) {\textbf{L\ref{lem:znacky}} monotonie značek};
+Tvrzení~\ref{thm:audit} je zároveň zadáním pro kontrolní pravidlo z~dílčího cíle~4. Dva ze tří pramenů lze ověřit strojově a~bez znalosti zbytku programu, ovšem pouze v~mezích uvedených za definicí~\ref{def:prameny}. Způsobilost literálu se ověřuje vůči konkrétnímu regulárnímu modelu tokenizéru, $D(S)$ jen pro vymezenou podmnožinu schémat a~u~ostatních se $D(S)$ pokládá za prázdné. Lidský audit vyžaduje pouze třetí pramen, sanitační funkce. Kontrolní pravidlo proto nemusí hledat zranitelnosti,~což by byla heuristika se všemi neduhy popsanými v~podsekci~\ref{sec:heuristika}. Stačí, aby vypsalo seznam volání sanitace a~seznam míst, kde byla typová kontrola obejita. Oba seznamy lze získat strojově a~délka druhého z~nich je podle dílčího cíle~4 jedním z~ukazatelů hodnocení.
 
-        \node[lem] (lm)  at (3.6,  4.2) {\textbf{L\ref{lem:monoid}} $\Inert_c$ je monoid};
-        \node[lem] (ll)  at (3.6,  2.6) {\textbf{L\ref{lem:mrizka}} $\Lat$ je svaz};
-        \node[lem] (ls)  at (3.6,  1.0) {\textbf{L\ref{lem:subst}} substituce};
-
-        \node[thm] (pr)  at (7.4,  3.4) {\textbf{V\ref{thm:preservation}} zachování typu};
-        \node[thm] (pg)  at (7.4,  1.0) {\textbf{V\ref{thm:progress}} pokrok};
-
-        \node[thm]  (kf) at (11.0, 3.4) {\textbf{V\ref{thm:konfinace}} konfinace};
-        \node[goal] (dx) at (11.0, 1.7) {\textbf{D\ref{cor:xss}} absence XSS};
-        \node[thm]  (au) at (11.0, 0.0) {\textbf{V\ref{thm:audit}} auditní plocha};
-
-        \draw[e] (lm) -- (pr);
-        \draw[e] (as) -- (pr);
-        \draw[e] (lz) -- (pr);
-        \draw[e] (ll) -- (pr);
-        \draw[e] (ls) -- (pr);
-        \draw[e] (ls) -- (pg);
-        \draw[e] (pr) -- (kf);
-        \draw[e] (pg) to[bend right=12] (kf);
-        \draw[e] (ap) to[bend left=16] (kf);
-        \draw[e] (kf) -- (dx);
-        \draw[e] (as) to[bend right=22] (dx);
-        \draw[e] (ll) to[bend right=10] (au);
-
-        \node[font=\tiny\itshape, gray!60!black, anchor=west] at (-1.4, -0.9)
-            {\textcolor{orange!70!black}{přerušovaně} předpoklady (nedokazují se), \textcolor{blue!55!black}{modře} lemmata, \textcolor{green!45!black}{zeleně} věty a~důsledek};
-    \end{tikzpicture}
-    \caption{Závislosti mezi tvrzeními modelu. Cílovým uzlem je důsledek~\ref{cor:xss}. Vedou do něj právě dvě cesty zvenčí: předpoklad o~věrnosti modelu prohlížeče a~předpoklad o~adekvátnosti sanitačních funkcí. Vše ostatní je dokázáno. Schéma tak zároveň slouží jako mapa toho, co je v~řešení nutno ověřit ručně: obsah dvou přerušovaných uzlů, nic víc.}
-    \label{fig:dukazy}
-\end{figure}
-
-\subsection{Rozšíření I: kontextové šablony}
-\label{sec:model-sablony}
-
-Pravidlo \textsc{T-Concat} je korektní, ale neúplné. Odmítne totiž nejen chybný vzorec ze schématu~\ref{fig:odvozeni}b, ale i~jeho \emph{správnou} obdobu,~ve které by hodnota byla sanitována pro atributový kontext: literál \verb|"<div title="| má prázdnou množinu kontextů bez ohledu na to, co se za~něj vloží. Model tedy zatím neumí vyjádřit legitimní stavbu značkovaného výstupu. Umí ji pouze zakázat.
-
-Chybějícím článkem je konstrukce,~která o~vkládané hodnotě rozhoduje podle \emph{místa}, kam se vkládá, nikoliv podle celkového výsledku zřetězení. Tuto úlohu plní kontextová šablona. V~ekosystému TypeScriptu jí odpovídá tagovaná šablona typu \verb|html`<div title="${x}">`| a~v~literatuře postup zavedený jako kontextově citlivá automatická sanitace \parencite{samuel2011context}.
-
-Rozšiřme jazyk o~term
-\[
-    \mTpl_c[\,s_0, s_1, \ldots, s_n\,](e_1, \ldots, e_n),
-\]
-kde statické části $s_0, \ldots, s_n$ jsou literály zapsané v~programu a~díry se plní výrazy $e_1, \ldots, e_n$. Zápis $\mathit{skel} = s_0 s_1 \cdots s_n$ značí kostru šablony a~$\mathit{hole}_c(\bar{s}, j)$ kontext $j$-té díry, určený rozborem kostry v~kontextu~$c$. Typové pravidlo zní
-
-\begin{mathpar}
-\inferrule{\mathit{skel} \in \Inert_c \\\\
-           \bigl(s_0 \cdots s_{j-1},\; s_j \cdots s_n\bigr) \in H_{c_j} \;\text{ s }\; c_j = \mathit{hole}_c(\bar{s}, j) \\\\
-           \Gamma \vdash e_j : \tStr^{(i_j, K_j)} \\ c_j \in K_j \qquad (j = 1, \ldots, n)}
-          {\Gamma \vdash \mTpl_c[\bar{s}](\bar{e}) : \tStr^{\left(\bigsqcup_j i_j,\; \{c\}\right)}}\;\textsc{(T-Tpl)}
-\end{mathpar}
-
-\begin{lemma}[Korektnost šablony]
-\label{lem:tpl}
-Pokud šablona splňuje premisy pravidla \textsc{T-Tpl} a~$\hat{v}_1, \ldots, \hat{v}_n$ jsou hodnoty s~$\hat{v}_j \in \Inert_{c_j}$, pak výsledný řetězec $s_0 \hat{v}_1 s_1 \cdots \hat{v}_n s_n$ náleží do~$\Inert_c$.
-\end{lemma}
-
-\begin{proof}[Náčrt důkazu]
-Indukcí podle počtu děr. Pro $n = 0$ je tvrzením první premisa. Indukční krok je stejný jako v~lemmatu~\ref{lem:monoid}: hodnota $\hat{v}_j$ je podle předpokladu inertní ve~vlastním kontextu~$c_j$, takže podle~\eqref{in:vlastni} nepřidá exekuovatelný značkovaný znak a~podle~\eqref{in:okoli} ponechá zbytek kostry na stejných pozicích. Zbývající díry tedy zůstávají dírami stejných kontextů. Po vyplnění všech děr je výsledek kostrou,~jejíž značkované znaky leží uvnitř datových terminálů, a~první premisa dává kontextovou neutralitu celku.
-\end{proof}
-
-Šablona tak doplňuje zřetězení tam, kde zřetězení nestačí: $\oplus$ skládá hodnoty \emph{stejného} kontextu, $\mTpl_c$ vkládá hodnoty \emph{různých} kontextů do předem prozkoumané kostry. Vzorec ze schématu~\ref{fig:odvozeni}b tím dostává korektní podobu. Hodnota se sanituje pro atributový kontext,~který šablona v~dané díře rozpozná, a~odvození se uzavře.
-
-\subsection{Rozšíření II: implicitní toky a~neinterference}
+\subsection{Vztah k~neinterferenci}
 \label{sec:model-neinterference}
 
-Dosud dokázaná tvrzení nikde nepracovala s~řídicím tokem. Není to opomenutí: věta~\ref{thm:konfinace} implicitní toky opravdu nepotřebuje. Pokud se program větví podle kontaminovaného vstupu a~v~obou větvích odešle programátorem zapsaný literál, žádný značkovaný znak se do výstupu nedostane a~konfinace platí. Útočník sice ovlivní, \emph{která} z~připravených podob stránky se zobrazí, ale nevloží do~ní vlastní kód. Právě to je obsahem prevence XSS.
+Korektnost bezpečnostních typových systémů je obvykle dokládána vlastností neinterference (rovnice~\ref{eq:noninterference}). V~klasické podobě požaduje, aby výstup programu na vstupu útočníka vůbec nezávisel. To aplikace splnit nemůže, protože uživatelský vstup vypsat smí. Modelem je proto dokazována slabší vlastnost přizpůsobená XSS (věta~\ref{thm:konfinace}): vstup útočníka smí ovlivnit, co se na stránce zobrazí, jeho znaky však nesmějí stát na místě,~které prohlížeč vykoná nebo kterým určí spouštěný kód.
 
-Pro vyslovení vlastnosti neinterference, jak ji žádá dílčí cíl~1, je nejprve třeba říci, co je pozorovatelné. Pozorovatelnou veličinou nemůže být celý výstup: aplikace uživatelský vstup vypsat smí, takže neinterference v~naivním smyslu je porušena z~definice. Pozorovatelnou veličinou je \emph{kostra} výstupu.
-
-\begin{definice}[Kostra výstupu]
-\label{def:kostra}
-Pro řetězec~$h$ a~kontext~$c$ je $\Skel_c(h)$ strom $\Prs_c(h)$,~ve kterém byl obsah všech datových terminálů nahrazen jediným zástupným symbolem. Kostra stopy je definována po složkách, $\Skel(t) = \bigl( (c_k, \Skel_{c_k}(\lfloor \hat{s}_k \rfloor)) \bigr)_k$.
-\end{definice}
-
-Bez sledování řídicího toku kostrová neinterference neplatí, a~protipříklad je triviální:
-\[
-    \mathsf{if}\; \mSrc_0 = \texttt{"a"} \;\mathsf{then}\; \mOut_{\mathit{html}}(\texttt{"<b>x</b>"}) \;\mathsf{else}\; \mOut_{\mathit{html}}(\texttt{"<i>x</i>"}).
-\]
-Tento program je dobře typovaný a~splňuje konfinaci, a~přece útočník pozná,~kterou větví běh prošel. Aby bylo možné kostrovou neinterferenci dokázat, je nutno typový úsudek rozšířit o~štítek řídicího toku~$\mathit{pc} \in \Prov$, jak je v~bezpečnostních typových systémech obvyklé \parencite{volpano1996sound,sabelfeld2003language}:
-
-\begin{mathpar}
-\inferrule{\Gamma; \mathit{pc} \vdash e_1 : \tBool^{(i, K)} \\
-           \Gamma; \mathit{pc} \sqcup i \vdash e_2 : \tau \\
-           \Gamma; \mathit{pc} \sqcup i \vdash e_3 : \tau}
-          {\Gamma; \mathit{pc} \vdash \mathsf{if}\; e_1 \;\mathsf{then}\; e_2 \;\mathsf{else}\; e_3 : \tau}\;\textsc{(T-If-pc)}
-\and
-\inferrule{\Gamma; \mathit{pc} \vdash e : \tStr^{(i,K)} \\ i = \bot \vee c \in K \\ \mathit{pc} = \bot}
-          {\Gamma; \mathit{pc} \vdash \mOut_c(e) : \tUnit}\;\textsc{(T-Out-pc)}
-\end{mathpar}
-
-\begin{veta}[Neinterference vůči kostře výstupu]
-\label{thm:ni}
-Pro $\emptyset; \bot \vdash P : \tUnit$ v~rozšířeném systému a~dvě prostředí vstupů útočníka $\iota, \iota'$, při kterých všechna volání $\mVal_S$ dopadnou shodně, platí pro stopy $t$ a~$t'$ odpovídajících běhů $\Skel(t) = \Skel(t')$.
-\end{veta}
-
-\begin{proof}[Náčrt důkazu]
-Nejprve se ukáže, že oba běhy provedou stejnou posloupnost kroků~\eqref{ev:out}. Pravidlo \textsc{T-Out-pc} připouští odeslání pouze při $\mathit{pc} = \bot$, a~podle \textsc{T-If-pc} lze $\mathit{pc} = \bot$ udržet jen ve větvích podmínek,~jejichž test má provenienci~$\bot$. Hodnota testu je podle podmínky~(a) definice~\ref{def:radne} neznačkovaná, a~je proto v~obou bězích stejná. Stopy mají tedy stejnou délku i~stejné kontexty.
-
-Pro odpovídající si dvojice $(c, \hat{s})$ a~$(c, \hat{s}')$ se dále použije věta~\ref{thm:konfinace}: značkované znaky obou řetězců leží uvnitř datových terminálů. Neznačkované znaky pocházejí z~literálů, popřípadě z~$\San_c$ použité na neznačkovaný vstup. V~obou případech jsou v~obou bězích shodné, protože nezávisí na~$\iota$. Oba řetězce se tedy liší nejvýše obsahem datových terminálů,~který definice~\ref{def:kostra} vymazává, a~kostry se rovnají.
-\end{proof}
-
-Podmínka o~shodném výsledku validace není technickou vsuvkou, ale poctivým přiznáním jednoho zbylého kanálu: selhání validace se navenek projeví, a~útočník tak z~chování aplikace zjistí, zda jeho vstup schématu vyhověl. Jde o~únik v~rozsahu jediného bitu na jedno volání, navíc záměrný, protože ohlášení neplatného vstupu je žádoucí chování. Zamlčet ho by znamenalo dokazovat větu o~jiném programu, než jaký se ve skutečnosti píše.
-
-Pro realizaci v~TypeScriptu je podstatné, že rozšíření o~$\mathit{pc}$ je právě tou částí modelu,~která se přenést \emph{nedá}. Typový systém TypeScriptu nesleduje řídicí tok v~bezpečnostním smyslu a~neexistuje způsob, jak v~něm podmínku $\mathit{pc} = \bot$ vynutit. Knihovna z~dílčího cíle~2 tedy realizuje jádro modelu, a~s~ním větu~\ref{thm:konfinace} a~důsledek~\ref{cor:xss}. Větu~\ref{thm:ni} nikoliv. Toto rozhraní mezi dokázaným a~nepřenositelným je jedním z~konkrétních obsahů obecného vymezení ze~sekce~\ref{sec:hranice-zaruky}.
+Silnější tvrzení, že útočník nezmění ani stavbu stránky, by vyžadovalo sledovat řídicí tok. Program,~který podle prvního znaku vstupu odešle buď \verb|"<p>Ahoj</p>"|, nebo \verb|"<script>odhlas()</script>"|, konfinaci splňuje, protože do výstupu se žádný znak útočníka nedostane. Volbou větve však útočník rozhoduje,~které literály programátora jsou ve výstupu poskládány. Stejně tak může řídit index do pole literálů nebo počet průchodů cyklem. Literály mají původ~$\bot$ a~pravidlo \textsc{T-Out} je přijme, i~když obsahují skript, takže konfinace takové ovlivnění integrity nezakazuje. Bezpečnostní typové systémy je omezují \emph{štítkem řídicího toku}~$\mathit{pc}$,~který zakáže odesílat uvnitř větve, o~které rozhodl útočník \parencite{volpano1996sound,sabelfeld2003language}. Typový systém TypeScriptu však řídicí tok v~bezpečnostním smyslu nesleduje, a~takové rozšíření proto do knihovny přenést nelze. Knihovna z~dílčího cíle~2 může zaručit nanejvýš konfinaci, neinterferenci vůči stavbě stránky nikoliv.
 
 \subsection{Realizace modelu v~TypeScriptu}
 \label{sec:model-typescript}
