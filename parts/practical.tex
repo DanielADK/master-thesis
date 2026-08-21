@@ -602,54 +602,79 @@ Silnější tvrzení, že útočník nezmění ani stavbu stránky, by vyžadova
 \subsection{Realizace modelu v~TypeScriptu}
 \label{sec:model-typescript}
 
-Model byl dosud formulován v~kalkulu. Požadavek~R4 však žádá, aby ho vynucoval překladač skutečného jazyka. Právě zde se dvouosá stavba štítku vyplácí: obě osy mají v~TypeScriptu přímý protějšek, a~operátor spojení dokonce protějšek jediný.
-
-\paragraph{Osa provenience -- svazové uspořádání sjednocením.}
-Úroveň~$i$ se zakóduje jako množina literálových typů,~která je tím větší, čím vyšší je kontaminace: $\bot \mapsto \texttt{'lit'}$, $\mathit{mid} \mapsto \texttt{'lit'|'val'}$ a~$\top \mapsto \texttt{'lit'|'val'|'raw'}$. Přiřaditelnost mezi objekty s~touto vlastností je pak právě inkluzí množin, tedy relací~$\sqsubseteq_{\Prov}$.
-
-\paragraph{Osa kontextů -- svazové uspořádání průnikem značek.}
-Množina~$K$ se zakóduje jako průnik nominálních značek, po jedné pro každý kontext. Typ s~více značkami je přiřaditelný do typu s~méně značkami. Tím vzniká uspořádání $K \supseteq K'$, tedy druhá složka relace~\eqref{eq:m-order}.
+Požadavek~R4 žádá, aby model vynucoval překladač skutečného jazyka. V~TypeScriptu mají obě složky štítku přímý protějšek: původ je zakódován jako množina literálových typů,~která je tím větší, čím horší je původ, a~množina kontextů jako průnik značek, po jedné pro každý kontext.
 
 \begin{minted}{typescript}
 declare const prov: unique symbol;
 
 type Ctx   = 'html' | 'script' | 'url' | 'res';
-type Level = 'lit' | 'val' | 'raw';               // bot <= mid <= top
+// dolní množiny: bot = 'lit', mid = 'lit' | 'val', top = Level
+type Level = 'lit' | 'val' | 'raw';
 
-type Prov<I extends Level>  = { readonly [prov]: I };
-type Inert<K extends Ctx>   = { readonly [C in K as `__inert_${C}`]: true };
+type Prov<I extends Level> = { readonly [prov]: I };
+type Inert<K extends Ctx>  = { readonly [C in K as `__inert_${C}`]: true };
 type Str<I extends Level, K extends Ctx> = string & Prov<I> & Inert<K>;
 
-type SafeHtml   = Str<Level, 'html'>;             // (i, {html}) pro libovolne i
-type Literal    = Str<'lit', Ctx>;                // nejmensi prvek mrizky (bot, C)
+type SafeHtml = Str<Level, 'html'>;      // libovolný původ, způsobilá pro html
+
+// štítek čtený z typu hodnoty V
+type ProvOf<V> = V extends Prov<infer I> ? I : Level;
+type CtxsOf<V> = { [C in Ctx]: [V] extends [Inert<C>] ? C : never }[Ctx];
 \end{minted}
 
-\paragraph{Operátor spojení.}
-Zásadní pozorování zní, že spojení~$\sqcup$ nepotřebuje v~TypeScriptu žádnou zvláštní konstrukci -- realizuje je sjednocení typů.
+\noindent
+Úroveň původu není zapsána jediným literálem, ale dolní množinou: $\bot$ jako \texttt{'lit'}, $\mathit{mid}$ jako \texttt{'lit' | 'val'} a~$\top$ jako celý typ \texttt{Level}. Při zápisu jediným literálem by \texttt{Str<'lit', K>} nebylo přiřaditelné do \texttt{Str<'val', K>} a~uspořádání $\bot \sqsubset \mathit{mid}$ by se ztratilo. Takto přiřaditelnost v~TypeScriptu odpovídá uspořádání štítků z~podsekce~\ref{sec:model-mrizka}: hodnotu s~lepším původem a~více značkami lze přiřadit tam, kde se očekává horší původ a~méně značek. Typy \texttt{ProvOf} a~\texttt{CtxsOf} štítek z~typu hodnoty naopak čtou. Řetězec bez značek, včetně vstupu požadavku, má podle nich původ~$\top$ a~žádný kontext. Ani spojení štítků nevyžaduje zvláštní datovou strukturu či rozšíření překladače.
 
-\begin{tvrzeni}[Spojení je sjednocení]
+\begin{tvrzeni}[Spojení štítků je sjednocení typů]
 \label{claim:join}
-Pro libovolné štítky $\ell_1, \ell_2$ je typ $\llbracket \ell_1 \rrbracket \,|\, \llbracket \ell_2 \rrbracket$ přiřaditelný právě do těch typů $\llbracket \ell \rrbracket$, pro které $\ell_1 \sqcup \ell_2 \sqsubseteq \ell$. Platí tedy $\llbracket \ell_1 \sqcup \ell_2 \rrbracket = \llbracket \ell_1 \rrbracket \,|\, \llbracket \ell_2 \rrbracket$ až na vzájemnou přiřaditelnost.
+Pro typy \texttt{A} a~\texttt{B},~kterými jsou v~TypeScriptu zapsány štítky~$\ell_1$ a~$\ell_2$, a~pro typ \texttt{T} některého štítku platí: sjednocení \texttt{A | B} je přiřaditelné do~\texttt{T}, právě když je do~\texttt{T} přiřaditelný typ štítku $\ell_1 \sqcup \ell_2$.
 \end{tvrzeni}
 
 \begin{proof}[Zdůvodnění]
-Sjednocení je přiřaditelné do cílového typu právě tehdy, pokud je do~něj přiřaditelný každý jeho člen. Pro provenienci to znamená $I_1 \subseteq I \wedge I_2 \subseteq I$, tedy $I \supseteq I_1 \cup I_2$. Pro kontexty to znamená $K_1 \supseteq K \wedge K_2 \supseteq K$, tedy $K \subseteq K_1 \cap K_2$. Nejmenším takovým štítkem je $(i_1 \sqcup i_2,\; K_1 \cap K_2)$,~což je podle rovnice~\eqref{eq:m-join} právě $\ell_1 \sqcup \ell_2$.
+Sjednocení typů lze přiřadit do cílového typu právě tehdy, když tam lze přiřadit každý jeho člen. Do typu \texttt{Str<I, K>} se přiřazuje po složkách. Pro původ to znamená, že cíl musí připouštět obě množiny literálů, jejich sjednocení. Pro kontexty to znamená, že cíl smí požadovat pouze značky přítomné v~obou, nejvýše jejich průnik. To je přesně rovnice~\ref{eq:m-join}.
 \end{proof}
 
-Podpis zřetězení se tím smrští na jediný řádek,~ve kterém se žádná mřížka nevyskytuje:
+Pro jiné cílové typy tvrzení neplatí. Do cíle \texttt{A | B} lze sjednocení \texttt{A | B} přiřadit vždy, typ spojení však ne vždy. Pro \texttt{A = Str<'lit', 'html'>} a~\texttt{B = Str<'lit' | 'val', 'script'>} je typem spojení \texttt{Str<'lit' | 'val', never>} a~ten do cíle přiřadit nelze. Parametry propastí v~knihovně proto jsou typy štítků.
+
+Podpis zřetězení je tím zjednodušen na jediný řádek,~ve kterém se žádná mřížka nevyskytuje. Každé pravidlo z~tabulky~\ref{tab:pravidla} kromě \textsc{T-Src},~kterému odpovídá samotný typ \texttt{unknown} vstupu, má v~knihovně svou funkci. Běžící příklad tak dostává konečnou podobu:
 
 \begin{minted}{typescript}
+import type { Response } from 'express';
+import { z } from 'zod';
+import type { CtxOf, D } from './contexts';     // ctx(s) a D(S) jako typy
+
+// literálovým typem musí být každý člen sjednocení S
+type IsLit<S extends string> =
+  S extends unknown ? ({} extends Record<S, 1> ? false : true) : never;
+type Literal<S extends string> = false extends IsLit<S> ? never : unknown;
+type Mid<K extends Ctx> = Str<'lit' | 'val', K>;  // původ nejhůře mid
+
+declare function h<S extends string>(s: S & Literal<S>): Str<'lit', CtxOf<S>>;
+declare function parse<S extends z.ZodType<string>, V>(schema: S, v: V):
+  Str<Extract<ProvOf<V>, 'lit' | 'val'>, CtxsOf<V> | D<z.output<S>>>;
+declare function sanitize(c: 'html', s: Mid<never>): Mid<'html'>;
+declare function sanitize(c: 'script', s: Mid<never>): Mid<'script'>;
+declare function sanitize(c: 'url', s: Mid<never>): Mid<'url'>;
 declare function cat<A extends string, B extends string>(a: A, b: B): A | B;
 
-// propast: disjunkce z pravidla T-Out se vyjadri dvojici pretizeni
+// podmínka pravidla T-Out se vyjádří dvojicí přetížení
 declare function send(res: Response, h: Str<'lit', never>): void;   // i = bot
 declare function send(res: Response, h: SafeHtml): void;            // html in K
 
-declare function sanitize<C extends Ctx>(c: C, s: Str<'lit'|'val', Ctx>): Str<'lit'|'val', C>;
-declare function parse<S extends Schema>(s: S, u: unknown): Str<'lit'|'val', InertOf<S>>;
+app.get('/hledat', (req, res) => {
+  const q = sanitize('html', parse(z.string().max(100), req.query.q));
+  send(res, cat(cat(h('<h1>Výsledky pro: '), q), h('</h1>')));   // přeloží se
+  // send(res, cat(cat(h('<h1>'), req.query.q as string), h('</h1>')));
+  //   ^ chyba TS2769 (No overload matches this call): string není
+  //     přiřaditelný ani do Str<'lit', never>, ani do SafeHtml
+});
 \end{minted}
 
-Podpis funkce \texttt{sanitize} zároveň vynucuje postranní podmínku $i \sqsubseteq \mathit{mid}$ pravidla \textsc{T-San}: parametr typu \texttt{Str<'lit'|'val', Ctx>} hodnotu se štítkem~$\top$ nepřijme, takže sanitaci musí předcházet validace. Celý přenos shrnuje schéma~\ref{fig:vnoreni}.
+Funkce \texttt{h} odpovídá pravidlu \textsc{T-Lit}: přizná literálu původ~$\bot$ a~kontexty,~které typ \texttt{CtxOf<S>} spočítá z~literálového typu argumentu pomocí šablonových literálových typů jako spodní odhad množiny~$\CtxOf(s)$. Pomocný typ \texttt{Literal<S>} se rovná \texttt{never}, pokud není literálovým typem každý člen sjednocení~\texttt{S}. Funkce \texttt{h} tak odmítne argument typu \texttt{string} i~sjednocení literálu se vzorem, jako je \verb+'a' | `${string}x`+, jinak by přiznala původ~$\bot$ i~vstupu útočníka. Přetypování nebo zúžení vstupu na literálový typ však typová kontrola neodhalí a~zachytí je až pravidlo~F4 z~definice~\ref{def:fragment}. Funkce \texttt{parse} štítek vstupu zachová: původ omezí nanejvýš na~$\mathit{mid}$, protože průnik dvou dolních množin je jejich minimem. Ke kontextům vstupu přidá ty,~které typ \texttt{D} vyčte z~výstupního typu schématu, přesně podle pravidla \textsc{T-Val}. Typy \texttt{any} a~\texttt{never} však lze přiřadit do každého typu, takže jim \texttt{CtxsOf} přizná všechny kontexty a~přijme je i~propast. Výraz typu \texttt{never} přitom může za běhu nést i~vstup útočníka, např.~po přetypování nebo po zúžení vlastnosti, do které program zapsal přes odkaz obecnějšího typu. Hodnoty obou typů proto nejsou do knihovny propuštěny pravidly~F1 a~F4 z~definice~\ref{def:fragment}.
+
+Pro každý kontext kromě \emph{res} má funkce \texttt{sanitize} jedno přetížení. Generický podpis \texttt{sanitize<C extends Ctx>} by nestačil: pro \texttt{C = 'html' | 'url'} by vrátil hodnotu způsobilou pro oba kontexty, ačkoliv proběhla jen jedna sanitace. Adresa \texttt{javascript:alert(1)} přitom escapováním pro HTML projde beze změny. Parametr typu \texttt{Mid<never>} nepřijme hodnotu s~původem~$\top$, takže sanitaci musí předcházet validace, jak žádá podmínka pravidla \textsc{T-San}.
+
+Podmínku pravidla \textsc{T-Out} vyjadřuje dvojice přetížení funkce \texttt{send}. Jediný parametr typu \texttt{Str<'lit', never> | SafeHtml} by nestačil: sjednocení je kontrolováno po členech a~každý člen argumentu si může vybrat jinou alternativu. Prošel by tak vzorec z~požadavku~R3 a~vznikl by výstup \verb|<div title=x onmouseover=alert(1)>|. Parametr každého přetížení je naproti tomu typem štítku, pro který platí tvrzení~\ref{claim:join}. Celý přenos shrnuje schéma~\ref{fig:vnoreni}. Štítek řídicího toku, o~který by se model musel rozšířit kvůli neinterferenci (podsekce~\ref{sec:model-neinterference}), by v~TypeScriptu protějšek neměl.
 
 \begin{figure}[htbp]
     \centering
@@ -662,42 +687,74 @@ Podpis funkce \texttt{sanitize} zároveň vynucuje postranní podmínku $i \sqsu
         a/.style={->, >=Stealth, gray!60!black},
         hh/.style={font=\scriptsize\bfseries}
     ]
-        \node[hh, orange!70!black] at (2.0, 4.7) {kalkul $\lxss$};
+        \node[hh, orange!70!black] at (2.0, 4.7) {model};
         \node[hh, blue!60!black]   at (9.4, 4.7) {TypeScript};
 
-        \node[lft] (l1) at (2.0, 4.0) {$\tStr^{(i,K)}$};
+        \node[lft] (l1) at (2.0, 4.0) {řetězec se štítkem $(i,K)$};
         \node[rgt] (r1) at (9.4, 4.0) {string \& Prov<I> \& Inert<K>};
 
         \node[lft, hi] (l2) at (2.0, 2.9) {$\ell_1 \sqcup \ell_2$};
         \node[rgt, hi] (r2) at (9.4, 2.9) {A | B};
 
-        \node[lft] (l3) at (2.0, 1.8) {\textsc{T-San}, $i \sqsubseteq \mathit{mid}$};
-        \node[rgt] (r3) at (9.4, 1.8) {sanitize<C>(c, s: Str<'lit'|'val', Ctx>)};
+        \node[lft] (l3) at (2.0, 1.8) {\textsc{T-San}, $i \neq \top$, $c \neq \mathit{res}$};
+        \node[rgt] (r3) at (9.4, 1.8) {sanitize(c, s: Str<'lit'|'val', never>)\\[1pt]{\normalfont\itshape přetížení pro html, script a~url}};
 
-        \node[lft] (l4) at (2.0, 0.7) {\textsc{T-Out}, $i = \bot \vee c \in K$};
+        \node[lft] (l4) at (2.0, 0.7) {\textsc{T-Out}, $i = \bot$ nebo $c \in K$};
         \node[rgt] (r4) at (9.4, 0.7) {dvojice přetížení send(\ldots)};
 
         \node[lft] (l5) at (2.0, -0.4) {\textsc{T-Lit}, $\CtxOf(s)$};
-        \node[rgt] (r5) at (9.4, -0.4) {kontrolor tagované šablony};
+        \node[rgt] (r5) at (9.4, -0.4) {h<S extends string>(s: S)\\[1pt]{\normalfont\itshape literálový typ argumentu}};
 
-        \node[lft, gap] (l6) at (2.0, -1.7) {\textsc{T-Out-pc}, $\mathit{pc} = \bot$};
+        \node[lft, gap] (l6) at (2.0, -1.7) {štítek řídicího toku~$\mathit{pc}$\\[1pt]{\itshape mimo model}};
         \node[rgt, gap] (r6) at (9.4, -1.7) {\normalfont\itshape bez protějšku};
 
         \foreach \k in {1,2,3,4,5} { \draw[a] (l\k) -- (r\k); }
         \draw[a, red!70!black, dashed] (l6) -- node[above, font=\tiny\itshape, red!70!black] {nepřenositelné} (r6);
 
-        \node[font=\tiny\itshape, green!40!black, align=center] at (5.7, 3.35) {jádro tvrzení~\ref{claim:join}};
+        \node[font=\tiny\itshape, green!40!black, align=center] at (5.7, 3.35) {tvrzení~\ref{claim:join}};
     \end{tikzpicture}
-    \caption{Přenos jednotlivých částí modelu do TypeScriptu. Zeleně zvýrazněný řádek je jádrem celého vnoření: operátor spojení bezpečnostní mřížky se realizuje sjednocením typů, a~nevyžaduje proto ani zvláštní datovou strukturu, ani rozšíření překladače. Červeně přerušovaný řádek je jediná část modelu,~která protějšek nemá: štítek řídicího toku, a~s~ním věta~\ref{thm:ni}.}
+    \caption[Přenos částí modelu do TypeScriptu]{Přenos částí modelu do TypeScriptu. Zeleně spojení štítků, červeně přerušovaně štítek řídicího toku,~který v~modelu není a~přenést ho nelze.}
     \label{fig:vnoreni}
+    \source{vlastní zpracování}
 \end{figure}
 
-\begin{tvrzeni}[Adekvátnost vnoření]
+Překlad je věrný pouze u~programů,~které typovou kontrolu neobcházejí. Nestačí přitom zakázat přetypování \texttt{as}, typ \texttt{any} a~direktivu \texttt{@ts-ignore}. Typovou kontrolu obcházejí i~konstrukce vyjmenované v~sekci~\ref{sec:hranice-zaruky}, od hodnoty \texttt{req.body} typu \texttt{any} z~deklarací Expressu po kovarianci měnitelných polí. Další uvádí následující definice. Původní propasti Expressu, např.~\texttt{res.send}, navíc zůstávají volatelné s~libovolným řetězcem. Ukázněný fragment proto vymezuje výčet pravidel lintu.
+
+\begin{definice}[Ukázněný fragment]
+\label{def:fragment}
+Program náleží do \emph{ukázněného fragmentu}, pokud se překládá s~volbou \texttt{strict} (jejíž součástí je \texttt{strictFunctionTypes}), pokud v~něm hodnoty vstupů požadavku (například \texttt{req.query.q} a~\texttt{req.body}) mají typ \texttt{unknown} a~pokud splňuje tato pravidla lintu:
+\begin{enumerate}[label=(F\arabic*)]
+    \item {\raggedright pravidla \texttt{no-unsafe-argument}, \texttt{no-unsafe-assignment}, \texttt{no-unsafe-member-access}, \texttt{no-unsafe-call}, \texttt{no-unsafe-return} a~\texttt{no-explicit-any} nástroje \mbox{typescript-eslint};\par}
+    \item pravidlo \texttt{ban-ts-comment} včetně direktiv \texttt{@ts-expect-error} a~\texttt{@ts-nocheck};
+    \item pravidlo \texttt{method-signature-style} s~volbou \texttt{property}, aby se i~na parametry metod deklarovaných v~rozhraních a~typových literálech programu uplatnila volba \texttt{strictFunctionTypes}; metody tříd zachycuje pravidlo~F4;
+    \item vlastní pravidlo z~dílčího cíle~4,~které mimo auditovaný modul knihovny zakazuje (bezpečným typem je zde každý typ \texttt{Str<I, K>}):
+    \begin{itemize}
+        \item přetypování (\texttt{as} i~\texttt{<T>}) na typ obsahující bezpečný typ nebo typ schématu Zod či na typový parametr, uživatelské typové predikáty a~funkce \texttt{asserts} dávající takový typ, podpisy přetížení s~takovým návratovým typem užším, než vrací implementace, a~deklarace bez implementace s~takovým typem;
+        \item schéma \texttt{z.custom}, metodu schématu \texttt{transform}, metodu \texttt{refine} s~typovým predikátem a~volání funkce \texttt{h} s~argumentem,~který není řetězcovým literálem zapsaným v~textu programu;
+        \item rozšiřující přiřazení hodnoty (i~předáním argumentem),~v~jejímž typu je bezpečný typ vnořen ve vlastnosti objektu, v~parametru metody nebo v~typovém argumentu (například u~pole, \texttt{Map} či \texttt{Set}), volání \texttt{Object.assign}, \texttt{Object.defineProperty} a~\texttt{Reflect.set} na takovou hodnotu a~přepsání metody třídy parametrem bezpečného typu;
+        \item použití hodnoty výrazu typu \texttt{never} jinak než přiřazením do typu \texttt{never} a~argument typu \texttt{any},~ze kterého překladač odvodí typový argument volání;
+        \item přímé volání surových propastí Expressu \texttt{res.send}, \texttt{res.write}, \texttt{res.end}, \texttt{res.render} a~\texttt{res.redirect}.
+    \end{itemize}
+\end{enumerate}
+\end{definice}
+
+Věrnost přenosu stojí ještě na kódu,~který typovou kontrolou neprochází nebo ji sám provádí.
+
+\begin{predpoklad}[Validace a~jádro knihovny]
+\label{ass:jadro}
+Validace schématem propustí pouze řetězec vyhovující schématu a~hodnotu nezmění. Výstupní typ schématu zahrnuje každou hodnotu,~kterou validace propustí. Funkce jádra knihovny (\texttt{h}, \texttt{parse}, \texttt{sanitize}, \texttt{cat} a~\texttt{send}) odpovídají pravidlům z~tabulky~\ref{tab:pravidla}, ačkoliv štítky přiřazují přetypováním,~které typová kontrola neověří. Překladač TypeScriptu typovou kontrolu skutečně provede a~provede ji správně.
+\end{predpoklad}
+
+V~modelu je první věta předpokladu součástí definice validace $\mVal_S$ (podsekce~\ref{sec:model-jazyk}), v~realizaci jde o~důvěru v~knihovnu Zod. Druhou větu model nepotřebuje, protože $D(S)$ určuje přímo z~řetězců,~které schéma propustí. Typ \texttt{D} však čte výstupní typ schématu a~ten lze bez kontroly zúžit, např.~schématem \texttt{z.custom} nebo přetypováním schématu. Obojí proto zakazuje pravidlo~F4. Schémata,~která hodnotu mění (\texttt{.trim()}, \texttt{.transform()}, \texttt{z.coerce}), předpoklad nesplňují. Realizace proto za běhu odmítne každou validaci,~jejíž výsledek se od vstupu liší. Jádro knihovny se bez přetypování obejít nemůže, protože jinak by žádný štítek nevznikl, a~patří proto do auditní plochy spolu se sanitačními funkcemi.
+
+\begin{tvrzeni}[Věrnost přenosu do TypeScriptu]
 \label{claim:adekvatnost}
-Pro každý term~$e$ kalkulu $\lxss$ bez rozšíření o~$\mathit{pc}$ platí: pokud $\vdash e : \tau$, je překlad $\llbracket e \rrbracket$ dobře typovaný program TypeScriptu typu $\llbracket \tau \rrbracket$. Obráceně, pokud je program TypeScriptu dobře typovaný a~náleží do \emph{ukázněného fragmentu}, tedy neobsahuje přetypování \texttt{as}, typ \texttt{any}, direktivu \texttt{@ts-ignore} ani deklaraci bez implementace, odpovídá mu term $\lxss$ stejného typu.
+Za předpokladu~\ref{ass:jadro} platí: pokud lze výrazu přiřadit štítek podle tabulky~\ref{tab:pravidla},~ve které se $\CtxOf(s)$ a~$D(S)$ nahradí množinami,~které spočítají typy \texttt{CtxOf} a~\texttt{D}, je jeho překlad do TypeScriptu dobře typovaný. Obráceně: pokud je program TypeScriptu dobře typovaný a~náleží do ukázněného fragmentu (definice~\ref{def:fragment}), odpovídá mu výraz modelu se stejným štítkem.
 \end{tvrzeni}
 
-Tvrzení~\ref{claim:adekvatnost} je uvedeno záměrně jako tvrzení, nikoliv jako věta, a~doprovázeno náčrtem namísto důkazu. Důvod je zásadní a~nemá smysl ho zastírat: TypeScript nemá úplnou formální sémantiku, vůči které by bylo možné takovou větu dokázat, a~jeho typový systém je navíc vědomě nekorektní ve prospěch použitelnosti (sekce~\ref{sec:hranice-zaruky}). První polovina tvrzení je ověřitelná mechanicky: překlad každého pravidla se zkontroluje překladačem na testovací sadě. Druhá polovina se opírá o~vymezení ukázněného fragmentu. Jeho dodržení nevynucuje typová kontrola, ale kontrolní pravidlo z~dílčího cíle~4. Právě proto je toto pravidlo součástí řešení, a~nikoliv jeho příslušenstvím.
+Tvrzení~\ref{claim:adekvatnost} jako jediné v~této sekci dokázáno není. TypeScript nemá úplnou formální sémantiku,~vůči které by ho bylo možno dokázat, a~jeho typový systém je navíc vědomě nekorektní ve prospěch použitelnosti (sekce~\ref{sec:hranice-zaruky}). Část týkající se samotných štítků, tedy uspořádání a~spojení na konečné množině 48 štítků, lze přesto ověřit úplně: překladač zkontroluje každou dvojici štítků i~každý cílový štítek,~což je důkaz vyčerpáním případů. Pro programy,~kterých je nekonečně mnoho, takový výčet možný není. Typ \texttt{CtxOf} je navíc pouze spodním odhadem množiny $\CtxOf(s)$ a~typ \texttt{D} za předpokladu~\ref{ass:jadro} spodním odhadem množiny $D(S)$. Typ \texttt{D} vidí $D(S)$ pouze u~schématu,~které má jako výstupní typ konečné sjednocení literálů (\texttt{z.enum}, \texttt{z.literal}). Regulární výraz ve výstupním typu schématu vidět není, a~realizace proto odmítne i~program,~který model díky $D(S)$ takového schématu přijme. Tato neúplnost je bezpečná, realizace je pouze přísnější než model.
+
+Druhá polovina tvrzení se opírá o~ukázněný fragment. Jeho dodržení typová kontrola nevynucuje, vynucuje ho lint s~pravidly z~definice~\ref{def:fragment}. Vlastní část lintu tvoří kontrolní pravidlo z~dílčího cíle~4,~které je tím nezbytnou součástí řešení. Úplnost výčtu v~definici dokázat nelze: zachycuje způsoby obejití typové kontroly uvedené výše a~nevylučuje, že se najdou další.
 
 \subsection{Předpoklady, hranice a~co model nezaručuje}
 \label{sec:model-hranice}

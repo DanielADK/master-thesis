@@ -2,7 +2,7 @@
   "name": "own-work",
   "version": "0.1.0",
   "private": true,
-  "description": "TypeScript realization of the label model of lambda-XSS",
+  "description": "TypeScript realization of the label model from parts/practical.tex",
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p ."

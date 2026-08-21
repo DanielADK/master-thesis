@@ -1,30 +1,33 @@
-// Compile-time tests of the rules of the calculus. Never imported at run time.
+// Compile-time tests of the label rules (tab:pravidla). Never imported at run time.
 import { z } from 'zod';
-import { cat, html, parse, sanitize, send, type Res, type SafeHtml } from '../../src/index.ts';
+import { cat, h, parse, sanitize, send, type Res } from '../../src/index.ts';
 
 declare const res: Res;
 declare const raw: string; // T-Src: request input (top, {})
 
 const v = parse(z.string().max(100), raw); // T-Val: (mid, {})
-const q = sanitize('html', v); // T-San: (mid, {html})
+const qHtml = sanitize('html', v); // T-San: (mid, {html})
 
-// T-San: validation must come first
+// T-San: validation must come first, a literal is already bot
 // @ts-expect-error raw input has level top
 sanitize('html', raw);
+sanitize('html', h('x'));
+// @ts-expect-error there is no sanitizer for res
+sanitize('res', v);
 
-// T-Lit: a template with a hole would carry request input
+// R3: the literal "<div title=" has no context, the join has none either
 // @ts-expect-error
-html`<h1>${raw}</h1>`;
+send(res, cat(cat(h('<div title='), qHtml), h('>')));
 
-// T-Out: a literal, or a value with html in K
-send(res, html`<h1>Hello</h1>`);
-send(res, cat(cat(html`<h1>`, q), html`</h1>`));
-// @ts-expect-error raw input fits neither overload
-send(res, raw);
-// @ts-expect-error a value escaped for script is not inert in html
-send(res, sanitize('script', v));
+// T-Out, alternative i = bot: the programmer may send markup and code
+send(res, h('<div title='));
+send(res, cat(h('<script>'), h('init()</script>')));
 
-// T-Val: the values of an enum are inert everywhere but res
-export const sort: SafeHtml = parse(z.enum(['asc', 'desc']), raw);
-// @ts-expect-error a free string has no context
-export const free: SafeHtml = parse(z.string(), raw);
+// T-Val adds D(S)
+send(res, parse(z.enum(['asc', 'desc']), raw));
+// @ts-expect-error D(z.string()) is empty
+send(res, parse(z.string().max(100), raw));
+
+// T-Lit: only literal types, the label is computed from the text
+// @ts-expect-error
+h(raw);
