@@ -756,27 +756,71 @@ Tvrzení~\ref{claim:adekvatnost} jako jediné v~této sekci dokázáno není. Ty
 
 Druhá polovina tvrzení se opírá o~ukázněný fragment. Jeho dodržení typová kontrola nevynucuje, vynucuje ho lint s~pravidly z~definice~\ref{def:fragment}. Vlastní část lintu tvoří kontrolní pravidlo z~dílčího cíle~4,~které je tím nezbytnou součástí řešení. Úplnost výčtu v~definici dokázat nelze: zachycuje způsoby obejití typové kontroly uvedené výše a~nevylučuje, že se najdou další.
 
-\subsection{Předpoklady, hranice a~co model nezaručuje}
+\subsection{Předpoklady a~meze modelu}
 \label{sec:model-hranice}
 
-Sekce~\ref{sec:hranice-zaruky} vymezila hranice statické záruky obecně. Nyní je lze vyslovit adresně, protože model dovoluje ukázat prstem na konkrétní tvrzení. Vše, co záruka potřebuje a~sama nedokazuje, se soustřeďuje do dvou předpokladů a~jedné disciplíny.
+Tabulka~\ref{tab:puvod} uvádí u~všeho, s~čím model pracuje, jeho původ. Lze v~ní ověřit, že žádné tvrzení modelu nestojí na ničem nevysloveném.
 
-\begin{enumerate}
-    \item \textbf{Věrnost modelu prohlížeče} (předpoklad~\ref{ass:parse}). Dvojice $(\Prs_c, \Exec_c)$ musí odpovídat skutečnému chování prohlížečů. Pokud neodpovídá, například proto, že nová verze specifikace zavede kontext,~který v~množině~$\Ctxs$ chybí, zůstávají všechny věty v~platnosti. Vypovídají však o~jiném prohlížeči, než jaký uživatel používá.
-    \item \textbf{Adekvátnost sanitačních funkcí} (předpoklad~\ref{ass:san}). Zde model důvěřuje cizímu kódu. Pravidlo \textsc{T-San} tuto důvěru zužuje na validovanou doménu. Tím ji dělá ověřitelnější, nikoliv však zbytečnou.
-    \item \textbf{Ukázněný fragment} (tvrzení~\ref{claim:adekvatnost}). Únik z~typového systému zůstává možný. Je však syntakticky zřetelný a~strojově dohledatelný,~což z~něj podle věty~\ref{thm:audit} dělá měřitelnou veličinu, nikoliv skrytou vadu.
-\end{enumerate}
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{@{}lll@{}}
+        \toprule
+        \textbf{Pojem} & \textbf{Status} & \textbf{Kde} \\
+        \midrule
+        Denningovy axiomy                & převzato & axiomy~\ref{ax:finitness} až~\ref{ax:join} \\
+        pojem injektážního útoku         & převzato & \textcite{su2006essence} \\
+        kontextová sanitace              & převzato & \textcite{samuel2011context} \\
+        povýšení integrity (\emph{endorsement}) & převzato & \textcite{zdancewic2003robust} \\
+        \midrule
+        znaky útočníka $U(s)$            & definováno & podsekce~\ref{sec:model-cil} \\
+        výstup bez injektáže             & definováno & definice~\ref{def:bezinjektaze} \\
+        způsobilost pro kontext          & definováno & definice~\ref{def:inertnost} \\
+        bezpečnostní štítek, spojení     & definováno & podsekce~\ref{sec:model-mrizka} \\
+        prameny způsobilosti $\CtxOf$, $D(S)$ & definováno, strojově spodní odhad & definice~\ref{def:prameny} \\
+        pravidla pro výpočet štítku      & definováno & tabulka~\ref{tab:pravidla} \\
+        ukázněný fragment                & definováno & definice~\ref{def:fragment} \\
+        \midrule
+        vykonávaná a~řídicí místa, datové díry & \textbf{předpoklad} & předpoklad~\ref{ass:parse} \\
+        korektnost sanitačních funkcí    & \textbf{předpoklad} & předpoklad~\ref{ass:san} \\
+        validace, jádro knihovny, překladač & \textbf{předpoklad} & předpoklad~\ref{ass:jadro} \\
+        \midrule
+        monotonie a~skládání způsobilosti & dokázáno & tvrzení~\ref{lem:monotonie} a~\ref{lem:monoid} \\
+        korektnost štítků                & dokázáno & tvrzení~\ref{lem:stitky} \\
+        štítky tvoří mřížku              & dokázáno & tvrzení~\ref{lem:mrizka} \\
+        konfinace                        & dokázáno & věta~\ref{thm:konfinace} \\
+        uzavřenost pramenů               & dokázáno & tvrzení~\ref{thm:audit} \\
+        \midrule
+        funkce, podmínky, cykly          & \textbf{zjednodušeno} & podsekce~\ref{sec:model-jazyk} \\
+        přechody kontextu u~literálů     & \textbf{zjednodušeno} & níže \\
+        \midrule
+        přenos do TypeScriptu            & \textbf{nedokázáno} & tvrzení~\ref{claim:adekvatnost} \\
+        neinterference, implicitní toky  & \textbf{mimo záruku} & podsekce~\ref{sec:model-neinterference} \\
+        robustnost povýšení              & \textbf{mimo záruku} & podsekce~\ref{sec:model-korektnost} \\
+        proměnlivý stav, aliasing        & \textbf{mimo záruku} & níže \\
+        deserializace vstupu             & \textbf{mimo záruku} & níže \\
+        odpověď odesílaná po částech     & \textbf{mimo záruku} & níže \\
+        \bottomrule
+    \end{tabular}
+    \caption{Původ pojmů, předpokladů a~tvrzení modelu}
+    \label{tab:puvod}
+    \source{vlastní zpracování}
+\end{table}
 
-Čtyři omezení model naopak nese vědomě a~žádný předpoklad je nezhojí.
+Model má i~tato omezení:
 
 \begin{description}
-    \item[Implicitní toky.] Věta~\ref{thm:ni} se do TypeScriptu nepřenáší (podsekce~\ref{sec:model-neinterference}). Pro prevenci XSS to není podstatné, protože konfinace platí i~bez ní. Pro tvrzení o~důvěrnosti by to však podstatné bylo.
-    \item[Proměnlivý stav a~aliasing.] Kalkul $\lxss$ je bez vedlejších účinků. Reálný kód pracuje s~poli, objekty a~asynchronními voláními, u~kterých může být stejná hodnota dosažitelná více cestami. Značkované typy tuto obtíž \emph{obcházejí}, nikoliv řeší: štítek nese sama hodnota, nikoliv místo, kde je uložena, takže aliasing štítek neztratí. Cenou je, že model nedokáže vyjádřit hodnotu,~jejíž bezpečnost se v~čase mění.
-    \item[Deserializace.] Model začíná u~řetězce. Cesta od surového těla požadavku typu \texttt{unknown} k~řetězci, tedy rozbor JSONu a~přístup k~poli, je v~modelu skryta uvnitř $\mVal_S$. Pro realizaci to znamená, že hranice mezi \texttt{unknown} a~modelem musí procházet výhradně validační vrstvou.
-    \item[Sanitační funkce jako taková.] Model dokáže, že sanitace proběhla, nedokáže však, že proběhla správně. Automatizovanému ověření této poslední mezery se věnují zjemněné typy a~SMT solvery (sekce~\ref{sec:hranice-zaruky}). V~předkládaném řešení zůstává předmětem lidského auditu.
+    \item[Neúplnost zřetězení.] Pravidlo \textsc{T-Concat} je sice korektní, avšak neúplné: odmítne i~\emph{správnou} stavbu atributu v~uvozovkách. Literál \verb|'<a title="'| v~textu elementu otevírá hodnotu atributu, a~kontext \emph{html} mu proto chybí, ačkoliv hodnota escapovaná pro HTML by v~takovém atributu byla bezpečná (schéma~\ref{fig:escapovani-nestaci}). Model literálu přizná pouze kontexty,~které literál nezmění. Přechody kontextu u~literálů, jaké pro šablony odvozují a~při zřetězení skládají \textcite{samuel2011context}, by toto omezení odstranily a~jsou možným rozšířením modelu.
+    \item[Proměnlivý stav a~aliasing.] Model nemá vedlejší účinky. Značkované typy tuto obtíž u~neměnných řetězců \emph{obcházejí}: štítek nese hodnota, nikoliv místo, kde je uložena, takže více odkazů na stejnou hodnotu štítek neztratí. Neplatí to však pro měnitelné kontejnery bezpečných hodnot: pole, objekty a~kolekce \texttt{Map} a~\texttt{Set}. Jejich kovariance dovolí vložit vstup útočníka například do pole, na které odkazuje i~proměnná typu \texttt{SafeHtml[]}. Zachytit to musí pravidlo~F4 z~definice~\ref{def:fragment}. Model ovšem nedokáže vyjádřit hodnotu,~jejíž bezpečnost se v~čase mění.
+    \item[Deserializace.] Model začíná u~řetězce a~cesta od těla požadavku typu \texttt{unknown} je skryta uvnitř validace~$\mVal_S$. Při realizaci proto musí hranice mezi \texttt{unknown} a~modelem procházet výhradně validační vrstvou. Ukázněný fragment ze stejného důvodu žádá, aby vstupy požadavku měly typ \texttt{unknown}.
+    \item[Sanitační funkce jako taková.] Model dokáže, že sanitace proběhla, nedokáže však, že proběhla správně. Automatizovanému ověření této mezery se věnují zjemněné typy a~SMT solvery (sekce~\ref{sec:formalni-overeni}).
+    \item[Odpověď odesílaná po částech.] Model předpokládá, že každé odeslání tvoří samostatný dokument, jako je tomu u~\texttt{res.send},~které odešle celou odpověď najednou. Při zápisu po částech (\texttt{res.write}) by literál programátora, například \texttt{"<div~title="}, mohl způsobit, že se další část odpovědi už neocitne v~datové díře. Nastala by tak situace z~panelu~(c) schématu~\ref{fig:inertnost}. Při realizaci proto musí propast odesílat odpověď vcelku. Po částech přitom odesílá HTML i~streamované vykreslování na serveru, například v~App Routeru frameworku Next.js \parencite{nextjsSSR}. Takové vykreslování model bez rozšíření nepokrývá.
 \end{description}
 
-Výslednou dělbu důvěry -- tedy to, oč v~celém modelu jde -- shrnuje schéma~\ref{fig:tcb}.
+Dělbu důvěry, ke které model vede, shrnuje schéma~\ref{fig:tcb}. Hranici mezi kódem ověřeným typovou kontrolou a~místy,~kterým je nutno důvěřovat, určuje \emph{dokazatelnost}. O~kódu ověřeném typovou kontrolou platí věta~\ref{thm:konfinace}, u~programu v~ukázněném fragmentu ovšem pouze za předpokladu tvrzení~\ref{claim:adekvatnost},~které dokázáno není. Tento kód proto audit nevyžaduje. Tři červené oblasti schématu nejsou totožné se třemi prameny způsobilosti z~tvrzení~\ref{thm:audit}. Z~pramenů vyžaduje audit jen sanitace, protože způsobilost literálu a~množinu $D(S)$ ověří stroj. Schéma k~sanitaci přidává model prohlížeče, validaci a~jádro knihovny s~místy, kde je typová kontrola obejita. Těmto místům je nutno důvěřovat z~jiných důvodů (předpoklady~\ref{ass:parse} a~\ref{ass:jadro}).
+
+Model tím splňuje všech pět požadavků z~úvodu sekce: R1 nese dvojice pravidel \textsc{T-Val} a~\textsc{T-San}, R2 definice~\ref{def:bezinjektaze}, R3 podmínka kontextové neutrality~\eqref{in:okoli}, R4 realizace z~podsekce~\ref{sec:model-typescript} v~mezích ukázněného fragmentu a~R5 tvrzení~\ref{thm:audit}.
 
 \begin{figure}[htbp]
     \centering
@@ -792,22 +836,21 @@ Výslednou dělbu důvěry -- tedy to, oč v~celém modelu jde -- shrnuje schém
         \node[anchor=north west, font=\scriptsize\bfseries, green!40!black] at ($(a.north west)+(2mm,-2mm)$)
             {ověřeno typovou kontrolou};
         \node[anchor=south west, font=\tiny, green!35!black, align=left] at ($(a.south west)+(2mm,2mm)$)
-            {veškerý aplikační kód: sestavování odpovědí, šablony,\\
-             předávání hodnot mezi vrstvami, směrovače, obsluhy};
+            {aplikační kód v~ukázněném fragmentu: sestavování odpovědí,\\
+             šablony, předávání hodnot mezi vrstvami, směrovače, obsluhy};
 
         \node[tcb] (s) at (-1.7, -2.6) {sanitační\\funkce $\San_c$\\[1pt]\tiny předpoklad~\ref{ass:san}};
         \node[tcb] (b) at ( 1.7, -2.6) {model\\prohlížeče\\[1pt]\tiny předpoklad~\ref{ass:parse}};
-        \node[tcb, minimum width=26mm] (u) at ( 5.6, -2.6) {úniky z~typů\\[1pt]\tiny lint, dílčí cíl~4};
+        \node[tcb, minimum width=26mm] (u) at ( 5.6, -2.6) {validace, jádro\\knihovny a~úniky z~typů\\[1pt]\tiny předpoklad~\ref{ass:jadro}, lint};
 
         \draw[a] (s) -- ($(a.south)+(-1.7,0)$);
         \draw[a] (b) -- ($(a.south)+( 1.7,0)$);
         \draw[a] (u) -- ($(a.south east)+(-1.0,0)$);
 
         \node[lbl, red!70!black, anchor=west] at (-4.6, -4.0)
-            {\textbf{auditní plocha:} tři ohraničené množiny míst,~jejichž velikost je měřitelná (věta~\ref{thm:audit})};
+            {\textbf{mimo typovou kontrolu:} tři oblasti,~kterým je nutno důvěřovat};
     \end{tikzpicture}
-    \caption{Dělba důvěry v~navrženém modelu. Zeleně plocha, o~které typová kontrola dokazuje konfinaci, červeně tři množiny míst,~kterým je nutno důvěřovat, popřípadě je ručně ověřit. Podstatné je, že nejde o~rozdělení podle důležitosti, ale podle \emph{dokazatelnosti}: zelená plocha nevyžaduje audit ne proto, že by byla bezpečná svou povahou, ale proto, že o~ní platí věta~\ref{thm:konfinace}. Velikost červené části je měřitelná veličina,~která v~hodnocení dle rámce SPACE vystupuje jako ukazatel dimenze \emph{Performance} (sekce~\ref{sec:space}).}
+    \caption[Dělba důvěry v~navrženém modelu]{Dělba důvěry v~navrženém modelu. Zeleně plocha ověřená typovou kontrolou, červeně místa,~kterým je nutno důvěřovat, popřípadě je ručně ověřit.}
     \label{fig:tcb}
+    \source{vlastní zpracování}
 \end{figure}
-
-Model tím splňuje všech pět konstrukčních požadavků z~podsekce~\ref{sec:model-pozadavky}: oddělení validace od sanitace nese dvojice pravidel \textsc{T-Val} a~\textsc{T-San} (R1), přípustnost legitimního výstupu formulace bezpečnostní vlastnosti definicí~\ref{def:bezinjektaze} (R2), odmítnutí záměny kontextu podmínka kontextové neutrality~\eqref{in:okoli} (R3), přenositelnost tvrzení~\ref{claim:join} (R4) a~vymezení auditní plochy věta~\ref{thm:audit} (R5). Následující sekce na tomto základě staví vlastní knihovnu.
