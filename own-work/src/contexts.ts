@@ -1,6 +1,4 @@
-// ctx(s) of literals (T-Lit) and D(S) of schemas (T-Val), each as a type for tsc and as a
-// runtime function.
-// Both may grant fewer contexts than def:inertnost allows, never more.
+// ctx(s) of literals and D(S) of schemas, as types and as functions; both are lower estimates.
 import { CTXS, type Ctx } from './label.ts';
 
 // Character classes of the HTML tokenizer.

@@ -5,8 +5,9 @@
   "description": "TypeScript realization of the label model from parts/practical.tex and its empirical verification",
   "type": "module",
   "scripts": {
+    "gen": "node scripts/generate.ts",
     "typecheck": "tsc -p .",
-    "test": "npm run typecheck && node --test test/*.test.ts"
+    "test": "npm run gen && npm run typecheck && node --test test/*.test.ts"
   },
   "dependencies": {
     "zod": "4.6.5"
