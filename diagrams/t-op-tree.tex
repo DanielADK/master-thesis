@@ -1,0 +1,18 @@
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    operand/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=11mm, align=center},
+    safe/.style={operand, fill=green!12, draw=green!50!black},
+    tainted/.style={operand, fill=red!10, draw=red!70!black},
+    op/.style={draw, circle, fill=blue!10, minimum size=11mm, thick},
+    e/.style={->, thick, >=Stealth}
+]
+    \node[safe]    (e1)  at (-3.2, 0) {\verb|"Hello "|\\$\tau_{\bot}$ (literál)};
+    \node[tainted] (e2)  at ( 3.2, 0) {\texttt{name}\\$\tau_{\top}$ (\texttt{req.body})};
+    \node[op]      (op)  at ( 0,   2.2) {$+$};
+    \node[tainted, minimum width=58mm] (res) at (0, 4.4)
+        {\verb|"Hello "+|\texttt{name}\\$\tau_{\bot \,\sqcup\, \top} \;=\; \tau_{\top}$ (kontaminováno)};
+
+    \draw[e] (e1.north)  to[bend left=10]  node[left=1mm, font=\scriptsize] {$\ell_1 = \bot$}  (op.south west);
+    \draw[e] (e2.north)  to[bend right=10] node[right=1mm, font=\scriptsize] {$\ell_2 = \top$} (op.south east);
+    \draw[e] (op.north)  -- node[right=1mm, font=\scriptsize] {$\ell = \ell_1 \sqcup \ell_2$} (res.south);
+\end{tikzpicture}

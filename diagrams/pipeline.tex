@@ -1,0 +1,31 @@
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize},
+    stage/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=16mm, align=center, thick},
+    s0/.style={stage, fill=red!10,    draw=red!70!black},
+    s1/.style={stage, fill=orange!12, draw=orange!70!black},
+    s2/.style={stage, fill=green!12,  draw=green!50!black},
+    snk/.style={stage, fill=blue!8,   draw=blue!50!black},
+    e/.style={->, very thick, >=Stealth},
+    op/.style={font=\footnotesize\itshape, align=center}
+]
+    % Top row: input and validation
+    \node[s0] (s_unknown)   at (0, 3.6) {\texttt{unknown}\\$\tau_\top$};
+    \node[s1] (s_validated) at (6, 3.6) {\texttt{Validated}\\$\langle S \rangle$\\($\mathit{mid}$)};
+
+    % Bottom row: sanitization and send
+    \node[s2]  (s_safe)     at (0, 0)   {\texttt{SafeHtml}\\$\tau_\bot$};
+    \node[snk] (sink)       at (6, 0)   {\texttt{res.send}\\$\rightarrow$ prohlížeč};
+
+    % Top horizontal arrow
+    \draw[e] (s_unknown) -- node[above, op] {\texttt{Zod.parse}} (s_validated);
+
+    % Diagonal (middle) stroke of the Z
+    \draw[e] (s_validated) -- node[sloped, above, op] {$\sigma$ (\texttt{sanitizeHtml})} (s_safe);
+
+    % Bottom horizontal arrow
+    \draw[e] (s_safe) -- node[above, op] {\texttt{send}} (sink);
+
+    % Outer labels, away from the arrows
+    \node[above=2mm of s_unknown, font=\scriptsize, red!70!black]   {\texttt{req.body} / \texttt{req.query}};
+    \node[below=2mm of s_safe,    font=\scriptsize, green!50!black] {\emph{validováno + sanitováno}};
+\end{tikzpicture}

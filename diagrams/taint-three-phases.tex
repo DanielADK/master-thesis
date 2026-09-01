@@ -1,0 +1,26 @@
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    phase/.style={draw, rounded corners=2pt, minimum width=92mm, inner sep=6pt, align=left},
+    p1/.style={phase, fill=red!8, draw=red!60!black},
+    p2/.style={phase, fill=yellow!12, draw=orange!60!black},
+    p3/.style={phase, fill=red!14, draw=red!70!black, thick},
+    e/.style={->, very thick, >=Stealth, gray!60!black}
+]
+    \node[p1] (f1) {%
+        \textbf{1. Značení.} Vstup z~HTTP požadavku.\\[3pt]
+        \verb|const comment = req.body;|\\[3pt]
+        $\ell(\text{\texttt{comment}}) := \top$ \quad \emph{(vstup požadavku typu \texttt{unknown})}};
+
+    \node[p2, below=8mm of f1] (f2) {%
+        \textbf{2. Propagace.} Zřetězení s~literálem.\\[3pt]
+        \verb|const msg = "Komentář: " + comment;|\\[3pt]
+        $\ell(\text{\texttt{msg}}) := \bot \sqcup \top = \top$ \quad \emph{(v~TypeScriptu prostý \texttt{string})}};
+
+    \node[p3, below=8mm of f2] (f3) {%
+        \textbf{3. Kontrola u~propasti.} Pokus o~odeslání odpovědi.\\[3pt]
+        \verb|send(res, msg);|\\[3pt]
+        $\ell(\text{\texttt{msg}}) = \top \neq \bot$ \;\;$\Longrightarrow$\;\; \textcolor{red!70!black}{\textbf{chyba kompilace}}};
+
+    \draw[e] (f1) -- (f2);
+    \draw[e] (f2) -- (f3);
+\end{tikzpicture}

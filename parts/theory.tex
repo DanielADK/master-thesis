@@ -39,16 +39,7 @@ Axiom~\ref{ax:join} požaduje, aby spojení $a \sqcup b$ bylo horní mezí obou 
 
 \begin{figure}[ht]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\small},
-        lat/.style={draw, circle, inner sep=1pt, minimum size=8mm, fill=white}
-    ]
-        \node[lat] (bot) at (0, 0) {$\bot$};
-        \node[lat] (top) at (0, 2.4) {$\top$};
-        \draw[thick] (bot) -- (top);
-        \node[right=2mm of top, anchor=west] {\emph{Tainted} (uživatelský vstup)};
-        \node[right=2mm of bot, anchor=west] {\emph{Safe} (sanitováno, $\mathtt{SafeHtml}$)};
-    \end{tikzpicture}
+    \input{diagrams/mrizka-integrity}%
     \caption{Hasseho diagram dvouprvkové mřížky integrity $\mathcal{L}_2 = (\{\bot,\top\},\sqsubseteq)$}
     \label{fig:mrizka-integrity}
     \source{vlastní zpracování podle \textcite{sabelfeld2003language}}
@@ -58,27 +49,7 @@ Při vývoji webových aplikací je mřížka rozšířena o~kontextově specifi
 
 \begin{figure}[h]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\footnotesize},
-        lat/.style={draw, rounded corners=2pt, minimum width=30mm, minimum height=12mm, align=center},
-        e/.style={-, thick}
-    ]
-        \node[lat] (bot)        at ( 0,   0)   {$\bot$ (\emph{Safe})};
-        \node[lat] (safeUrl)    at (-5.1, 2.4) {\texttt{SafeUrl}};
-        \node[lat] (safeHtml)   at (-1.7, 2.4) {\texttt{SafeHtml}};
-        \node[lat] (safeScript) at ( 1.7, 2.4) {\texttt{SafeScript}};
-        \node[lat] (resUrl)     at ( 5.1, 2.4) {\texttt{Trusted}\\\texttt{ResourceUrl}};
-        \node[lat] (top)        at ( 0,   4.8) {$\top$ (\emph{Tainted})};
-
-        \draw[e] (bot) -- (safeUrl);
-        \draw[e] (bot) -- (safeHtml);
-        \draw[e] (bot) -- (safeScript);
-        \draw[e] (bot) -- (resUrl);
-        \draw[e] (safeUrl)    -- (top);
-        \draw[e] (safeHtml)   -- (top);
-        \draw[e] (safeScript) -- (top);
-        \draw[e] (resUrl)     -- (top);
-    \end{tikzpicture}
+    \input{diagrams/mrizka-kontextova}%
     \caption{Hasseho diagram mřížky s~kontextovými typy z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}}
     \label{fig:mrizka-kontextova}
     \source{vlastní zpracování podle \textcite{googleSafevalues}}
@@ -88,37 +59,7 @@ Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na to
 
 \begin{figure}[h]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\footnotesize},
-        lat/.style={draw, rounded corners=2pt, minimum width=30mm, minimum height=12mm, align=center},
-        operand/.style={lat, fill=green!12, thick, draw=green!50!black},
-        result/.style={lat, fill=red!10, thick, draw=red!70!black},
-        e/.style={-, gray!50},
-        eHighlight/.style={->, red!80!black, thick, >=Stealth}
-    ]
-        \node[lat]     (bot)        at ( 0,   0)   {$\bot$ (\emph{Safe})};
-        \node[lat]     (safeUrl)    at (-5.1, 2.4) {\texttt{SafeUrl}};
-        \node[operand] (safeHtml)   at (-1.7, 2.4) {\texttt{SafeHtml}};
-        \node[operand] (safeScript) at ( 1.7, 2.4) {\texttt{SafeScript}};
-        \node[lat]     (resUrl)     at ( 5.1, 2.4) {\texttt{Trusted}\\\texttt{ResourceUrl}};
-        \node[result]  (top)        at ( 0,   4.8) {$\top$ (\emph{Tainted})};
-
-        \draw[e] (bot) -- (safeUrl);
-        \draw[e] (bot) -- (safeHtml);
-        \draw[e] (bot) -- (safeScript);
-        \draw[e] (bot) -- (resUrl);
-        \draw[e] (safeUrl)    -- (top);
-        \draw[e] (safeHtml)   -- (top);
-        \draw[e] (safeScript) -- (top);
-        \draw[e] (resUrl)     -- (top);
-
-        \draw[eHighlight] (safeHtml)   -- (top);
-        \draw[eHighlight] (safeScript) -- (top);
-
-        \node[right=6mm of top, anchor=west, align=left, font=\footnotesize\itshape] {%
-            \texttt{SafeHtml} $\sqcup$ \texttt{SafeScript} \\[2pt]
-            $=\;\top\;=\;$\texttt{Tainted}};
-    \end{tikzpicture}
+    \input{diagrams/join-action}%
     \caption[Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy]{Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy. Zeleně bezpečné operandy, červeně kontaminovaný výsledek~$\top$.}
     \label{fig:join-action}
     \source{vlastní zpracování}
@@ -148,24 +89,7 @@ Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních št
 
 \begin{figure}[h]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\small},
-        operand/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=11mm, align=center},
-        safe/.style={operand, fill=green!12, draw=green!50!black},
-        tainted/.style={operand, fill=red!10, draw=red!70!black},
-        op/.style={draw, circle, fill=blue!10, minimum size=11mm, thick},
-        e/.style={->, thick, >=Stealth}
-    ]
-        \node[safe]    (e1)  at (-3.2, 0) {\verb|"Hello "|\\$\tau_{\bot}$ (literál)};
-        \node[tainted] (e2)  at ( 3.2, 0) {\texttt{name}\\$\tau_{\top}$ (\texttt{req.body})};
-        \node[op]      (op)  at ( 0,   2.2) {$+$};
-        \node[tainted, minimum width=58mm] (res) at (0, 4.4)
-            {\verb|"Hello "+|\texttt{name}\\$\tau_{\bot \,\sqcup\, \top} \;=\; \tau_{\top}$ (kontaminováno)};
-
-        \draw[e] (e1.north)  to[bend left=10]  node[left=1mm, font=\scriptsize] {$\ell_1 = \bot$}  (op.south west);
-        \draw[e] (e2.north)  to[bend right=10] node[right=1mm, font=\scriptsize] {$\ell_2 = \top$} (op.south east);
-        \draw[e] (op.north)  -- node[right=1mm, font=\scriptsize] {$\ell = \ell_1 \sqcup \ell_2$} (res.south);
-    \end{tikzpicture}
+    \input{diagrams/t-op-tree}%
     \caption{Pravidlo T-Op jako strom toku dat pro výraz \texttt{"Hello~"+name}}
     \label{fig:t-op-tree}
     \source{vlastní zpracování}
@@ -181,43 +105,7 @@ kde $\llbracket P \rrbracket$ značí denotační sémantiku programu~$P$ \paren
 
 \begin{figure}[h]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\small},
-        st/.style={draw, rounded corners=2pt, minimum width=44mm, align=left, inner sep=4pt},
-        prog/.style={draw, fill=blue!10, rounded corners=2pt, minimum width=18mm, minimum height=10mm, align=center, thick},
-        e/.style={->, thick, >=Stealth},
-        eq/.style={draw, double, blue!60!black, thick, line width=0.4pt}
-    ]
-        \node[st] (s1) at (-3.6, 4.2) {%
-            \textbf{stav $\mu$}\\[1pt]
-            \textcolor{red!70!black}{\texttt{tainted}: \emph{evilA}}\\
-            \textcolor{green!40!black}{\texttt{safe}: \emph{"X"}}};
-        \node[st] (s2) at ( 3.6, 4.2) {%
-            \textbf{stav $\mu'$}\\[1pt]
-            \textcolor{red!70!black}{\texttt{tainted}: \emph{evilB}}\\
-            \textcolor{green!40!black}{\texttt{safe}: \emph{"X"}}};
-
-        \node[font=\itshape, blue!60!black] at (0, 4.6) {$\mu \approx_\bot \mu'$};
-        \node[font=\scriptsize, gray!60!black] at (0, 4.1) {(shoda na složce $\bot$)};
-
-        \node[prog] (p1) at (-3.6, 2.2) {Program $P$};
-        \node[prog] (p2) at ( 3.6, 2.2) {Program $P$};
-
-        \node[st] (o1) at (-3.6, 0) {%
-            \textbf{$\llbracket P \rrbracket(\mu)$}\\[1pt]
-            \textcolor{green!40!black}{\texttt{safe out}: \emph{"X'"}}};
-        \node[st] (o2) at ( 3.6, 0) {%
-            \textbf{$\llbracket P \rrbracket(\mu')$}\\[1pt]
-            \textcolor{green!40!black}{\texttt{safe out}: \emph{"X'"}}};
-
-        \node[font=\itshape, blue!60!black] at (0, 0.3) {$\approx_\bot$};
-        \node[font=\scriptsize, gray!60!black] at (0, -0.2) {(musí být shodné)};
-
-        \draw[e] (s1) -- (p1);
-        \draw[e] (s2) -- (p2);
-        \draw[e] (p1) -- (o1);
-        \draw[e] (p2) -- (o2);
-    \end{tikzpicture}
+    \input{diagrams/noninterference}%
     \caption[Neinterference jako dva paralelní běhy programu~$P$]{Neinterference jako dva paralelní běhy programu~$P$. Červeně kontaminovaná složka stavu (vstup útočníka), zeleně bezpečná složka.}
     \label{fig:noninterference}
     \source{vlastní zpracování}
@@ -255,70 +143,7 @@ Cross-Site Scripting je zranitelnost,~která vzniká z~nedodržení striktního 
 
 \begin{figure}[!htb]
     \centering
-    \begin{tikzpicture}[
-        x=1mm, y=0.9mm,
-        every node/.style={font=\scriptsize},
-        actor/.style={draw=blue!50!black, fill=blue!8, rounded corners=2pt, minimum width=20mm, minimum height=7mm, font=\footnotesize},
-        attacker/.style={actor, draw=red!70!black, fill=red!10},
-        life/.style={densely dashed, gray!55},
-        lane/.style={draw=gray!60!black, rounded corners=2pt},
-        tab/.style={draw=gray!60!black, fill=gray!12, rounded corners=2pt, anchor=north west, inner sep=2.5pt, font=\footnotesize\bfseries},
-        pay/.style={-{Stealth}, thick, red!70!black},
-        msg/.style={-{Stealth}, thick, gray!60!black},
-        lbl/.style={above, inner sep=1.5pt, text=black, xshift=1.6mm},
-        num/.style={circle, inner sep=0pt, minimum size=3.2mm, font=\tiny\bfseries, text=white, fill=red!70!black},
-        numg/.style={num, fill=gray!60!black},
-        ins/.style={draw=red!70!black, fill=red!25, minimum width=2.2mm, minimum height=4.5mm, inner sep=0pt},
-        run/.style={font=\scriptsize\itshape, text=red!70!black}
-    ]
-        % Actors and their timelines
-        \node[attacker] at ( 10, 0) {útočník};
-        \node[actor]    at ( 60, 0) {prohlížeč oběti};
-        \node[actor]    at (109, 0) {server aplikace};
-        \node[actor, minimum width=18mm] at (145, 0) {databáze};
-        \begin{scope}[on background layer]
-            \foreach \x in {10, 60, 109, 145} { \draw[life] (\x, -3.5) -- (\x, -124); }
-        \end{scope}
-
-        % Reflected XSS
-        \begin{scope}[shift={(0,-7)}]
-            \draw[lane] (0, 0) rectangle (154, -33);
-            \node[tab] at (0, 0) {Reflektované XSS (typ~I)};
-            \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{?q=<script>…</script>}} (60, -10.5);
-            \draw[pay] (60, -16.5) -- node[lbl, label={[num]left:2}] {\texttt{GET /hledat?q=<script>…}} (109, -16.5);
-            \node[ins] at (109, -22.5) {};
-            \node[anchor=west, label={[num]left:3}] at (115, -22.5) {vložení \texttt{q} do HTML};
-            \draw[pay] (109, -28.5) -- node[lbl, label={[num]left:4}] {HTML se skriptem} (60, -28.5);
-            \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
-        \end{scope}
-
-        % Stored XSS
-        \begin{scope}[shift={(0,-43)}]
-            \draw[lane] (0, 0) rectangle (154, -45);
-            \node[tab] at (0, 0) {Uložené XSS (typ~II)};
-            \draw[pay] (10, -10.5) -- (109, -10.5);
-            \node[lbl, label={[num]left:1}] at (35, -10.5) {komentář \texttt{<script>…</script>}};
-            \draw[pay] (109, -16.5) -- node[lbl, label={[num]left:2}] {uložení} (145, -16.5);
-            \draw[msg] (60, -22.5) -- node[lbl, label={[numg]left:3}] {později \texttt{GET /clanek}} (109, -22.5);
-            \draw[pay] (145, -28.5) -- node[lbl, label={[num]left:4}] {načtení} (109, -28.5);
-            \node[ins] at (109, -34.5) {};
-            \node[anchor=west, label={[num]left:5}] at (115, -34.5) {vložení do HTML};
-            \draw[pay] (109, -40.5) -- node[lbl, label={[num]left:6}] {HTML se skriptem} (60, -40.5);
-            \node[run, anchor=east, label={[num]left:7}] at (57.5, -40.5) {spuštění skriptu};
-        \end{scope}
-
-        % DOM-based XSS
-        \begin{scope}[shift={(0,-91)}]
-            \draw[lane] (0, 0) rectangle (154, -33);
-            \node[tab] at (0, 0) {DOM-based XSS (typ~0)};
-            \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{\#<img src=x onerror=…>}} (60, -10.5);
-            \draw[msg] (60, -16.5) -- node[lbl, label={[numg]left:2}] {\texttt{GET /} bez fragmentu \texttt{\#…}} (109, -16.5);
-            \draw[msg] (109, -22.5) -- node[lbl, label={[numg]left:3}] {nezměněná stránka} (60, -22.5);
-            \node[ins] at (60, -28.5) {};
-            \node[anchor=west, label={[num]left:4}] at (66, -28.5) {\texttt{location.hash} $\to$ \texttt{innerHTML}};
-            \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
-        \end{scope}
-    \end{tikzpicture}
+    \input{diagrams/xss-typy}%
     \caption[Tři typy XSS na konkrétních příkladech]{Tři typy XSS na konkrétních příkladech. Červeně cesta škodlivého řetězce, šedě komunikace bez něj, červeným obdélníkem místo vložení do HTML.}
     \label{fig:xss-typy}
     \source{vlastní zpracování podle \textcite{owaspTypesXSS}}
@@ -387,37 +212,7 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\footnotesize},
-        stage/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=16mm, align=center, thick},
-        s0/.style={stage, fill=red!10,    draw=red!70!black},
-        s1/.style={stage, fill=orange!12, draw=orange!70!black},
-        s2/.style={stage, fill=green!12,  draw=green!50!black},
-        snk/.style={stage, fill=blue!8,   draw=blue!50!black},
-        e/.style={->, very thick, >=Stealth},
-        op/.style={font=\footnotesize\itshape, align=center}
-    ]
-        % Top row: input and validation
-        \node[s0] (s_unknown)   at (0, 3.6) {\texttt{unknown}\\$\tau_\top$};
-        \node[s1] (s_validated) at (6, 3.6) {\texttt{Validated}\\$\langle S \rangle$\\($\mathit{mid}$)};
-
-        % Bottom row: sanitization and send
-        \node[s2]  (s_safe)     at (0, 0)   {\texttt{SafeHtml}\\$\tau_\bot$};
-        \node[snk] (sink)       at (6, 0)   {\texttt{res.send}\\$\rightarrow$ prohlížeč};
-
-        % Top horizontal arrow
-        \draw[e] (s_unknown) -- node[above, op] {\texttt{Zod.parse}} (s_validated);
-
-        % Diagonal (middle) stroke of the Z
-        \draw[e] (s_validated) -- node[sloped, above, op] {$\sigma$ (\texttt{sanitizeHtml})} (s_safe);
-
-        % Bottom horizontal arrow
-        \draw[e] (s_safe) -- node[above, op] {\texttt{send}} (sink);
-
-        % Outer labels, away from the arrows
-        \node[above=2mm of s_unknown, font=\scriptsize, red!70!black]   {\texttt{req.body} / \texttt{req.query}};
-        \node[below=2mm of s_safe,    font=\scriptsize, green!50!black] {\emph{validováno + sanitováno}};
-    \end{tikzpicture}
+    \input{diagrams/pipeline}%
     \caption{Konstruktivní pipeline od~HTTP požadavku k~SSR propasti}
     \label{fig:pipeline}
     \source{vlastní zpracování}
@@ -425,32 +220,7 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\small},
-        phase/.style={draw, rounded corners=2pt, minimum width=92mm, inner sep=6pt, align=left},
-        p1/.style={phase, fill=red!8, draw=red!60!black},
-        p2/.style={phase, fill=yellow!12, draw=orange!60!black},
-        p3/.style={phase, fill=red!14, draw=red!70!black, thick},
-        e/.style={->, very thick, >=Stealth, gray!60!black}
-    ]
-        \node[p1] (f1) {%
-            \textbf{1. Značení.} Vstup z~HTTP požadavku.\\[3pt]
-            \verb|const comment = req.body;|\\[3pt]
-            $\ell(\text{\texttt{comment}}) := \top$ \quad \emph{(vstup požadavku typu \texttt{unknown})}};
-
-        \node[p2, below=8mm of f1] (f2) {%
-            \textbf{2. Propagace.} Zřetězení s~literálem.\\[3pt]
-            \verb|const msg = "Komentář: " + comment;|\\[3pt]
-            $\ell(\text{\texttt{msg}}) := \bot \sqcup \top = \top$ \quad \emph{(v~TypeScriptu prostý \texttt{string})}};
-
-        \node[p3, below=8mm of f2] (f3) {%
-            \textbf{3. Kontrola u~propasti.} Pokus o~odeslání odpovědi.\\[3pt]
-            \verb|send(res, msg);|\\[3pt]
-            $\ell(\text{\texttt{msg}}) = \top \neq \bot$ \;\;$\Longrightarrow$\;\; \textcolor{red!70!black}{\textbf{chyba kompilace}}};
-
-        \draw[e] (f1) -- (f2);
-        \draw[e] (f2) -- (f3);
-    \end{tikzpicture}
+    \input{diagrams/taint-three-phases}%
     \caption{Tři fáze taint analýzy na příkladu uživatelského komentáře}
     \label{fig:taint-three-phases}
     \source{vlastní zpracování}

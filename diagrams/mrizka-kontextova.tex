@@ -1,0 +1,21 @@
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize},
+    lat/.style={draw, rounded corners=2pt, minimum width=30mm, minimum height=12mm, align=center},
+    e/.style={-, thick}
+]
+    \node[lat] (bot)        at ( 0,   0)   {$\bot$ (\emph{Safe})};
+    \node[lat] (safeUrl)    at (-5.1, 2.4) {\texttt{SafeUrl}};
+    \node[lat] (safeHtml)   at (-1.7, 2.4) {\texttt{SafeHtml}};
+    \node[lat] (safeScript) at ( 1.7, 2.4) {\texttt{SafeScript}};
+    \node[lat] (resUrl)     at ( 5.1, 2.4) {\texttt{Trusted}\\\texttt{ResourceUrl}};
+    \node[lat] (top)        at ( 0,   4.8) {$\top$ (\emph{Tainted})};
+
+    \draw[e] (bot) -- (safeUrl);
+    \draw[e] (bot) -- (safeHtml);
+    \draw[e] (bot) -- (safeScript);
+    \draw[e] (bot) -- (resUrl);
+    \draw[e] (safeUrl)    -- (top);
+    \draw[e] (safeHtml)   -- (top);
+    \draw[e] (safeScript) -- (top);
+    \draw[e] (resUrl)     -- (top);
+\end{tikzpicture}

@@ -1,0 +1,10 @@
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    lat/.style={draw, circle, inner sep=1pt, minimum size=8mm, fill=white}
+]
+    \node[lat] (bot) at (0, 0) {$\bot$};
+    \node[lat] (top) at (0, 2.4) {$\top$};
+    \draw[thick] (bot) -- (top);
+    \node[right=2mm of top, anchor=west] {\emph{Tainted} (uživatelský vstup)};
+    \node[right=2mm of bot, anchor=west] {\emph{Safe} (sanitováno, $\mathtt{SafeHtml}$)};
+\end{tikzpicture}

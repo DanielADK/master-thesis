@@ -69,7 +69,7 @@ def main() -> int:
     p.add_argument("--apply", action="store_true", help="write changes to disk")
     args = p.parse_args()
 
-    files = sorted(p for g in ("*.tex", "parts/*.tex") for p in ROOT.glob(g))
+    files = sorted(p for g in ("*.tex", "parts/*.tex", "diagrams/*.tex") for p in ROOT.glob(g))
     total = 0
     for path in files:
         orig = path.read_text(encoding="utf-8")
