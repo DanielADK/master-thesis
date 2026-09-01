@@ -51,10 +51,10 @@ Model prohlížeče je zjednodušený. Do množiny~$V_c$ řadí těla skriptů (
         předpoklad~\ref{ass:san} & \texttt{contexts.test.ts} & platí pro 30\,135 výstupů realizovaných sanitačních funkcí \\
         tvrzení~\ref{lem:stitky} & \texttt{konfinace.test.ts} & potvrzeno na 20\,000 výrazech \\
         věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů, 52\,948 dobře typovaných, 296\,844 odeslání se znaky útočníka, žádná injektáž \\
-        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~23\,584 špatně typovaných programů ve vzorku 50\,000 injektuje 13\,562 \\
+        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~23\,584 špatně typovaných programů ve vzorku 50\,000 injektuje 13\,526 \\
         tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 114\,681 kontextů ve 100\,000 výrazech má pramen \\
         tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 118 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
-        tvrzení~\ref{claim:adekvatnost}, druhá polovina & \texttt{compile/limits.ts}, \texttt{limits.test.ts} & 23 konstrukcí se přeloží a~injektují; F1 až~F3 zachytí jen metodu rozhraní (ověřeno mimo \texttt{npm~test}), zbylých 21 zakazuje F4; úplnost definice~\ref{def:fragment} testy neověřují \\
+        tvrzení~\ref{claim:adekvatnost}, druhá polovina & \texttt{compile/limits.ts}, \texttt{limits.test.ts} & 23 konstrukcí se přeloží a~injektují; F1 až~F3 zachytí jen metodu rozhraní (ověřeno mimo \texttt{npm~test}), zbylých 22 zakazuje F4; úplnost definice~\ref{def:fragment} testy neověřují \\
         požadavek~R3, přetížení \texttt{sanitize} a~\texttt{send} & \texttt{compile/rules.ts}, \texttt{compile/limits.ts}, \texttt{limits.test.ts} & vzorec R3 odmítnut; generický podpis i~jediný parametr typu sjednocení by propustily injektáž \\
         běžící příklad & \texttt{compile/\allowbreak running-example.ts}, \texttt{konfinace.test.ts} & opravená obsluha se přeloží a~pro 45 útoků neinjektuje, zranitelná se nepřeloží \\
         odpověď po částech & \texttt{limits.test.ts} & injektáž nastane, ač je každá část přijata \\
