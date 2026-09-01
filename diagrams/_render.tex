@@ -1,0 +1,16 @@
+% Renders one diagram to its own PDF: make diagrams/<name>.pdf
+\documentclass[12pt, border=2pt]{standalone}
+\usepackage{polyglossia}
+\setdefaultlanguage{czech}
+\usepackage{amsmath, amssymb, mathtools, stmaryrd}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+\input{diagrams/_setup}
+\input{parts/macros}
+% Reference numbers (\ref) come from the last build of the thesis
+\IfFileExists{main.aux}{\usepackage{xr}\externaldocument{main}}{}
+
+\begin{document}
+\input{diagrams/\diagram}
+\end{document}

@@ -10,7 +10,7 @@ BIBER_DEP := $(filter .cache/biber,$(BIBER))
 # minted v3 (TeX Live 2025+) requires TEXMF_OUTPUT_DIRECTORY for output
 export TEXMF_OUTPUT_DIRECTORY = .
 
-.PHONY: build draft watch clean cleanall typo typo-apply
+.PHONY: build draft watch diagrams clean cleanall typo typo-apply
 
 # Build: 3× xelatex + biber + typo-apply.
 build: typo-apply $(BIBER_DEP)
@@ -27,6 +27,14 @@ build: typo-apply $(BIBER_DEP)
 # Draft: 1× xelatex + typo-apply without biber.
 draft: typo-apply
 	$(LATEX) $(MAIN).tex
+
+# PDF diagram: make diagrams/<name>.pdf, all: make diagrams.
+DIAGRAMS := $(patsubst %.tex,%.pdf,$(filter-out diagrams/_%,$(wildcard diagrams/*.tex)))
+diagrams: $(DIAGRAMS)
+
+diagrams/%.pdf: diagrams/%.tex diagrams/_render.tex diagrams/_setup.tex parts/macros.tex
+	xelatex -interaction=nonstopmode -halt-on-error -output-directory=diagrams -jobname=$* "\def\diagram{$*}\input{diagrams/_render}" \
+	  && rm -f diagrams/$*.aux diagrams/$*.log
 
 # Continuous watch: without typo-fix
 watch:
