@@ -1,0 +1,39 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    ex/.style={draw, rounded corners=2pt, inner sep=3pt, align=center, font=\scriptsize, fill=white},
+    lit/.style={ex, fill=gray!12, draw=gray!55!black},
+    src/.style={ex, fill=red!12, draw=red!65!black},
+    op/.style={ex, fill=blue!8, draw=blue!55!black},
+    okn/.style={ex, fill=green!14, draw=green!50!black, thick},
+    non/.style={ex, fill=red!14, draw=red!70!black, thick},
+    lb/.style={font=\tiny, gray!45!black},
+    e/.style={->, >=Stealth, gray!55!black},
+    hdr/.style={font=\scriptsize\bfseries}
+]
+    % =========== (a) vulnerable ===========
+    \node[hdr, red!65!black] at (2.6, 4.5) {(a) zranitelná podoba};
+    \node[lit] (a1) at (0,   0) {\verb|"<h1>…"|};   \node[lb, below=0.5mm of a1] {$(\bot,\Ctxs)$};
+    \node[src] (a2) at (2.6, 0) {$\mSrc_0$};        \node[lb, below=0.5mm of a2] {$(\top,\emptyset)$};
+    \node[lit] (a3) at (5.2, 0) {\verb|"</h1>"|};   \node[lb, below=0.5mm of a3] {$(\bot,\Ctxs)$};
+    \node[op]  (a4) at (2.6, 1.9) {$\oplus$};
+    \node[lb, right=1mm of a4, align=left] {$\bigl(\max(\bot,\top,\bot),\; \Ctxs \cap \emptyset \cap \Ctxs\bigr) = (\top, \emptyset)$};
+    \node[non] (a5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
+    \node[lb, right=1mm of a5, align=left, red!70!black] {podmínka: $i = \bot$? \emph{ne} \quad $\mathit{html} \in \emptyset$? \emph{ne}\\[1pt]\textbf{program se nepřeloží}};
+    \draw[e] (a1) -- (a4); \draw[e] (a2) -- (a4); \draw[e] (a3) -- (a4); \draw[e] (a4) -- (a5);
+
+    % =========== (b) fixed ===========
+    \begin{scope}[yshift=-70mm]
+    \node[hdr, green!40!black] at (2.6, 4.5) {(b) opravená podoba: přibyla dvě volání};
+    \node[lit] (b1) at (0,   0) {\verb|"<h1>…"|};  \node[lb, below=0.5mm of b1] {$(\bot,\Ctxs)$};
+    \node[src] (b0) at (2.6, -2.4) {$\mSrc_0$};    \node[lb, right=1mm of b0] {$(\top,\emptyset)$};
+    \node[op]  (bv) at (2.6, -1.2) {$\mVal_S$};    \node[lb, right=1mm of bv] {$(\mathit{mid},\emptyset)$};
+    \node[op]  (bs) at (2.6,  0)   {$\sigma_{\mathit{html}}$}; \node[lb, right=1mm of bs] {$(\mathit{mid},\{\mathit{html}\})$};
+    \node[lit] (b3) at (6.7, 0) {\verb|"</h1>"|};  \node[lb, below=0.5mm of b3] {$(\bot,\Ctxs)$};
+    \node[op]  (b4) at (2.6, 1.9) {$\oplus$};
+    \node[lb, right=1mm of b4, align=left] {$\bigl(\mathit{mid},\; \Ctxs \cap \{\mathit{html}\} \cap \Ctxs\bigr) = (\mathit{mid}, \{\mathit{html}\})$};
+    \node[okn] (b5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
+    \node[lb, right=1mm of b5, align=left, green!40!black] {podmínka: $\mathit{html} \in \{\mathit{html}\}$? \emph{ano}\\[1pt]\textbf{program se přeloží}};
+    \draw[e] (b0) -- (bv); \draw[e] (bv) -- (bs);
+    \draw[e] (b1) -- (b4); \draw[e] (bs) -- (b4); \draw[e] (b3) -- (b4); \draw[e] (b4) -- (b5);
+    \end{scope}
+\end{tikzpicture}

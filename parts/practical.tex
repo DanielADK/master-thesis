@@ -69,45 +69,7 @@ Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~kte
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        cell/.style={anchor=west, font=\ttfamily\scriptsize},
-        hdr/.style={anchor=west, font=\scriptsize\bfseries},
-        ok/.style={anchor=center, font=\scriptsize\bfseries, green!45!black},
-        no/.style={anchor=center, font=\scriptsize\bfseries, red!70!black},
-        pay/.style={anchor=west, font=\ttfamily\scriptsize, red!70!black},
-        rl/.style={-, gray!35}
-    ]
-        \node[hdr] at (0,     0.8) {šablona: kam se \texttt{q} vkládá};
-        \node[hdr] at (6.0,   0.8) {escapování};
-        \node[hdr] at (8.1,   0.8) {vstup,~který přesto projde};
-        \draw[rl, thick] (-0.1, 0.5) -- (14.2, 0.5);
-
-        \node[cell] at (0, 0.05) {<h1>\$\{q\}</h1>};
-        \node[ok]   at (6.55, 0.05) {stačí};
-        \node[anchor=west, font=\scriptsize\itshape, gray!55!black] at (8.1, 0.05) {žádný};
-
-        \node[cell] at (0, -0.75) {<a title="\$\{q\}">};
-        \node[ok]   at (6.55, -0.75) {stačí};
-        \node[anchor=west, font=\scriptsize\itshape, gray!55!black] at (8.1, -0.75) {žádný};
-
-        \draw[rl] (-0.1, -1.15) -- (14.2, -1.15);
-
-        \node[cell] at (0, -1.6) {<input value=\$\{q\}>};
-        \node[no]   at (6.55, -1.6) {nestačí};
-        \node[pay]  at (8.1, -1.6) {x onfocus=f() autofocus};
-
-        \node[cell] at (0, -2.4) {<a onclick="go('\$\{q\}')">};
-        \node[no]   at (6.55, -2.4) {nestačí};
-        \node[pay]  at (8.1, -2.4) {');f();//};
-
-        \node[cell] at (0, -3.2) {<a href="\$\{q\}">};
-        \node[no]   at (6.55, -3.2) {nestačí};
-        \node[pay]  at (8.1, -3.2) {javascript:f()};
-
-        \node[anchor=west, font=\scriptsize\itshape, gray!55!black, align=left] at (0, -4.1)
-            {escapování zde znamená náhradu znaků \texttt{\& < > " '} příslušnými entitami};
-    \end{tikzpicture}
+    \input{diagrams/escapovani-nestaci}%
     \caption{Pět variant běžícího příkladu a~účinnost escapování}
     \label{fig:escapovani-nestaci}
     \source{vlastní zpracování}
@@ -157,41 +119,7 @@ Tuto vlastnost má model dokázat a~ostatní pojmy zavádí kvůli jejímu důka
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        el/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny},
-        dat/.style={draw, minimum width=32mm, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny},
-        atk/.style={el, fill=red!16, draw=red!60!black},
-        exn/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=red!16, draw=red!75!black, thick, double, font=\ttfamily\tiny},
-        e/.style={-, gray!55!black},
-        hdr/.style={font=\scriptsize\bfseries},
-        note/.style={font=\tiny\itshape, align=center}
-    ]
-        % ---------- safe ----------
-        \node[hdr, green!40!black] at (2.1, 3.1) {(a) výstup bez injektáže};
-        \node[el]  (ah) at (2.1, 2.3) {html};
-        \node[el]  (ab) at (2.1, 1.4) {body};
-        \node[el]  (ap) at (2.1, 0.5) {p};
-        \node[dat] (at) at (2.1, -0.4) {\#text: \&lt;img src=x onerror=f()\&gt;};
-        \draw[e] (ah) -- (ab) -- (ap) -- (at);
-        \node[note, green!40!black] at (2.1, -1.35)
-            {znaky útočníka zůstaly\\ v~textovém uzlu\\[1pt] $U(s) \cap V_c(s) = \emptyset$};
-
-        % ---------- vulnerable ----------
-        \begin{scope}[xshift=72mm]
-        \node[hdr, red!65!black] at (2.1, 3.1) {(b) injektáž};
-        \node[el]  (bh) at (2.1, 2.3) {html};
-        \node[el]  (bb) at (2.1, 1.4) {body};
-        \node[el]  (bp) at (2.1, 0.5) {p};
-        \node[el]  (bt) at (0.3, -0.4) {\#text};
-        \node[atk] (bs) at (3.3, -0.4) {img @onerror};
-        \node[exn] (bx) at (3.3, -1.35) {f()};
-        \draw[e] (bh) -- (bb) -- (bp);
-        \draw[e] (bp) -- (bt); \draw[e] (bp) -- (bs); \draw[e] (bs) -- (bx);
-        \node[note, red!65!black] at (2.1, -2.2)
-            {znaky útočníka vytvořily\\ uzel řídicí struktury\\[1pt] $U(s) \cap V_c(s) \neq \emptyset$};
-        \end{scope}
-    \end{tikzpicture}
+    \input{diagrams/konfinace}%
     \caption[Stejný vstup útočníka ve výstupu bez injektáže a~s~injektáží]{Stejný vstup útočníka ve výstupu bez injektáže~(a) a~s~injektáží~(b). Červeně znaky útočníka (pozice z~$U(s)$), dvojitým rámečkem vykonávané místo (pozice z~$V_c(s)$).}
     \label{fig:konfinace}
     \source{vlastní zpracování}
@@ -229,53 +157,7 @@ Tři typické případy vložení ukazuje schéma~\ref{fig:inertnost}. V~panelu~
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        seg/.style={draw, minimum height=6.5mm, inner xsep=3pt, font=\ttfamily\scriptsize},
-        lit/.style={seg, fill=gray!14, draw=gray!55!black},
-        mrk/.style={seg, fill=red!16,  draw=red!60!black},
-        exe/.style={seg, fill=red!16,  draw=red!75!black, thick, double},
-        sub/.style={seg, fill=gray!14, draw=blue!60!black, thick},
-        tag/.style={font=\scriptsize\itshape, gray!50!black, anchor=west},
-        ok/.style={font=\scriptsize\bfseries, green!45!black, anchor=west},
-        no/.style={font=\scriptsize\bfseries, red!70!black, anchor=west},
-        br/.style={decorate, decoration={brace, amplitude=4pt, mirror}, thick, blue!55!black}
-    ]
-        % =============== (a) inert ===============
-        \node[tag] at (-0.2, 1.2) {(a) způsobilé vložení: sanitovaná data útočníka};
-        \node[lit] (a1) at (0,0) {<p>};
-        \node[mrk, right=0pt of a1] (a2) {Ahoj \&lt;b\&gt;};
-        \node[lit, right=0pt of a2] (a3) {</p>};
-        \draw[br] ([yshift=-1mm]a2.south west) -- ([yshift=-1mm]a2.south east)
-              node[midway, below=4pt, font=\tiny] {vkládaný řetězec~$s$};
-        \node[ok] at ($(a3.east)+(4mm,0)$) {\eqref{in:vlastni}~\checkmark\quad\eqref{in:okoli}~\checkmark};
-
-        % =============== (b) P1 violated ===============
-        \begin{scope}[yshift=-26mm]
-            \node[tag] at (-0.2, 1.2) {(b) porušena \eqref{in:vlastni}: znak útočníka na vykonávaném místě};
-            \node[lit] (b1) at (0,0) {<p>};
-            \node[mrk, right=0pt of b1] (b2) {<script>};
-            \node[exe, right=0pt of b2] (b3) {alert(1)};
-            \node[mrk, right=0pt of b3] (b4) {</script>};
-            \node[lit, right=0pt of b4] (b5) {</p>};
-            \draw[br] ([yshift=-1mm]b2.south west) -- ([yshift=-1mm]b4.south east)
-                  node[midway, below=4pt, font=\tiny] {nesanitovaná data útočníka};
-            \node[no] at ($(b5.east)+(4mm,0)$) {\eqref{in:vlastni}~$\times$};
-        \end{scope}
-
-        % =============== (c) P2 violated ===============
-        \begin{scope}[yshift=-52mm]
-            \node[tag] at (-0.2, 1.2) {(c) porušena \eqref{in:okoli}: literál otevře kontext pro data útočníka};
-            \node[lit] (c1) at (0,0) {<p>};
-            \node[sub, right=0pt of c1] (c2) {<div title=};
-            \node[mrk, right=0pt of c2] (c3) {x~onmouseover=};
-            \node[exe, right=0pt of c3] (c4) {f()};
-            \node[lit, right=0pt of c4] (c5) {>};
-            \draw[br] ([yshift=-1mm]c2.south west) -- ([yshift=-1mm]c2.south east)
-                  node[midway, below=4pt, font=\tiny] {literál programátora};
-            \node[no] at ($(c5.east)+(4mm,0)$) {\eqref{in:okoli}~$\times$};
-        \end{scope}
-    \end{tikzpicture}
+    \input{diagrams/inertnost}%
     \caption[Tři vložení řetězce do datové díry kontextu \emph{html}]{Tři vložení řetězce do datové díry kontextu \emph{html}. Šedě text programu, červeně znaky útočníka, dvojitým rámečkem místa,~která prohlížeč vykoná.}
     \label{fig:inertnost}
     \source{vlastní zpracování}
@@ -329,65 +211,7 @@ Obě osy štítku znázorňuje diagram~\ref{fig:mrizka-soucin}. Se všemi čtyř
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        n/.style={draw, circle, inner sep=1.2pt, minimum size=5.5mm, fill=white, font=\tiny},
-        b/.style={draw, rounded corners=2pt, inner sep=2.5pt, align=center, font=\tiny, fill=white},
-        e/.style={-, thick, gray!65!black},
-        hi/.style={draw=red!70!black, thick, fill=red!8},
-        lo/.style={draw=green!50!black, thick, fill=green!10},
-        pan/.style={font=\footnotesize\itshape}
-    ]
-        % ---------- (a) provenance axis ----------
-        \node[pan] at (0, 4.5) {(a) původ hodnoty};
-        \node[n] (i0) at (0, 0.6) {$\bot$};
-        \node[n] (i1) at (0, 2.0) {$\mathit{mid}$};
-        \node[n] (i2) at (0, 3.4) {$\top$};
-        \draw[e] (i0) -- (i1) -- (i2);
-        \node[right=1.5mm of i0, font=\tiny] {text programu};
-        \node[right=1.5mm of i1, font=\tiny] {ověřená struktura};
-        \node[right=1.5mm of i2, font=\tiny] {vstup útočníka};
-
-        % ---------- (b) context axis ----------
-        \begin{scope}[xshift=44mm]
-            \node[pan] at (0, 4.5) {(b) způsobilé kontexty};
-            \node[n] (k0) at ( 0,   0.6) {$\Ctxs$};
-            \node[n] (kh) at (-1.2, 2.0) {$\{h\}$};
-            \node[n] (ks) at ( 1.2, 2.0) {$\{s\}$};
-            \node[n] (ke) at ( 0,   3.4) {$\emptyset$};
-            \draw[e] (k0) -- (kh); \draw[e] (k0) -- (ks);
-            \draw[e] (kh) -- (ke); \draw[e] (ks) -- (ke);
-            \node[below=1.5mm of k0, font=\tiny] {způsobilá všude};
-            \node[above=1.5mm of ke, font=\tiny] {způsobilá nikde};
-        \end{scope}
-
-        % ---------- (c) product ----------
-        \begin{scope}[xshift=88mm]
-            \node[pan] at (1.95, 4.5) {(c) štítek: obě osy dohromady};
-            \foreach \r/\y in {0/0.6, 1/2.0, 2/3.4}
-              \foreach \c/\x in {0/0, 1/1.95, 2/3.9}
-                \coordinate (g\r\c) at (\x, \y);
-
-            \node[b, lo] (p00) at (g00) {$(\bot,\Ctxs)$};
-            \node[b]     (p01) at (g01) {$(\bot,\{h\})$};
-            \node[b]     (p02) at (g02) {$(\bot,\emptyset)$};
-            \node[b]     (p10) at (g10) {$(\mathit{mid},\Ctxs)$};
-            \node[b]     (p11) at (g11) {$(\mathit{mid},\{h\})$};
-            \node[b]     (p12) at (g12) {$(\mathit{mid},\emptyset)$};
-            \node[b]     (p20) at (g20) {$(\top,\Ctxs)$};
-            \node[b]     (p21) at (g21) {$(\top,\{h\})$};
-            \node[b, hi] (p22) at (g22) {$(\top,\emptyset)$};
-
-            \foreach \r in {0,1,2} {
-              \draw[e] (p\r0) -- (p\r1); \draw[e] (p\r1) -- (p\r2);
-            }
-            \foreach \c in {0,1,2} {
-              \draw[e] (p0\c) -- (p1\c); \draw[e] (p1\c) -- (p2\c);
-            }
-            \node[below=1mm of p00, font=\tiny, green!45!black] {nejlepší štítek};
-            \node[above=1mm of p22, font=\tiny, red!70!black] {nejhorší štítek};
-        \end{scope}
-    \end{tikzpicture}
+    \input{diagrams/mrizka-soucin}%
     \caption[Dvě osy štítku a~výřez jejich kombinace]{Dvě osy štítku: původ~(a), způsobilé kontexty~(b) a~výřez jejich kombinace~(c). Panel~(b) je zjednodušen na kontexty $h$ (html) a~$s$ (script); $\Ctxs$ zde značí oba.}
     \label{fig:mrizka-soucin}
     \source{vlastní zpracování}
@@ -473,45 +297,7 @@ Výpočet štítku podle tabulky~\ref{tab:pravidla} na běžícím příkladu, v
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        ex/.style={draw, rounded corners=2pt, inner sep=3pt, align=center, font=\scriptsize, fill=white},
-        lit/.style={ex, fill=gray!12, draw=gray!55!black},
-        src/.style={ex, fill=red!12, draw=red!65!black},
-        op/.style={ex, fill=blue!8, draw=blue!55!black},
-        okn/.style={ex, fill=green!14, draw=green!50!black, thick},
-        non/.style={ex, fill=red!14, draw=red!70!black, thick},
-        lb/.style={font=\tiny, gray!45!black},
-        e/.style={->, >=Stealth, gray!55!black},
-        hdr/.style={font=\scriptsize\bfseries}
-    ]
-        % =========== (a) vulnerable ===========
-        \node[hdr, red!65!black] at (2.6, 4.5) {(a) zranitelná podoba};
-        \node[lit] (a1) at (0,   0) {\verb|"<h1>…"|};   \node[lb, below=0.5mm of a1] {$(\bot,\Ctxs)$};
-        \node[src] (a2) at (2.6, 0) {$\mSrc_0$};        \node[lb, below=0.5mm of a2] {$(\top,\emptyset)$};
-        \node[lit] (a3) at (5.2, 0) {\verb|"</h1>"|};   \node[lb, below=0.5mm of a3] {$(\bot,\Ctxs)$};
-        \node[op]  (a4) at (2.6, 1.9) {$\oplus$};
-        \node[lb, right=1mm of a4, align=left] {$\bigl(\max(\bot,\top,\bot),\; \Ctxs \cap \emptyset \cap \Ctxs\bigr) = (\top, \emptyset)$};
-        \node[non] (a5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
-        \node[lb, right=1mm of a5, align=left, red!70!black] {podmínka: $i = \bot$? \emph{ne} \quad $\mathit{html} \in \emptyset$? \emph{ne}\\[1pt]\textbf{program se nepřeloží}};
-        \draw[e] (a1) -- (a4); \draw[e] (a2) -- (a4); \draw[e] (a3) -- (a4); \draw[e] (a4) -- (a5);
-
-        % =========== (b) fixed ===========
-        \begin{scope}[yshift=-70mm]
-        \node[hdr, green!40!black] at (2.6, 4.5) {(b) opravená podoba: přibyla dvě volání};
-        \node[lit] (b1) at (0,   0) {\verb|"<h1>…"|};  \node[lb, below=0.5mm of b1] {$(\bot,\Ctxs)$};
-        \node[src] (b0) at (2.6, -2.4) {$\mSrc_0$};    \node[lb, right=1mm of b0] {$(\top,\emptyset)$};
-        \node[op]  (bv) at (2.6, -1.2) {$\mVal_S$};    \node[lb, right=1mm of bv] {$(\mathit{mid},\emptyset)$};
-        \node[op]  (bs) at (2.6,  0)   {$\sigma_{\mathit{html}}$}; \node[lb, right=1mm of bs] {$(\mathit{mid},\{\mathit{html}\})$};
-        \node[lit] (b3) at (6.7, 0) {\verb|"</h1>"|};  \node[lb, below=0.5mm of b3] {$(\bot,\Ctxs)$};
-        \node[op]  (b4) at (2.6, 1.9) {$\oplus$};
-        \node[lb, right=1mm of b4, align=left] {$\bigl(\mathit{mid},\; \Ctxs \cap \{\mathit{html}\} \cap \Ctxs\bigr) = (\mathit{mid}, \{\mathit{html}\})$};
-        \node[okn] (b5) at (2.6, 3.5) {$\mOut_{\mathit{html}}$};
-        \node[lb, right=1mm of b5, align=left, green!40!black] {podmínka: $\mathit{html} \in \{\mathit{html}\}$? \emph{ano}\\[1pt]\textbf{program se přeloží}};
-        \draw[e] (b0) -- (bv); \draw[e] (bv) -- (bs);
-        \draw[e] (b1) -- (b4); \draw[e] (bs) -- (b4); \draw[e] (b3) -- (b4); \draw[e] (b4) -- (b5);
-        \end{scope}
-    \end{tikzpicture}
+    \input{diagrams/vypocet}%
     \caption{Výpočet štítku pro zranitelnou~(a) a~opravenou~(b) podobu běžícího příkladu}
     \label{fig:vypocet}
     \source{vlastní zpracování}
@@ -657,41 +443,7 @@ Podmínku pravidla \textsc{T-Out} vyjadřuje dvojice přetížení funkce \textt
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        lft/.style={draw, rounded corners=2pt, minimum width=40mm, minimum height=8mm, align=center, fill=orange!10, draw=orange!65!black, font=\scriptsize},
-        rgt/.style={draw, rounded corners=2pt, minimum width=52mm, minimum height=8mm, align=center, fill=blue!8, draw=blue!55!black, font=\ttfamily\tiny},
-        hi/.style={draw=green!50!black, fill=green!14, thick},
-        gap/.style={draw=red!70!black, fill=red!8, thick, dashed},
-        a/.style={->, >=Stealth, gray!60!black},
-        hh/.style={font=\scriptsize\bfseries}
-    ]
-        \node[hh, orange!70!black] at (2.0, 4.7) {model};
-        \node[hh, blue!60!black]   at (9.4, 4.7) {TypeScript};
-
-        \node[lft] (l1) at (2.0, 4.0) {řetězec se štítkem $(i,K)$};
-        \node[rgt] (r1) at (9.4, 4.0) {string \& Prov<I> \& Inert<K>};
-
-        \node[lft, hi] (l2) at (2.0, 2.9) {$\ell_1 \sqcup \ell_2$};
-        \node[rgt, hi] (r2) at (9.4, 2.9) {A | B};
-
-        \node[lft] (l3) at (2.0, 1.8) {\textsc{T-San}, $i \neq \top$, $c \neq \mathit{res}$};
-        \node[rgt] (r3) at (9.4, 1.8) {sanitize(c, s: Str<'lit'|'val', never>)\\[1pt]{\normalfont\itshape přetížení pro html, script a~url}};
-
-        \node[lft] (l4) at (2.0, 0.7) {\textsc{T-Out}, $i = \bot$ nebo $c \in K$};
-        \node[rgt] (r4) at (9.4, 0.7) {dvojice přetížení send(\ldots)};
-
-        \node[lft] (l5) at (2.0, -0.4) {\textsc{T-Lit}, $\CtxOf(s)$};
-        \node[rgt] (r5) at (9.4, -0.4) {h<S extends string>(s: S)\\[1pt]{\normalfont\itshape literálový typ argumentu}};
-
-        \node[lft, gap] (l6) at (2.0, -1.7) {štítek řídicího toku~$\mathit{pc}$\\[1pt]{\itshape mimo model}};
-        \node[rgt, gap] (r6) at (9.4, -1.7) {\normalfont\itshape bez protějšku};
-
-        \foreach \k in {1,2,3,4,5} { \draw[a] (l\k) -- (r\k); }
-        \draw[a, red!70!black, dashed] (l6) -- node[above, font=\tiny\itshape, red!70!black] {nepřenositelné} (r6);
-
-        \node[font=\tiny\itshape, green!40!black, align=center] at (5.7, 3.35) {tvrzení~\ref{claim:join}};
-    \end{tikzpicture}
+    \input{diagrams/vnoreni}%
     \caption[Přenos částí modelu do TypeScriptu]{Přenos částí modelu do TypeScriptu. Zeleně spojení štítků, červeně přerušovaně štítek řídicího toku,~který v~modelu není a~přenést ho nelze.}
     \label{fig:vnoreni}
     \source{vlastní zpracování}
@@ -810,32 +562,7 @@ Model tím splňuje všech pět požadavků z~úvodu sekce: R1 nese dvojice prav
 
 \begin{figure}[htbp]
     \centering
-    \begin{tikzpicture}[
-        every node/.style={font=\scriptsize},
-        box/.style={draw, rounded corners=3pt, align=center},
-        app/.style={box, fill=green!10, draw=green!45!black, thick, minimum width=92mm, minimum height=22mm},
-        tcb/.style={box, fill=red!10,   draw=red!70!black, thick, minimum width=26mm, minimum height=13mm},
-        lbl/.style={font=\scriptsize\itshape},
-        a/.style={->, >=Stealth, gray!55!black}
-    ]
-        \node[app] (a) at (0, 0) {};
-        \node[anchor=north west, font=\scriptsize\bfseries, green!40!black] at ($(a.north west)+(2mm,-2mm)$)
-            {ověřeno typovou kontrolou};
-        \node[anchor=south west, font=\tiny, green!35!black, align=left] at ($(a.south west)+(2mm,2mm)$)
-            {aplikační kód v~ukázněném fragmentu: sestavování odpovědí,\\
-             šablony, předávání hodnot mezi vrstvami, směrovače, obsluhy};
-
-        \node[tcb] (s) at (-1.7, -2.6) {sanitační\\funkce $\San_c$\\[1pt]\tiny předpoklad~\ref{ass:san}};
-        \node[tcb] (b) at ( 1.7, -2.6) {model\\prohlížeče\\[1pt]\tiny předpoklad~\ref{ass:parse}};
-        \node[tcb, minimum width=26mm] (u) at ( 5.6, -2.6) {validace, jádro\\knihovny a~úniky z~typů\\[1pt]\tiny předpoklad~\ref{ass:jadro}, lint};
-
-        \draw[a] (s) -- ($(a.south)+(-1.7,0)$);
-        \draw[a] (b) -- ($(a.south)+( 1.7,0)$);
-        \draw[a] (u) -- ($(a.south east)+(-1.0,0)$);
-
-        \node[lbl, red!70!black, anchor=west] at (-4.6, -4.0)
-            {\textbf{mimo typovou kontrolu:} tři oblasti,~kterým je nutno důvěřovat};
-    \end{tikzpicture}
+    \input{diagrams/tcb}%
     \caption[Dělba důvěry v~navrženém modelu]{Dělba důvěry v~navrženém modelu. Zeleně plocha ověřená typovou kontrolou, červeně místa,~kterým je nutno důvěřovat, popřípadě je ručně ověřit.}
     \label{fig:tcb}
     \source{vlastní zpracování}

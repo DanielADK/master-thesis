@@ -1,0 +1,26 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    box/.style={draw, rounded corners=3pt, align=center},
+    app/.style={box, fill=green!10, draw=green!45!black, thick, minimum width=92mm, minimum height=22mm},
+    tcb/.style={box, fill=red!10,   draw=red!70!black, thick, minimum width=26mm, minimum height=13mm},
+    lbl/.style={font=\scriptsize\itshape},
+    a/.style={->, >=Stealth, gray!55!black}
+]
+    \node[app] (a) at (0, 0) {};
+    \node[anchor=north west, font=\scriptsize\bfseries, green!40!black] at ($(a.north west)+(2mm,-2mm)$)
+        {ověřeno typovou kontrolou};
+    \node[anchor=south west, font=\tiny, green!35!black, align=left] at ($(a.south west)+(2mm,2mm)$)
+        {aplikační kód v~ukázněném fragmentu: sestavování odpovědí,\\
+         šablony, předávání hodnot mezi vrstvami, směrovače, obsluhy};
+
+    \node[tcb] (s) at (-1.7, -2.6) {sanitační\\funkce $\San_c$\\[1pt]\tiny předpoklad~\ref{ass:san}};
+    \node[tcb] (b) at ( 1.7, -2.6) {model\\prohlížeče\\[1pt]\tiny předpoklad~\ref{ass:parse}};
+    \node[tcb, minimum width=26mm] (u) at ( 5.6, -2.6) {validace, jádro\\knihovny a~úniky z~typů\\[1pt]\tiny předpoklad~\ref{ass:jadro}, lint};
+
+    \draw[a] (s) -- ($(a.south)+(-1.7,0)$);
+    \draw[a] (b) -- ($(a.south)+( 1.7,0)$);
+    \draw[a] (u) -- ($(a.south east)+(-1.0,0)$);
+
+    \node[lbl, red!70!black, anchor=west] at (-4.6, -4.0)
+        {\textbf{mimo typovou kontrolu:} tři oblasti,~kterým je nutno důvěřovat};
+\end{tikzpicture}

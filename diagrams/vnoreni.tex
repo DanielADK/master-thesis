@@ -1,0 +1,35 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    lft/.style={draw, rounded corners=2pt, minimum width=40mm, minimum height=8mm, align=center, fill=orange!10, draw=orange!65!black, font=\scriptsize},
+    rgt/.style={draw, rounded corners=2pt, minimum width=52mm, minimum height=8mm, align=center, fill=blue!8, draw=blue!55!black, font=\ttfamily\tiny},
+    hi/.style={draw=green!50!black, fill=green!14, thick},
+    gap/.style={draw=red!70!black, fill=red!8, thick, dashed},
+    a/.style={->, >=Stealth, gray!60!black},
+    hh/.style={font=\scriptsize\bfseries}
+]
+    \node[hh, orange!70!black] at (2.0, 4.7) {model};
+    \node[hh, blue!60!black]   at (9.4, 4.7) {TypeScript};
+
+    \node[lft] (l1) at (2.0, 4.0) {řetězec se štítkem $(i,K)$};
+    \node[rgt] (r1) at (9.4, 4.0) {string \& Prov<I> \& Inert<K>};
+
+    \node[lft, hi] (l2) at (2.0, 2.9) {$\ell_1 \sqcup \ell_2$};
+    \node[rgt, hi] (r2) at (9.4, 2.9) {A | B};
+
+    \node[lft] (l3) at (2.0, 1.8) {\textsc{T-San}, $i \neq \top$, $c \neq \mathit{res}$};
+    \node[rgt] (r3) at (9.4, 1.8) {sanitize(c, s: Str<'lit'|'val', never>)\\[1pt]{\normalfont\itshape přetížení pro html, script a~url}};
+
+    \node[lft] (l4) at (2.0, 0.7) {\textsc{T-Out}, $i = \bot$ nebo $c \in K$};
+    \node[rgt] (r4) at (9.4, 0.7) {dvojice přetížení send(\ldots)};
+
+    \node[lft] (l5) at (2.0, -0.4) {\textsc{T-Lit}, $\CtxOf(s)$};
+    \node[rgt] (r5) at (9.4, -0.4) {h<S extends string>(s: S)\\[1pt]{\normalfont\itshape literálový typ argumentu}};
+
+    \node[lft, gap] (l6) at (2.0, -1.7) {štítek řídicího toku~$\mathit{pc}$\\[1pt]{\itshape mimo model}};
+    \node[rgt, gap] (r6) at (9.4, -1.7) {\normalfont\itshape bez protějšku};
+
+    \foreach \k in {1,2,3,4,5} { \draw[a] (l\k) -- (r\k); }
+    \draw[a, red!70!black, dashed] (l6) -- node[above, font=\tiny\itshape, red!70!black] {nepřenositelné} (r6);
+
+    \node[font=\tiny\itshape, green!40!black, align=center] at (5.7, 3.35) {tvrzení~\ref{claim:join}};
+\end{tikzpicture}

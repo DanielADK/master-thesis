@@ -1,0 +1,47 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    seg/.style={draw, minimum height=6.5mm, inner xsep=3pt, font=\ttfamily\scriptsize},
+    lit/.style={seg, fill=gray!14, draw=gray!55!black},
+    mrk/.style={seg, fill=red!16,  draw=red!60!black},
+    exe/.style={seg, fill=red!16,  draw=red!75!black, thick, double},
+    sub/.style={seg, fill=gray!14, draw=blue!60!black, thick},
+    tag/.style={font=\scriptsize\itshape, gray!50!black, anchor=west},
+    ok/.style={font=\scriptsize\bfseries, green!45!black, anchor=west},
+    no/.style={font=\scriptsize\bfseries, red!70!black, anchor=west},
+    br/.style={decorate, decoration={brace, amplitude=4pt, mirror}, thick, blue!55!black}
+]
+    % =============== (a) inert ===============
+    \node[tag] at (-0.2, 1.2) {(a) způsobilé vložení: sanitovaná data útočníka};
+    \node[lit] (a1) at (0,0) {<p>};
+    \node[mrk, right=0pt of a1] (a2) {Ahoj \&lt;b\&gt;};
+    \node[lit, right=0pt of a2] (a3) {</p>};
+    \draw[br] ([yshift=-1mm]a2.south west) -- ([yshift=-1mm]a2.south east)
+          node[midway, below=4pt, font=\tiny] {vkládaný řetězec~$s$};
+    \node[ok] at ($(a3.east)+(4mm,0)$) {\eqref{in:vlastni}~\checkmark\quad\eqref{in:okoli}~\checkmark};
+
+    % =============== (b) P1 violated ===============
+    \begin{scope}[yshift=-26mm]
+        \node[tag] at (-0.2, 1.2) {(b) porušena \eqref{in:vlastni}: znak útočníka na vykonávaném místě};
+        \node[lit] (b1) at (0,0) {<p>};
+        \node[mrk, right=0pt of b1] (b2) {<script>};
+        \node[exe, right=0pt of b2] (b3) {alert(1)};
+        \node[mrk, right=0pt of b3] (b4) {</script>};
+        \node[lit, right=0pt of b4] (b5) {</p>};
+        \draw[br] ([yshift=-1mm]b2.south west) -- ([yshift=-1mm]b4.south east)
+              node[midway, below=4pt, font=\tiny] {nesanitovaná data útočníka};
+        \node[no] at ($(b5.east)+(4mm,0)$) {\eqref{in:vlastni}~$\times$};
+    \end{scope}
+
+    % =============== (c) P2 violated ===============
+    \begin{scope}[yshift=-52mm]
+        \node[tag] at (-0.2, 1.2) {(c) porušena \eqref{in:okoli}: literál otevře kontext pro data útočníka};
+        \node[lit] (c1) at (0,0) {<p>};
+        \node[sub, right=0pt of c1] (c2) {<div title=};
+        \node[mrk, right=0pt of c2] (c3) {x~onmouseover=};
+        \node[exe, right=0pt of c3] (c4) {f()};
+        \node[lit, right=0pt of c4] (c5) {>};
+        \draw[br] ([yshift=-1mm]c2.south west) -- ([yshift=-1mm]c2.south east)
+              node[midway, below=4pt, font=\tiny] {literál programátora};
+        \node[no] at ($(c5.east)+(4mm,0)$) {\eqref{in:okoli}~$\times$};
+    \end{scope}
+\end{tikzpicture}

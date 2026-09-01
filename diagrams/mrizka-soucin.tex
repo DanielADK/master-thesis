@@ -1,0 +1,59 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    n/.style={draw, circle, inner sep=1.2pt, minimum size=5.5mm, fill=white, font=\tiny},
+    b/.style={draw, rounded corners=2pt, inner sep=2.5pt, align=center, font=\tiny, fill=white},
+    e/.style={-, thick, gray!65!black},
+    hi/.style={draw=red!70!black, thick, fill=red!8},
+    lo/.style={draw=green!50!black, thick, fill=green!10},
+    pan/.style={font=\footnotesize\itshape}
+]
+    % ---------- (a) provenance axis ----------
+    \node[pan] at (0, 4.5) {(a) původ hodnoty};
+    \node[n] (i0) at (0, 0.6) {$\bot$};
+    \node[n] (i1) at (0, 2.0) {$\mathit{mid}$};
+    \node[n] (i2) at (0, 3.4) {$\top$};
+    \draw[e] (i0) -- (i1) -- (i2);
+    \node[right=1.5mm of i0, font=\tiny] {text programu};
+    \node[right=1.5mm of i1, font=\tiny] {ověřená struktura};
+    \node[right=1.5mm of i2, font=\tiny] {vstup útočníka};
+
+    % ---------- (b) context axis ----------
+    \begin{scope}[xshift=44mm]
+        \node[pan] at (0, 4.5) {(b) způsobilé kontexty};
+        \node[n] (k0) at ( 0,   0.6) {$\Ctxs$};
+        \node[n] (kh) at (-1.2, 2.0) {$\{h\}$};
+        \node[n] (ks) at ( 1.2, 2.0) {$\{s\}$};
+        \node[n] (ke) at ( 0,   3.4) {$\emptyset$};
+        \draw[e] (k0) -- (kh); \draw[e] (k0) -- (ks);
+        \draw[e] (kh) -- (ke); \draw[e] (ks) -- (ke);
+        \node[below=1.5mm of k0, font=\tiny] {způsobilá všude};
+        \node[above=1.5mm of ke, font=\tiny] {způsobilá nikde};
+    \end{scope}
+
+    % ---------- (c) product ----------
+    \begin{scope}[xshift=88mm]
+        \node[pan] at (1.95, 4.5) {(c) štítek: obě osy dohromady};
+        \foreach \r/\y in {0/0.6, 1/2.0, 2/3.4}
+          \foreach \c/\x in {0/0, 1/1.95, 2/3.9}
+            \coordinate (g\r\c) at (\x, \y);
+
+        \node[b, lo] (p00) at (g00) {$(\bot,\Ctxs)$};
+        \node[b]     (p01) at (g01) {$(\bot,\{h\})$};
+        \node[b]     (p02) at (g02) {$(\bot,\emptyset)$};
+        \node[b]     (p10) at (g10) {$(\mathit{mid},\Ctxs)$};
+        \node[b]     (p11) at (g11) {$(\mathit{mid},\{h\})$};
+        \node[b]     (p12) at (g12) {$(\mathit{mid},\emptyset)$};
+        \node[b]     (p20) at (g20) {$(\top,\Ctxs)$};
+        \node[b]     (p21) at (g21) {$(\top,\{h\})$};
+        \node[b, hi] (p22) at (g22) {$(\top,\emptyset)$};
+
+        \foreach \r in {0,1,2} {
+          \draw[e] (p\r0) -- (p\r1); \draw[e] (p\r1) -- (p\r2);
+        }
+        \foreach \c in {0,1,2} {
+          \draw[e] (p0\c) -- (p1\c); \draw[e] (p1\c) -- (p2\c);
+        }
+        \node[below=1mm of p00, font=\tiny, green!45!black] {nejlepší štítek};
+        \node[above=1mm of p22, font=\tiny, red!70!black] {nejhorší štítek};
+    \end{scope}
+\end{tikzpicture}
