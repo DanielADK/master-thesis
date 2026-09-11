@@ -4,7 +4,7 @@
 
 declare const prov: unique symbol;
 
-type Ctx   = 'html' | 'script' | 'url' | 'res';
+type Ctx   = 'html' | 'script' | 'url' | 'res' | 'text';
 // dolní množiny: bot = 'lit', mid = 'lit' | 'val', top = Level
 type Level = 'lit' | 'val' | 'raw';
 

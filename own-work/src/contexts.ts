@@ -94,6 +94,26 @@ type Url<S extends string> = S extends '' ? true
 // res: S stays inside the quoted src attribute of a script element.
 type Res<S> = S extends `${string}${ResBad}${string}` ? false : true;
 
+// text: S stays inside a text attribute value (either quote) and inside title or textarea content; a trailing
+// '<' would leave the RCDATA state, so that the next value could complete the end tag.
+type TextBad = '"' | "'" | '`';
+type Text<S> = S extends `${string}${TextBad}${string}` | `${string}</${string}` | `${string}<` ? false : true;
+// Attacker values get text only without '<' at all (a lower estimate of the same condition).
+type NoQuoteLt<S> = S extends `${string}${TextBad | '<'}${string}` ? false : true;
+export type { Url, Text };
+
+/** Attributes read as text, never as an address or code (ass:parse). */
+export const TEXT_ATTRS: readonly string[] = ['alt', 'class', 'id', 'for', 'name', 'placeholder', 'title', 'value',
+  'label', 'lang', 'dir', 'role', 'tabindex', 'rows', 'cols', 'size', 'maxlength', 'width', 'height'];
+export const isTextAttr = (name: string): boolean =>
+  TEXT_ATTRS.includes(name) || name.startsWith('aria-') || name.startsWith('data-');
+export type TextAttr = 'alt' | 'class' | 'id' | 'for' | 'name' | 'placeholder' | 'title' | 'value' | 'label' | 'lang'
+  | 'dir' | 'role' | 'tabindex' | 'rows' | 'cols' | 'size' | 'maxlength' | 'width' | 'height'
+  | `aria-${string}` | `data-${string}`;
+/** Elements that load code: no attribute hole except script src. */
+export const CODE_ELEMENTS: readonly string[] = ['script', 'base', 'object', 'embed', 'applet', 'param'];
+export type CodeElement = 'script' | 'base' | 'object' | 'embed' | 'applet' | 'param';
+
 /** true for a literal type, false for string and patterns. */
 export type IsLit<S extends string> = S extends unknown ? ({} extends Record<S, 1> ? false : true) : never;
 type Finite<S extends string> = false extends IsLit<S> ? false : true;
@@ -103,13 +123,15 @@ export type CtxOf<S extends string> = Finite<S> extends false ? never
   : | ([Html<S>] extends [true] ? 'html' : never)
     | ([Script<S>] extends [true] ? 'script' : never)
     | ([Url<S>] extends [true] ? 'url' : never)
-    | ([Res<S>] extends [true] ? 'res' : never);
+    | ([Res<S>] extends [true] ? 'res' : never)
+    | ([Text<S>] extends [true] ? 'text' : never);
 
 /** D(S) of def:prameny from the schema output type; never res. */
 export type D<O extends string> = Finite<O> extends false ? never
   : | ([NoLt<O>] extends [true] ? 'html' : never)
     | ([Script<O>] extends [true] ? 'script' : never)
-    | ([Url<O>] extends [true] ? 'url' : never);
+    | ([Url<O>] extends [true] ? 'url' : never)
+    | ([NoQuoteLt<O>] extends [true] ? 'text' : never);
 type NoLt<S> = S extends `${string}<${string}` ? false : true;
 
 // Runtime versions of the types above.
@@ -191,15 +213,19 @@ export function urlNeutral(s: string): boolean {
 
 const resNeutral = (s: string): boolean => !RES_BAD.test(s);
 
+const TEXT_BAD = /["'`]|<\/|<$/;
+const TEXT_VALUE_BAD = /["'`<]/;
+export const textNeutral = (s: string): boolean => !TEXT_BAD.test(s);
+
 /** CtxOf<S> at run time. */
 export function ctxOf(s: string): Ctx[] {
-  const ok = { html: htmlNeutral, script: scriptNeutral, url: urlNeutral, res: resNeutral };
+  const ok = { html: htmlNeutral, script: scriptNeutral, url: urlNeutral, res: resNeutral, text: textNeutral };
   return CTXS.filter(c => ok[c](s));
 }
 
 /** Contexts where v is suitable even as attacker text; never res. */
 export function attackerCtxs(v: string): Ctx[] {
-  const ok = { html: !v.includes('<'), script: scriptNeutral(v), url: urlNeutral(v), res: false };
+  const ok = { html: !v.includes('<'), script: scriptNeutral(v), url: urlNeutral(v), res: false, text: !TEXT_VALUE_BAD.test(v) };
   return CTXS.filter(c => ok[c]);
 }
 

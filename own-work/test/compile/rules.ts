@@ -8,6 +8,10 @@ declare const raw: string; // T-Src: request input (top, {})
 const v = parse(z.string().max(100), raw); // T-Val: (mid, {})
 const qHtml = sanitize('html', v); // T-San: (mid, {html})
 const qScript = sanitize('script', v);
+// T-San: the html sanitizer declares html and text (ass:san), the others a single context
+export const asText: Str<'lit' | 'val', 'text'> = sanitize('html', v);
+// @ts-expect-error the url sanitizer declares url only
+export const urlAsText: Str<'lit' | 'val', 'text'> = sanitize('url', v);
 
 // T-San: validation must come first, a literal is already bot
 // @ts-expect-error raw input has level top
@@ -43,6 +47,12 @@ send(res, parse(z.string(), h('<div title=')));
 // T-Val adds D(S)
 send(res, parse(z.enum(['asc', 'desc']), raw));
 out('url', parse(z.enum(['asc', 'desc']), raw));
+out('text', parse(z.enum(['asc', 'desc']), raw));
+// @ts-expect-error an apostrophe would end a single-quoted attribute value
+out('text', parse(z.enum(["it's", 'ok']), raw));
+export const lit5: Str<'lit', 'text'> = h('<b>');
+// @ts-expect-error a literal with </ could end title or textarea
+export const lit6: Str<'lit', 'text'> = h('</b>');
 // @ts-expect-error D(S) never contains res
 out('res', parse(z.enum(['asc', 'desc']), raw));
 // @ts-expect-error not even for a schema that accepts only the empty string
@@ -78,8 +88,8 @@ export const lit4: Str<'lit', 'url'> = h(Math.random() < 0.5 ? '<b>' : 'x');
 export const lift = (v: 'a' | `${string}x`): unknown => h(v);
 type None<X> = [X] extends [never] ? true : false;
 export const noPattern: None<CtxOf<'a' | `${string}x`>> = true;
-// template content is not a data hole of html (ass:parse)
-export const noTemplate: None<CtxOf<'<template>'>> = true;
+// template content is not a data hole of html (ass:parse); as text the literal is harmless
+export const noTemplate: None<Extract<CtxOf<'<template>'>, 'html'>> = true;
 
 // A tagged template cannot carry the literal: its strings are typed TemplateStringsArray
 const tag = <const T extends readonly string[]>(s: T): T => s;

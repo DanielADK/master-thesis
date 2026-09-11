@@ -24,7 +24,8 @@ export function parse<S extends z.ZodType<string>, V>(
 }
 
 type Validated = Str<'lit' | 'val', never>;
-export type SanCtx = Exclude<Ctx, 'res'>;
+/** The sanitizers of the realization, named by their main context. */
+export type San = 'html' | 'script' | 'url';
 
 const escapeHtml = (s: string): string => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
@@ -35,7 +36,7 @@ const schemePrefix = (u: string): boolean =>
   u !== '' && ['javascript:', 'vbscript:', 'data:'].some(d => d.startsWith(u.toLowerCase()));
 
 /** San_c of ass:san; there is no San_res. */
-export const SAN: Record<SanCtx, (s: string) => string> = {
+export const SAN: Record<San, (s: string) => string> = {
   html: escapeHtml,
   script: s => s.replace(/[^\w ,.-]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`),
   url: s => {
@@ -45,11 +46,14 @@ export const SAN: Record<SanCtx, (s: string) => string> = {
   },
 };
 
-/** T-San: (mid, {c}). Rejects level top, so validation comes first. One overload per context. */
-export function sanitize(c: 'html', v: Validated): Str<'lit' | 'val', 'html'>;
+/** C_c of ass:san: the contexts each sanitizer declares. */
+export const SAN_CTXS: Record<San, readonly Ctx[]> = { html: ['html', 'text'], script: ['script'], url: ['url'] };
+
+/** T-San: (mid, C_c); rejects level top, one overload per sanitizer. */
+export function sanitize(c: 'html', v: Validated): Str<'lit' | 'val', 'html' | 'text'>;
 export function sanitize(c: 'script', v: Validated): Str<'lit' | 'val', 'script'>;
 export function sanitize(c: 'url', v: Validated): Str<'lit' | 'val', 'url'>;
-export function sanitize(c: SanCtx, v: string): string {
+export function sanitize(c: San, v: string): string {
   return SAN[c](v);
 }
 
@@ -70,6 +74,7 @@ export const HOLE: Record<Ctx, readonly [string, string]> = {
   script: ['<script>var x = "', '";</script>'],
   url: ['<a href="', '">link</a>'],
   res: ['<script src="', '"></script>'],
+  text: ['<input value="', '">'],
 };
 
 /** T-Out for context c; returns the document. */

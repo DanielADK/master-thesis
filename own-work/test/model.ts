@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import { z } from 'zod';
 import { CTXS, type Ctx } from '../src/label.ts';
 import { ctxOf, dOf } from '../src/contexts.ts';
-import { SAN, type SanCtx } from '../src/index.ts';
+import { SAN, SAN_CTXS, type San } from '../src/index.ts';
 
 export type Schema = { ts: string; zod: z.ZodType<string>; d: Ctx[]; dTs: Ctx[]; values?: string[] };
 export type Expr =
@@ -11,7 +11,7 @@ export type Expr =
   | { k: 'src'; n: number }
   | { k: 'cat'; a: Expr; b: Expr }
   | { k: 'val'; S: Schema; e: Expr }
-  | { k: 'san'; c: SanCtx; e: Expr };
+  | { k: 'san'; c: San; e: Expr };
 export type Label = { i: number; K: Ctx[] }; // i: 0 = bot, 1 = mid, 2 = top
 export type Marked = { s: string; u: boolean[] };
 
@@ -28,7 +28,7 @@ export const SCHEMAS: Schema[] = [
   { ts: 'z.string().max(100)', zod: z.string().max(100), d: [], dTs: [] },
   { ts: 'z.string().max(3)', zod: z.string().max(3), d: [], dTs: [] },
   // Digits contain no '<', no script delimiter and are neither a dangerous scheme nor its prefix.
-  { ts: 'z.string().regex(/^\\d+$/)', zod: z.string().regex(/^\d+$/), d: ['html', 'script', 'url'], dTs: [] },
+  { ts: 'z.string().regex(/^\\d+$/)', zod: z.string().regex(/^\d+$/), d: ['html', 'script', 'url', 'text'], dTs: [] },
 ];
 
 export function label(e: Expr, visible = false): Label | undefined {
@@ -47,7 +47,7 @@ export function label(e: Expr, visible = false): Label | undefined {
     }
     case 'san': {
       const a = label(e.e, visible);
-      return a && a.i !== 2 ? { i: 1, K: [e.c] } : undefined;
+      return a && a.i !== 2 ? { i: 1, K: [...SAN_CTXS[e.c]] } : undefined;
     }
   }
 }
@@ -88,7 +88,7 @@ export function hasSource(e: Expr, c: Ctx): boolean {
     case 'src': return false;
     case 'cat': return hasSource(e.a, c) || hasSource(e.b, c);
     case 'val': return e.S.d.includes(c) || hasSource(e.e, c);
-    case 'san': return e.c === c;
+    case 'san': return SAN_CTXS[e.c].includes(c);
   }
 }
 
@@ -112,6 +112,7 @@ export const LITERALS = [
   'https://example.com/?q=', '/search?q=', './', '?a=', '#top', 'mailto:', '&', '&amp;', ' & ',
   '<!--', '-->', '<svg>', '<svg><script>', '<textarea>', '</textarea>', '<style>p{}</style>', '<input value=',
   '<img src=x>', 'x onmouseover=f() ', 'var y = 1;', '\\', '\n', '<br/>', "<a title='x'>", '<x-y data-a="1">',
+  '<title>', '</title>', '<title>x</title>', '<input value="', '</textarea>', '<textarea name="b">',
 ];
 
 export const PAYLOADS = [
@@ -138,8 +139,8 @@ export const arbInput = fc.oneof(fc.constantFrom(...PAYLOADS), tokens(8), fc.str
 const arbSchema = fc.constantFrom(...SCHEMAS);
 
 /** Random expressions. Sanitized request input mostly uses the sanitizer of context `prefer`. */
-const arbExprFor = (prefer: SanCtx): fc.Arbitrary<Expr> => fc.letrec<{ e: Expr }>(tie => {
-  const arbSan = fc.constantFrom<SanCtx>(prefer, prefer, prefer, 'html', 'script', 'url');
+const arbExprFor = (prefer: San): fc.Arbitrary<Expr> => fc.letrec<{ e: Expr }>(tie => {
+  const arbSan = fc.constantFrom<San>(prefer, prefer, prefer, 'html', 'script', 'url');
   return {
     e: fc.oneof(
       { maxDepth: 4, depthIdentifier: 'expr' },
@@ -155,5 +156,5 @@ const arbExprFor = (prefer: SanCtx): fc.Arbitrary<Expr> => fc.letrec<{ e: Expr }
   };
 }).e;
 
-export const arbExpr = fc.constantFrom<SanCtx>('html', 'script', 'url').chain(arbExprFor);
-export const arbProgram = fc.constantFrom(...CTXS).chain(c => arbExprFor(c === 'res' ? 'html' : c).map(e => ({ c, e })));
+export const arbExpr = fc.constantFrom<San>('html', 'script', 'url').chain(arbExprFor);
+export const arbProgram = fc.constantFrom(...CTXS).chain(c => arbExprFor(c === 'res' || c === 'text' ? 'html' : c).map(e => ({ c, e })));

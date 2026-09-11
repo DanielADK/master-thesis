@@ -1,7 +1,5 @@
-// Generates the compile-time tests in test/generated (checked by `tsc -p .`):
-//   lattice.ts   claim:join and the label order for all 48 labels
-//   literals.ts  CtxOf and D as types agree with ctxOf and dOf at run time
-//   adequacy.ts  claim:adekvatnost: random model programs; ill-typed ones carry @ts-expect-error
+// Generates test/generated: lattice.ts (label order, claim:join), literals.ts (types agree with
+// run time), adequacy.ts (claim:adekvatnost), tpl.ts (templates).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import fc from 'fast-check';
 import { CTXS } from '../src/label.ts';
@@ -16,7 +14,7 @@ const union = (cs: readonly string[]): string => cs.map(c => `'${c}'`).join(' | 
 
 // --- lattice.ts ---
 const LEVELS = ["'lit'", "'lit' | 'val'", 'Level'];
-const labels = LEVELS.flatMap((enc, i) => Array.from({ length: 16 }, (_, m) =>
+const labels = LEVELS.flatMap((enc, i) => Array.from({ length: 1 << CTXS.length }, (_, m) =>
   ({ i, K: CTXS.filter((_, b) => m & (1 << b)), enc })));
 const le = (a: (typeof labels)[number], b: (typeof labels)[number]): boolean =>
   a.i <= b.i && b.K.every(c => a.K.includes(c));

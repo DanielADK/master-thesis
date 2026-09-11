@@ -1,7 +1,7 @@
 // The label (i, K) of sec:model-typescript; bot = 'lit', mid = 'lit' | 'val', top = Level.
 declare const prov: unique symbol;
 
-export type Ctx = 'html' | 'script' | 'url' | 'res';
+export type Ctx = 'html' | 'script' | 'url' | 'res' | 'text';
 export type Level = 'lit' | 'val' | 'raw'; // bot, mid, top
 
 export type Prov<I extends Level> = { readonly [prov]: I };
@@ -10,7 +10,7 @@ export type Str<I extends Level, K extends Ctx> = string & Prov<I> & Inert<K>;
 
 export type SafeHtml = Str<Level, 'html'>;
 
-export const CTXS: readonly Ctx[] = ['html', 'script', 'url', 'res'];
+export const CTXS: readonly Ctx[] = ['html', 'script', 'url', 'res', 'text'];
 
 /** Level of a value; a plain string is top. */
 export type ProvOf<V> = V extends Prov<infer I> ? I : Level;

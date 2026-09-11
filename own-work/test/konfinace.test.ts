@@ -7,7 +7,7 @@ import { arbExpr, arbInput, arbProgram, evaluate, hasSource, label, PAYLOADS, to
 import { injected, suitable } from './oracle.ts';
 import { routes } from './compile/running-example.ts';
 
-const perCtx = (): Record<Ctx, number> => ({ html: 0, script: 0, url: 0, res: 0 });
+const perCtx = (): Record<Ctx, number> => ({ html: 0, script: 0, url: 0, res: 0, text: 0 });
 const show = (r: Record<Ctx, number>): string => CTXS.map(c => `${c} ${r[c]}`).join(', ');
 
 /** Response body of a route; undefined when validation rejects the input. */
@@ -83,6 +83,7 @@ function input(e: Expr): 'none' | 'sanitized' | 'raw' {
 
 const TYPICAL: Record<Ctx, string> = {
   html: '<img src=x onerror=alert(1)>', script: '";alert(1)//', url: 'javascript:alert(1)', res: 'https://evil.example/x.js',
+  text: '" onmouseover="alert(1)',
 };
 
 test('the checker is not vacuous: ill-typed programs inject', t => {

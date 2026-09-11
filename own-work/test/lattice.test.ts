@@ -5,13 +5,14 @@ import { CTXS, type Ctx } from '../src/label.ts';
 
 type L = { i: number; K: Ctx[] };
 const LABELS: L[] = [0, 1, 2].flatMap(i =>
-  Array.from({ length: 16 }, (_, m) => ({ i, K: CTXS.filter((_, b) => m & (1 << b)) })));
+  Array.from({ length: 1 << CTXS.length }, (_, m) => ({ i, K: CTXS.filter((_, b) => m & (1 << b)) })));
 const le = (a: L, b: L): boolean => a.i <= b.i && b.K.every(c => a.K.includes(c));
 const join = (a: L, b: L): L => ({ i: Math.max(a.i, b.i), K: a.K.filter(c => b.K.includes(c)) });
 const same = (a: L, b: L): boolean => le(a, b) && le(b, a);
 
-test('A1: there are 3 * 2^4 = 48 labels', () => {
-  assert.equal(LABELS.length, 48);
+test('A1: there are 3 * 2^5 = 96 labels', () => {
+  assert.equal(LABELS.length, 3 * 2 ** CTXS.length);
+  assert.equal(LABELS.length, 96);
 });
 
 test('A2: the order is reflexive, antisymmetric and transitive', () => {
@@ -41,7 +42,7 @@ test('A4: the join is the least upper bound', t => {
     }
   }
   assert.ok(several > 0);
-  t.diagnostic(`${several} of ${48 * 48} pairs have more than one upper bound`);
+  t.diagnostic(`${several} of ${LABELS.length ** 2} pairs have more than one upper bound`);
 });
 
 test('the join is commutative, associative and idempotent, so the order of joins does not matter', () => {
