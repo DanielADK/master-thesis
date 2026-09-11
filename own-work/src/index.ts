@@ -5,6 +5,7 @@ import type { CtxOf, D, IsLit } from './contexts.ts';
 
 export * from './label.ts';
 export type { CtxOf, D } from './contexts.ts';
+export { html, MSG, type Check, type Part } from './tpl.ts';
 
 /** never unless every member of S is a literal type. */
 type Literal<S extends string> = false extends IsLit<S> ? never : unknown;
