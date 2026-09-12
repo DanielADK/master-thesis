@@ -13,8 +13,10 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@types/express": "5.0.6",
     "@types/node": "^26.6.5",
     "fast-check": "4.10.2",
+    "fastify": "5.12.7",
     "parse5": "8.0.1",
     "typescript": "7.0.2"
   }
