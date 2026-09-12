@@ -148,7 +148,7 @@ export const Q: Record<Ctx, string[]> = {
 export const stringStartOf = (p: string): number => Math.max(p.lastIndexOf('"'), p.lastIndexOf("'")) + 1;
 
 /** def:inertnost over every p in P[c] and q in Q[c]; `strings` are the script string holes of m. */
-export function suitable(m: Marked, c: Ctx, strings: readonly number[] = []): boolean {
+export function suitable(m: Marked, c: Ctx, strings: readonly number[] = m.strings ?? []): boolean {
   return P[c].every(p => {
     const start = c === 'script' ? stringStartOf(p) : undefined;
     if (!endsInHole(p + m.s, c, start)) return false;
@@ -163,6 +163,6 @@ export function suitable(m: Marked, c: Ctx, strings: readonly number[] = []): bo
 /** def:bezinjektaze is violated: the sink of c executes an attacker character of m. */
 export function injected(c: Ctx, m: Marked): boolean {
   const [pre, post] = HOLE[c];
-  const v = executed(pre + m.s + post, c === 'script' ? [pre.length] : []);
+  const v = executed(pre + m.s + post, [...(m.strings ?? []).map(x => x + pre.length), ...(c === 'script' ? [pre.length] : [])]);
   return m.u.some((att, j) => att && v[pre.length + j]);
 }

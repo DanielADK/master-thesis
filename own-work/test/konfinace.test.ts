@@ -78,6 +78,10 @@ function input(e: Expr): 'none' | 'sanitized' | 'raw' {
       const both = [input(e.a), input(e.b)];
       return both.includes('raw') ? 'raw' : both.includes('sanitized') ? 'sanitized' : 'none';
     }
+    case 'tpl': {
+      const all = e.holes.map(input);
+      return all.includes('raw') ? 'raw' : all.includes('sanitized') ? 'sanitized' : 'none';
+    }
   }
 }
 
