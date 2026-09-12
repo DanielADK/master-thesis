@@ -2,8 +2,13 @@
   "name": "own-work",
   "version": "0.1.0",
   "private": true,
-  "description": "TypeScript realization of the label model from parts/practical.tex and its empirical verification",
+  "description": "Safe HTML types for server-side TypeScript: the library over the label model of parts/practical.tex and its verification",
   "type": "module",
+  "exports": {
+    ".": "./lib/index.ts",
+    "./unsafe": "./lib/unsafe.ts",
+    "./model": "./src/index.ts"
+  },
   "scripts": {
     "gen": "node scripts/generate.ts",
     "typecheck": "tsc -p .",
