@@ -574,3 +574,61 @@ Model tím splňuje všech pět požadavků z~úvodu sekce: R1 nese dvojice prav
     \label{fig:tcb}
     \source{vlastní zpracování}
 \end{figure}
+
+\section{Knihovna bezpečných typů}
+\label{sec:lib}
+
+Model ze sekce~\ref{sec:model} je napsán pro důkaz, knihovna z~dílčího cíle~2 se píše pro použití. Realizace z~podsekce~\ref{sec:model-typescript} oba účely slučuje a~jako knihovna je nepoužitelná, přestože model realizuje věrně. Tato sekce proto přidává do modelu jediné pravidlo s~důkazem opřeným pouze o~definici způsobilosti. Nad jádrem z~podsekce~\ref{sec:model-typescript} pak staví veřejné rozhraní.
+
+\subsection{Od modelu ke knihovně}
+\label{sec:lib-motivace}
+
+Čtyři překážky brání, aby realizaci z~podsekce~\ref{sec:model-typescript} použil někdo jiný než autor modelu. Za prvé literál,~který otevře atribut, nemá podle pravidla \textsc{T-Lit} žádný kontext: typ \texttt{CtxOf<'<a href="'>} je prázdný. Odkaz \verb|<a href="…">| s~dosazenou adresou tak nelze odeslat vůbec, ani když je adresa escapována pro \emph{url}. Překladač hlásí, že \texttt{Str<'lit', never>} nelze přiřadit do \texttt{SafeHtml}. Za druhé každý literál vyžaduje volání \texttt{h}, za třetí se stránka skládá vnořenými voláními \texttt{cat} a~za čtvrté překladač hlásí chyby klíčem značky \texttt{\_\_inert\_html}, nikoliv větou. První z~překážek leží v~tvaru modelu, nikoliv v~realizaci: podsekce~\ref{sec:model-hranice} ji uvádí jako neúplnost zřetězení a~obal nad jádrem by ji neodstranil.
+
+Řešením je šablona s~dírami, výraz,~ve kterém se střídá statický text programátora s~dosazenými hodnotami. Knihovna \texttt{safevalues} i~kontextově escapující šablonovací systémy ji znají \parencite{samuel2011context}, avšak kontext díry u~nich určuje běhový kód nebo nástroj mimo překladač. Zde kontext děr určuje typ ze statického textu. Překladač tak odmítne už volání \texttt{html('<a href="', q, '">')} s~hodnotou escapovanou pro \emph{html}, a~to větou, nikoliv klíčem značky. Model dostane pravidlo \textsc{T-Tpl} a~tvrzení,~že uzavřená šablona je způsobilá pro \emph{html}. Obojí užívá pouze definici~\ref{def:inertnost}. Aby šablona unesla i~titulek stránky a~políčko formuláře, přibyl do modelu kontext \emph{text} (podsekce~\ref{sec:model-mrizka}) a~předpoklad~\ref{ass:san} dovolil sanitační funkci deklarovat více kontextů. Bez toho by titulek nešel sestavit vůbec a~políčko by vyžadovalo funkci pro adresy,~která slova \texttt{data} nebo \texttt{java} nahradí za \texttt{about:invalid}.
+
+Dílčí cíl~2 slibuje konstruktory, šablonové adaptéry a~úniky z~typového systému. Šablona je šablonovým adaptérem a~modul \texttt{unsafe} obsahuje úniky. Zbytek sekce postupuje od modelu (podsekce~\ref{sec:lib-tpl}) přes realizaci skeneru v~typech (podsekce~\ref{sec:lib-typescript}) k~rozhraní knihovny (podsekce~\ref{sec:lib-rozhrani}), jeho ověření (podsekce~\ref{sec:lib-overeni}) a~mezím (podsekce~\ref{sec:lib-meze}).
+
+\subsection{Šablona s~dírami: pravidlo T-Tpl}
+\label{sec:lib-tpl}
+
+Šablona je výraz $\mTpl(s_0, e_1, s_1, \ldots, e_n, s_n)$, $n \ge 0$,~ve kterém se střídají literály~$s_k$ a~výrazy~$e_k$ se štítky $(i_k, K_k)$. Místa mezi literály se nazývají \emph{díry}. Výsledkem šablony je zřetězení $s_0 v_1 s_1 \cdots v_n s_n$, kde $v_k$ je hodnota výrazu~$e_k$. Kontext každé díry určuje text,~který jí předchází, podle předpokladu~\ref{ass:parse}. Protože však předpoklad tokenizér nepopisuje, definuje model kontexty děr sémanticky, pro všechny způsobilé hodnoty v~předchozích dírách.
+
+\begin{definice}[Kontexty děr a~uzavřená šablona]
+\label{def:tpl}
+Posloupnost kontextů $(c_1, \ldots, c_n)$ se nazývá \emph{kontexty děr} šablony a~šablona se nazývá \emph{uzavřená}, pokud pro každý řetězec~$p$ končící v~datové díře kontextu \emph{html} a~pro každou volbu hodnot $v_1, \ldots, v_n$, kde $v_k$ je způsobilá pro~$c_k$, platí:
+\begin{enumerate}[label=(\roman*)]
+    \item pro každé~$k$ končí řetězec $p\,s_0 v_1 s_1 \cdots v_{k-1} s_{k-1}$ v~datové díře kontextu~$c_k$;
+    \item řetězec $p\,s_0 v_1 \cdots v_n s_n$ končí v~datové díře kontextu \emph{html}.
+\end{enumerate}
+\end{definice}
+
+Podmínka~(i) pro $k = 1$ na hodnotách nezávisí: kontext první díry určuje pouze~$s_0$. Realizace určí kontexty děr i~uzavřenost spodním odhadem ze statického textu (podsekce~\ref{sec:lib-typescript}). V~tabulce~\ref{tab:puvod} má definice stejný status jako $\CtxOf(s)$ a~$D(S)$. Pravidlo \textsc{T-Tpl} doplňuje tabulku~\ref{tab:pravidla}:
+
+\begin{center}
+    \footnotesize
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{výraz} & \textbf{štítek výsledku} & \textbf{podmínka} & \textbf{značka} \\
+        \midrule
+        $\mTpl(s_0, e_1, \ldots, e_n, s_n)$ & $\bigl(\max(\bot, i_1, \ldots, i_n),\; \{\mathit{html}\}\bigr)$ & uzavřená s~kontexty děr $(c_k)$ a~$c_k \in K_k$ & \textsc{T-Tpl} \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+Na rozdíl od pravidla \textsc{T-Out} se v~díře nepřipouští alternativa $i_k = \bot$. Literál programátora bez způsobilosti pro kontext díry, například \verb|'"><p>'| v~hodnotě atributu, by posunul kontext hodnotám útočníka v~dalších dírách a~podmínka~(i) by pro ně neplatila.
+
+\begin{tvrzeni}[Uzavřená šablona je způsobilá pro html]
+\label{lem:tpl}
+Pokud je šablona uzavřená s~kontexty děr $(c_1, \ldots, c_n)$ a~každá hodnota~$v_k$ je způsobilá pro~$c_k$, je řetězec $s_0 v_1 s_1 \cdots v_n s_n$ způsobilý pro kontext \emph{html}.
+\end{tvrzeni}
+
+\begin{proof}
+Obě podmínky se ověří pro řetězec~$p$ končící v~datové díře kontextu \emph{html} a~libovolný řetězec~$q$. Podmínka~\eqref{in:okoli} je přesně podmínka~(ii). Pro podmínku~\eqref{in:vlastni}: literály znaky útočníka neobsahují a~každý znak útočníka výsledku leží v~některé hodnotě~$v_k$. Podle~(i) končí $p' = p\,s_0 v_1 \cdots s_{k-1}$ v~datové díře kontextu~$c_k$. Pro $q' = s_k v_{k+1} \cdots s_n\,q$ říká podmínka~\eqref{in:vlastni} způsobilosti~$v_k$ pro~$c_k$, že žádný znak útočníka z~$v_k$ neleží ve~$V(p' v_k q')$. Řetězec $p' v_k q' = p\,s_0 v_1 \cdots s_n\,q$ je přitom celý dokument a~podle předpokladu~\ref{ass:parse} množina~$V$ na kontextu nezávisí.
+\end{proof}
+
+Hodnota v~díře tvořená polem hodnot, jak je knihovna připouští, je zřetězením hodnot způsobilých pro~$c_k$, a~podle tvrzení~\ref{lem:monoid} je tedy způsobilá pro~$c_k$.
+
+Důsledky pro stávající tvrzení jsou tři. Tvrzení~\ref{lem:stitky} dostane nový případ. Pokud $\max(\bot, i_1, \ldots, i_n) = \bot$, jsou všechny hodnoty v~dírách podle indukčního předpokladu bez znaků útočníka a~literály rovněž,~což je~(a). Pokud $\mathit{html} \in K$, jsou hodnoty podle indukčního předpokladu způsobilé pro své $c_k \in K_k$ a~(b) dává tvrzení~\ref{lem:tpl}. Důkaz věty~\ref{thm:konfinace} se nemění, užívá pouze tvrzení~\ref{lem:stitky}. Tvrzení~\ref{thm:audit} musí šablonu jmenovat jako čtvrtý pramen: šablona \verb|<a href="| $\oplus\; v \;\oplus$ \verb|">| s~hodnotou~$v$ způsobilou pro \emph{url} dává kontext \emph{html}, aniž by některá její část byla pro \emph{html} způsobilá.
+
+Obsah elementu \texttt{title} není datovou dírou kontextu \emph{html}, ačkoliv by se to nabízelo. Kdyby byl, musel by každý řetězec způsobilý pro \emph{html} vyhovět i~prefixům končícím v~titulku. Šablona \verb|<a href="| $\oplus\; v \;\oplus$ \verb|">| by tam nebyla uzavřená, protože \verb|<title><a href="| nekončí v~díře kontextu \emph{url}. Hodnota způsobilá pro \emph{url} přitom smí na úrovni modelu obsahovat \verb|</title><script>…|, takže by tvrzení~\ref{lem:tpl} neplatilo. Realizace takovou hodnotu nevyrobí, důkaz s~tím však počítat nesmí. Kontext \emph{text} tak řeší titulek bez zásahu do definice kontextu \emph{html}.
