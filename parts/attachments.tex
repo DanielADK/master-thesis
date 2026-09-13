@@ -25,7 +25,9 @@ Příkaz \texttt{npm test} nejprve vygeneruje překladové testy do složky \tex
 \begin{itemize}
     \item \texttt{src/label.ts}: štítek podle výpisu z~podsekce~\ref{sec:model-typescript} a~funkce \texttt{cat} pro pravidlo \textsc{T-Concat};
     \item \texttt{src/contexts.ts}: spodní odhady množin $\CtxOf(s)$ a~$D(S)$, každý jako typ pro překladač a~jako funkce pro testy za běhu;
-    \item \texttt{src/index.ts}: funkce \texttt{h}, \texttt{parse}, \texttt{sanitize}, \texttt{send} a~\texttt{out} pro ostatní pravidla z~tabulky~\ref{tab:pravidla} a~sanitační funkce pro kontexty \emph{html}, \emph{script} a~\emph{url};
+    \item \texttt{src/index.ts}: funkce \texttt{h}, \texttt{parse}, \texttt{sanitize}, \texttt{send} a~\texttt{out} pro ostatní pravidla z~tabulky~\ref{tab:pravidla}, sanitační funkce pro kontexty \emph{html}, \emph{script} a~\emph{url} a~jejich deklarace;
+    \item \texttt{src/tpl.ts}: skener šablon jako typ (pravidlo \textsc{T-Tpl}), funkce \texttt{html} a~běhové dvojče skeneru \texttt{walk};
+    \item \texttt{lib/index.ts} a~\texttt{lib/unsafe.ts}: veřejné rozhraní knihovny ze sekce~\ref{sec:lib} a~úniky z~typového systému;
     \item \texttt{test/model.ts}: interpret jazyka modelu,~který u~každého znaku výsledku sleduje jeho původ (množinu~$U(s)$), a~generátory programů a~útoků;
     \item \texttt{test/oracle.ts}: model prohlížeče podle předpokladu~\ref{ass:parse} nad parserem \texttt{parse5};
     \item \texttt{test/compile}: překladové testy,~ve kterých řádek s~direktivou \texttt{@ts-expect-error} musí skončit chybou a~každý jiný se musí přeložit;
@@ -33,7 +35,11 @@ Příkaz \texttt{npm test} nejprve vygeneruje překladové testy do složky \tex
     \item \texttt{test/*.test.ts}: testy za běhu.
 \end{itemize}
 
-Model prohlížeče je zjednodušený. Do množiny~$V_c$ řadí těla skriptů (u~kontextu \emph{script} kromě obsahu řetězcového literálu, do kterého propast zapisuje), hodnoty obsluh událostí a~atributu \texttt{srcdoc}, hodnoty se schématy \texttt{javascript:}, \texttt{vbscript:} a~\texttt{data:}, atributy \texttt{src} a~\texttt{href} skriptu a~atribut \texttt{href} elementu \texttt{base}. Tabulka~\ref{tab:own-work} přiřazuje tvrzením modelu testy,~které je ověřují. Cesty v~ní jsou uvedeny vůči složce \texttt{test}.
+Model prohlížeče je zjednodušený. Do množiny~$V$ řadí těla skriptů kromě obsahu řetězcových literálů, do kterých zapisuje propast nebo díra šablony. Jiné řetězcové literály zůstávají označeny, protože model nemá lexer JavaScriptu. Množinu tím nadhodnocuje,~což je pro podmínku vlastní netečnosti bezpečný směr. Dále do množiny~$V$ řadí hodnoty obsluh událostí a~atributu \texttt{srcdoc}, hodnoty se schématy \texttt{javascript:}, \texttt{vbscript:} a~\texttt{data:} mimo textové atributy, atributy \texttt{src} a~\texttt{href} skriptu, \texttt{href} elementu \texttt{base}, \texttt{data} elementu \texttt{object} a~\texttt{src} elementu \texttt{embed}.
+
+Textovými atributy jsou \texttt{alt}, \texttt{class}, \texttt{id}, \texttt{for}, \texttt{name}, \texttt{placeholder}, \texttt{title}, \texttt{value}, \texttt{label}, \texttt{lang}, \texttt{dir}, \texttt{role}, \texttt{tabindex}, \texttt{rows}, \texttt{cols}, \texttt{size}, \texttt{maxlength}, \texttt{width}, \texttt{height} a~atributy s~předponou \texttt{aria-} a~\texttt{data-}. Elementy načítající kód, na kterých díra není dovolena, jsou \texttt{script}, \texttt{base}, \texttt{object}, \texttt{embed}, \texttt{applet} a~\texttt{param}.
+
+Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \texttt{title} a~\texttt{textarea}) nebo hodnota textového atributu v~uvozovkách. Typové balíky Expressu a~Fastify slouží jen překladovému testu funkce \texttt{send}. Tabulka~\ref{tab:own-work} přiřazuje tvrzením modelu testy,~které je ověřují. Cesty v~ní jsou uvedeny vůči složce \texttt{test}.
 
 \begin{table}[htbp]
     \centering
@@ -43,18 +49,23 @@ Model prohlížeče je zjednodušený. Do množiny~$V_c$ řadí těla skriptů (
         \toprule
         \textbf{Tvrzení} & \textbf{Test} & \textbf{Výsledek} \\
         \midrule
-        uspořádání štítků, tvrzení~\ref{lem:mrizka} & \texttt{generated/lattice.ts}, \texttt{lattice.test.ts} & úplný výčet 48 štítků: uspořádání odpovídá přiřaditelnosti, axiomy~\ref{ax:finitness} až~\ref{ax:join} platí \\
-        tvrzení~\ref{claim:join} & \texttt{generated/lattice.ts}, \texttt{compile/rules.ts} & platí pro všech 1\,176 dvojic štítků a~48 cílových štítků, pro cíl \texttt{A | B} ne \\
+        uspořádání štítků, tvrzení~\ref{lem:mrizka} & \texttt{generated/lattice.ts}, \texttt{lattice.test.ts} & úplný výčet 96 štítků: uspořádání odpovídá přiřaditelnosti, axiomy~\ref{ax:finitness} až~\ref{ax:join} platí \\
+        tvrzení~\ref{claim:join} & \texttt{generated/lattice.ts}, \texttt{compile/rules.ts} & platí pro všech 4\,656 dvojic štítků a~96 cílových štítků, pro cíl \texttt{A | B} ne \\
         tvrzení~\ref{lem:monoid} & \texttt{contexts.test.ts} & potvrzeno na 20\,000 dvojicích řetězců \\
-        \textsc{T-Lit}, $\CtxOf(s)$ & \texttt{contexts.test.ts}, \texttt{generated/literals.ts} & u~3\,383 literálů jsou přiznané kontexty oprávněné, některé oprávněné chybějí; typ a~funkce se shodují u~3\,423 literálů jiného vzorku \\
-        \textsc{T-Val}, $D(S)$ & \texttt{contexts.test.ts} & u~1\,120 dvojic hodnoty a~kontextu je každá přijatá hodnota způsobilá \\
-        předpoklad~\ref{ass:san} & \texttt{contexts.test.ts} & platí pro 30\,135 výstupů realizovaných sanitačních funkcí \\
+        \textsc{T-Lit}, $\CtxOf(s)$ & \texttt{contexts.test.ts}, \texttt{generated/literals.ts} & u~3\,388 literálů jsou přiznané kontexty oprávněné, některé oprávněné chybějí; typ a~funkce se shodují u~3\,428 literálů jiného vzorku \\
+        \textsc{T-Val}, $D(S)$ & \texttt{contexts.test.ts} & u~1\,497 dvojic hodnoty a~kontextu je každá přijatá hodnota způsobilá \\
+        předpoklad~\ref{ass:san} & \texttt{contexts.test.ts} & platí pro 40\,180 dvojic výstupu sanitační funkce a~deklarovaného kontextu \\
+        díra kontextu \emph{text}, přesnost děr & \texttt{contexts.test.ts} & prefixy z~$P$ končí ve svých dírách, nebezpečné schéma v~textovém atributu se nevykoná \\
         tvrzení~\ref{lem:stitky} & \texttt{konfinace.test.ts} & potvrzeno na 20\,000 výrazech \\
-        věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů, 52\,948 dobře typovaných, 296\,844 odeslání se znaky útočníka, žádná injektáž \\
-        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~23\,584 špatně typovaných programů ve vzorku 50\,000 injektuje 13\,526 \\
-        tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 114\,681 kontextů ve 100\,000 výrazech má pramen \\
-        tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 118 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
+        věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů včetně šablon, 50\,831 dobře typovaných, 274\,481 odeslání se znaky útočníka, žádná injektáž \\
+        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~24\,588 špatně typovaných programů ve vzorku 50\,000 injektuje 12\,065 \\
+        tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 121\,020 kontextů ve 100\,000 výrazech má pramen \\
+        tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 112 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
         tvrzení~\ref{claim:adekvatnost}, druhá polovina & \texttt{compile/limits.ts}, \texttt{limits.test.ts} & 23 konstrukcí se přeloží a~injektují; F1 až~F3 zachytí jen metodu rozhraní (ověřeno mimo \texttt{npm~test}), zbylých 22 zakazuje F4; úplnost definice~\ref{def:fragment} testy neověřují \\
+        definice~\ref{def:tpl}, skener & \texttt{tpl.test.ts}, \texttt{generated/tpl.ts}, \texttt{compile/tpl.ts} & u~101 přijatých šablon a~780 děr končí každý prefix v~díře svého kontextu; typ a~funkce \texttt{walk} se shodují u~340 šablon a~264 variant s~hodnotou jiného kontextu; každá zamítaná situace má svou větu \\
+        tvrzení~\ref{lem:tpl} & \texttt{tpl.test.ts} & 1\,212 výsledků šablon způsobilých pro \emph{html}, žádný vykonaný znak útočníka \\
+        netriviálnost šablon & \texttt{tpl.test.ts} & surová nebo jinak escapovaná hodnota v~díře injektuje nebo díru opustí ve všech pěti kontextech \\
+        knihovna a~\texttt{send} & \texttt{compile/lib.ts}, \texttt{compile/send.ts}, \texttt{lib.test.ts} & dvojí escapování odmítnuto; \texttt{send} přijímá \texttt{Response} Expressu, \texttt{FastifyReply} i~\texttt{ServerResponse}, obyčejný řetězec ne (TS2769) \\
         požadavek~R3, přetížení \texttt{sanitize} a~\texttt{send} & \texttt{compile/rules.ts}, \texttt{compile/limits.ts}, \texttt{limits.test.ts} & vzorec R3 odmítnut; generický podpis i~jediný parametr typu sjednocení by propustily injektáž \\
         běžící příklad & \texttt{compile/\allowbreak running-example.ts}, \texttt{konfinace.test.ts} & opravená obsluha se přeloží a~pro 45 útoků neinjektuje, zranitelná se nepřeloží \\
         odpověď po částech & \texttt{limits.test.ts} & injektáž nastane, ač je každá část přijata \\

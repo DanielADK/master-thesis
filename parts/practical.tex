@@ -683,3 +683,81 @@ escaped for a different context"'.
 Mapovaný typ v~pozici parametru by odvození typu \texttt{P} zrušil (překladač by hlásil nesprávný počet argumentů), podmíněný typ ho zachová. Výsledek má původ~$\bot$, pokud šablona nemá díry, jinak nejhorší z~původů hodnot, a~kontext \emph{html}. Za běhu funkce jen zřetězí části a~přetypuje výsledek. Přetypování je jediným místem, kde hodnota štítek dostane, a~patří proto do auditní plochy jádra podle předpokladu~\ref{ass:jadro}. Stejné rozhodování provádí za běhu funkce \texttt{walk} nad statickými částmi. Slouží testům a~interpretu modelu.
 
 Rekurzi podmíněných typů překladač vyhodnocuje smyčkou, pokud je rekurzivní volání celým výsledkem větve. Skener je tak psán a~v~textu elementu navíc skáče rovnou k~dalšímu znaku \texttt{<}, takže cena roste s~počtem značek, nikoliv znaků. Rozpočet kroků závisí na tvaru typu i~verzi překladače: literál s~asi 1\,900 značkami skener ještě zpracuje, s~2\,000 končí chybou TS2589. Stránka se proto dělí na části vnořenými voláními \texttt{html}, jak to vykreslování na serveru dělá přirozeně.
+
+\subsection{Rozhraní knihovny}
+\label{sec:lib-rozhrani}
+
+Knihovna leží ve složce \texttt{lib} nad jádrem ze složky \texttt{src}. Jádro zůstává realizací modelu s~jednou funkcí na pravidlo, knihovna jeho funkce skládá do rozhraní,~které vývojář potřebuje (tabulka~\ref{tab:lib}).
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{8.4cm}@{}}
+        \toprule
+        \textbf{symbol} & \textbf{pravidlo} & \textbf{význam} \\
+        \midrule
+        \texttt{html(...parts)} & \textsc{T-Tpl} & šablona; jediný konstruktor \texttt{SafeHtml} se statickým textem \\
+        \texttt{literal(s)} & \textsc{T-Lit} & literál s~kontexty z~textu; pro sjednocení literálů, například tabulku adres skriptů indexovanou validovaným klíčem \\
+        \texttt{validate(schema, input)} & \textsc{T-Val} & validace schématem Zod; vstup má typ \texttt{unknown}, schéma nesmí hodnotu měnit \\
+        \texttt{escapeHtml(input, schema?)} & \textsc{T-Val}, \textsc{T-San} & validace (výchozí \texttt{z.string()}) a~escapování pro obsah elementu; výsledek nese \emph{html} i~\emph{text} \\
+        \texttt{escapeUrl(input, schema?)} & \textsc{T-Val}, \textsc{T-San} & obdobně pro adresu v~atributu \\
+        \texttt{escapeScript(input, schema?)} & \textsc{T-Val}, \textsc{T-San} & obdobně pro řetězcový literál ve skriptu \\
+        \texttt{send(res, page)} & \textsc{T-Out} & odeslání stránky vcelku s~hlavičkou \texttt{Content-Type}; přijme odpověď Expressu, Fastify i~\texttt{node:http} \\
+        \texttt{SafeHtml}, \texttt{SafeText}, \texttt{SafeScript}, \texttt{SafeUrl}, \texttt{TrustedResourceUrl} & & typy \texttt{Str<Level, c>} pro jednotlivé kontexty; čtyři z~dílčího cíle~2 a~pátý pro kontext \emph{text} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Veřejné rozhraní knihovny}
+    \label{tab:lib}
+    \source{vlastní zpracování}
+\end{table}
+
+Funkce \texttt{escape*} skládají validaci a~sanitaci do jednoho volání, v~modelu však zůstávají dvě pravidla, jak žádá požadavek~R1. Výchozí schéma \texttt{z.string()} za běhu odmítne pole,~které Express vytvoří z~opakovaného parametru dotazu, i~hodnotu \texttt{undefined}, a~vlastní schéma hodnotu omezí. Hodnotu,~která už nějaký kontext nese, funkce odmítnou větou o~dvojím escapování, hodnotu jen validovanou přijmou. Automatické escapování v~dírách knihovna záměrně nemá. Obyčejný řetězec v~díře je chyba s~větou „validate and escape it“, protože tichá oprava by zranitelnou verzi programu přeložila místo odmítnutí. Sanitaci má navíc podle úvodu sekce~\ref{sec:model} zapsat programátor. Běžící příklad knihovnou:
+
+\begin{minted}{typescript}
+import { z } from 'zod';
+import { html, escapeHtml, send } from './lib';
+
+app.get('/hledat', (req, res) => {
+  const q = escapeHtml(req.query.q, z.string().max(100));
+  send(res, html(
+    '<!doctype html><title>Hledání: ', q, '</title>',
+    '<form><input name="q" value="', q, '"></form>',
+    '<h1>Výsledky pro: ', q, '</h1>',
+  ));
+});
+\end{minted}
+
+\noindent
+Jediná hodnota~\texttt{q} stojí v~titulku, v~políčku i~v~nadpisu, protože sanitační funkce pro \emph{html} deklaruje i~kontext \emph{text}. Výpis adresáře (tvar zranitelnosti CVE-2018-3726 a~dalších případů ze vzorku hodnocení) vyžaduje adresu i~text v~jedné šabloně:
+
+\begin{minted}{typescript}
+const rows: SafeHtml[] = names.map(name => html(
+  '<li><a href="/', escapeUrl(name), '">', escapeHtml(name), '</a></li>',
+));
+send(res, html('<title>Index of ', escapeHtml(dir), '</title><ul>', rows, '</ul>'));
+\end{minted}
+
+\noindent
+Záměna obou funkcí (\texttt{escapeHtml} v~atributu \texttt{href}) skončí chybou překladu, protože adresa \texttt{javascript:alert(1)} escapováním pro HTML projde beze změny.
+
+Modul \texttt{unsafe} obsahuje úniky \texttt{unsafeHtml}, \texttt{unsafeText}, \texttt{unsafeScript}, \texttt{unsafeUrl} a~\texttt{unsafeResourceUrl}: každý přidělí řetězci původ $\mathit{mid}$ a~jediný kontext (stejný štítek, jaký má výstup sanitace) a~za běhu je identitou. Smí se importovat pouze z~auditovaného modulu aplikace,~což hlídá kontrolní pravidlo z~dílčího cíle~4. Jeho importy tvoří spolu s~voláními \texttt{escape*}, \texttt{literal} a~přetypováními měřenou auditní plochu. Pouze tudy a~literálem vzniká \texttt{TrustedResourceUrl}, protože pro \emph{res} sanitace není (předpoklad~\ref{ass:san}). Dokumentace každého symbolu je v~komentářích TSDoc v~kódu. Balík vystavuje vstupní body \texttt{.}, \texttt{./unsafe} a~\texttt{./model} (jádro).
+
+\subsection{Ověření}
+\label{sec:lib-overeni}
+
+Skener i~knihovna jsou ověřeny stejným způsobem jako model v~podsekci~\ref{sec:model-typescript}. Podrobnosti a~čísla uvádí \hyperref[app:own-work]{příloha~A}. Model prohlížeče z~přílohy byl k~tomu rozšířen o~datovou díru kontextu \emph{text}, o~řídicí místa \texttt{data} elementu \texttt{object} a~\texttt{src} elementu \texttt{embed},~která předpoklad~\ref{ass:parse} jmenuje, a~o~vynechání obsahu každého řetězcového literálu, do kterého šablona zapisuje. Množinu~$V$ přitom nadhodnocuje, protože nemá lexer JavaScriptu,~což je pro podmínku vlastní netečnosti bezpečný směr.
+
+Testy jsou ověřeny čtyři věci. Za prvé, že skener je spodním odhadem definice~\ref{def:tpl}. Test bere každou přijatou šablonu a~náhodné hodnoty způsobilé pro přiznané kontexty (výstupy sanitačních funkcí, hodnoty z~$D(S)$ a~literály). Pro všechny tyto volby končí každý prefix před dírou v~datové díře jejího kontextu a~celý výsledek v~datové díře kontextu \emph{html}. Za druhé tvrzení~\ref{lem:tpl} empiricky: stejný výsledek je podle modelu prohlížeče způsobilý pro \emph{html} a~žádný znak útočníka v~něm prohlížeč nevykoná. Za třetí, že kontrola není prázdná: hodnota surová nebo escapovaná pro jiný kontext v~části případů injektuje, nebo díru opustí. Za čtvrté věrnost přenosu. Skener jako typ a~funkce \texttt{walk} se shodují na vygenerovaných šablonách a~interpret modelu s~uzlem šablony vstupuje do testů věty~\ref{thm:konfinace} a~tvrzení~\ref{thm:audit}. Překladovými testy knihovny je pokryta každá situace,~kterou skener zamítá, i~shoda funkce \texttt{send} s~typy odpovědí Expressu a~Fastify. Čísla z~běhu testů uvádí tabulka~\ref{tab:own-work}.
+
+\subsection{Meze}
+\label{sec:lib-meze}
+
+\begin{description}
+    \item[Velikost literálu.] Skener zvládne v~jednom literálu asi 1\,900 značek, s~2\,000 končí překlad chybou TS2589. Stránka se dělí na části vnořenými voláními \texttt{html}. Měření platí pro TypeScript~7.0.2 a~u~jiné verze se hranice může lišit.
+    \item[Podmnožina HTML.] Bez komentářů, jiných deklarací než \texttt{<!doctype html>} a~elementů \texttt{svg}, \texttt{math}, \texttt{template} a~\texttt{plaintext}. Atributy pouze v~uvozovkách nebo apostrofech. Díra v~elementech \texttt{style}, \texttt{noscript} a~dalších se surovým textem se odmítá, v~\texttt{title} a~\texttt{textarea} má kontext \emph{text}.
+    \item[Textové atributy.] Textovým atributem je pouze atribut z~výčtu v~\hyperref[app:own-work]{příloze~A}. Jiný atribut je dírou kontextu \emph{url} a~vyžaduje \texttt{escapeUrl},~který text s~dvojtečkou nebo slova \texttt{data} a~\texttt{java} nahradí za \texttt{about:invalid\#zClosurez}. Rozšíření výčtu je změnou předpokladu~\ref{ass:parse}, nikoliv modelu.
+    \item[Adresa po částech.] Statický úsek hodnoty atributu kontextu \emph{url} před dírou nesmí obsahovat \texttt{\&}, protože by s~hodnotou mohl složit znakovou referenci. Řetězec dotazu s~více parametry se sestaví jako data a~escapuje jednou.
+    \item[Skript.] Díra ve skriptu smí ležet pouze v~řetězcovém literálu a~kód před ní nesmí obsahovat \texttt{/}, backtick, zpětné lomítko, \texttt{<} ani \texttt{-->}.
+    \item[Tagovaná šablona.] Překladač ji neověří (podsekce~\ref{sec:lib-typescript}). Případný adaptér by díry kontroloval pravidlem lintu a~za běhu funkcí \texttt{walk}.
+    \item[Odpověď vcelku.] Funkce \texttt{send} odesílá stránku jedním zápisem. Streamované vykreslování zůstává mimo záruku stejně jako v~podsekci~\ref{sec:model-hranice}.
+\end{description}
