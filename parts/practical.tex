@@ -88,14 +88,16 @@ Množinu míst,~která prohlížeč vykoná nebo kterými určí spouštěný k�
 
 \begin{predpoklad}[Model prohlížeče]
 \label{ass:parse}
-Pro každý výstupní kontext~$c$ a~řetězec~$h$ je dána množina $V_c(h)$ pozic znaků,~které prohlížeč při zpracování~$h$ \emph{vykoná}, nebo které leží na \emph{řídicím místě}. Prohlížeč vykoná znaky těla skriptu mimo obsah řetězcových literálů, hodnoty obsluh událostí a~adresy se schématem \texttt{javascript:} v~atributech pro navigaci a~odeslání formuláře. Řídicími místy jsou hodnoty atributů, podle kterých prohlížeč načítá nebo určuje kód spouštěný s~oprávněními stránky, například \texttt{src} skriptu, \texttt{href} elementu \texttt{base}, \texttt{srcdoc} rámu, \texttt{data} elementu \texttt{object} a~\texttt{src} elementu \texttt{embed}. Prohlížeč čte dokument zleva doprava, takže o~tom, zda místo v~dokumentu leží v~datové části kontextu~$c$, rozhoduje pouze text před ním.
+Pro každý výstupní kontext~$c$ a~řetězec~$h$ je dána množina $V_c(h)$ pozic znaků,~které prohlížeč při zpracování~$h$ \emph{vykoná}, nebo které leží na \emph{řídicím místě}. Prohlížeč zpracovává pouze dokument, nikoliv propast,~kterou dokument vznikl, takže množina na~$c$ nezávisí. Index~$c$ se u~ní píše jen pro přehlednost,~které propasti se odeslání týká. Prohlížeč vykoná znaky těla skriptu mimo obsah řetězcových literálů, hodnoty obsluh událostí a~adresy se schématem \texttt{javascript:} v~atributech pro navigaci a~odeslání formuláře. Řídicími místy jsou hodnoty atributů, podle kterých prohlížeč načítá nebo určuje kód spouštěný s~oprávněními stránky, například \texttt{src} skriptu, \texttt{href} elementu \texttt{base}, \texttt{srcdoc} rámu, \texttt{data} elementu \texttt{object} a~\texttt{src} elementu \texttt{embed}. Prohlížeč čte dokument zleva doprava, takže o~tom, zda místo v~dokumentu leží v~datové části kontextu~$c$, rozhoduje pouze text před ním.
 
-Datovou částí kontextu \emph{html} je text běžného elementu (nikoliv \texttt{script}, \texttt{style}, \texttt{textarea}, \texttt{title}, \texttt{noscript}, \texttt{template} a~podobných ani cizího obsahu \texttt{svg} a~\texttt{math}). Datovou částí kontextu \emph{script} je obsah řetězcového literálu ve skriptu. Datovou částí kontextu \emph{url} je hodnota URL atributu v~uvozovkách,~který není řídicím místem (například \texttt{href} odkazu nebo \texttt{src} obrázku), pokud je její dosavadní obsah prázdný, nebo už schéma \texttt{javascript:} vylučuje. Datovou částí kontextu \emph{res} je hodnota atributu \texttt{src} skriptu v~uvozovkách nebo apostrofech.
+Datovou částí kontextu \emph{html} je text běžného elementu (nikoliv \texttt{script}, \texttt{style}, \texttt{textarea}, \texttt{title}, \texttt{noscript}, \texttt{template} a~podobných ani cizího obsahu \texttt{svg} a~\texttt{math}). Datovou částí kontextu \emph{script} je obsah řetězcového literálu ve skriptu. Datovou částí kontextu \emph{url} je hodnota kteréhokoliv atributu v~uvozovkách (například \texttt{href} odkazu nebo \texttt{src} obrázku),~který není řídicím místem, obsluhou události ani textovým atributem, pokud je její dosavadní obsah prázdný, nebo už schéma \texttt{javascript:} vylučuje. Datovou částí kontextu \emph{res} je hodnota atributu \texttt{src} skriptu v~uvozovkách nebo apostrofech. Datovou částí kontextu \emph{text} je obsah elementů \texttt{title} a~\texttt{textarea},~ve kterém prohlížeč rozpoznává pouze znakové reference a~vlastní koncovou značku, a~hodnota textového atributu v~uvozovkách na elementu,~který kód nenačítá. Textovým atributem se rozumí atribut,~který prohlížeč nikdy nečte jako adresu ani jako kód (například \texttt{value}, \texttt{title}, \texttt{alt}, \texttt{class} nebo \texttt{id}; výčet uvádí \hyperref[app:own-work]{příloha~A}).
 
 Pokud v~datové části kontextu~$c$ leží místo bezprostředně za řetězcem~$p$, řetězec~$p$ \emph{končí v~datové díře} kontextu~$c$. Propast kontextu~$c$ zapisuje do jeho datové části, takže v~datové díře kontextu~$c$ končí i~prázdný řetězec.
 \end{predpoklad}
 
 Tento předpoklad nahrazuje formální popis parseru HTML,~který by přesáhl rozsah práce. Je záměrně obecný: model nepředepisuje postup zpracování dokumentu, a~zůstává tak platný i~při změně specifikace HTML. Všechna tvrzení modelu ovšem platí jen potud, pokud předpoklad věrně popisuje skutečný prohlížeč.
+
+Na místech kontextu \emph{text} prohlížeč nic nevykoná. Podmínka vlastní netečnosti z~definice~\ref{def:inertnost} tam platí prázdně a~způsobilost se redukuje na kontextovou neutralitu: hodnota nesmí obsahovat uvozovku, apostrof ani koncovou značku elementu. Atribut,~který předpoklad nezná, se počítá k~adresám. Je to opatrnější z~obou voleb, protože adresa klade na hodnotu víc podmínek než text.
 
 Řídicí místa předpoklad zahrnuje proto, že útočník nemusí kód napsat sám, stačí mu určit, odkud se načte. Kód útočníka je spuštěn oběma následujícími řetězci, druhým z~nich vloženým před skript programátora s~relativní adresou, ačkoliv žádný z~nich neobsahuje vykonávaný znak:
 \begin{center}
@@ -183,9 +185,9 @@ Hodnota nese dvě nezávislé vlastnosti: \emph{původ} a~\emph{způsobilost pro
 \[
     i \in \{\bot,\; \mathit{mid},\; \top\}
     \qquad\text{a}\qquad
-    K \subseteq \Ctxs = \{\mathit{html},\, \mathit{script},\, \mathit{url},\, \mathit{res}\}.
+    K \subseteq \Ctxs = \{\mathit{html},\, \mathit{script},\, \mathit{url},\, \mathit{res},\, \mathit{text}\}.
 \]
-Složka~$i$ udává původ hodnoty: $\bot$ značí text programu, $\mathit{mid}$ hodnotu s~ověřenou strukturou a~$\top$ hodnotu plně řízenou útočníkem. Úrovně jsou seřazeny $\bot \sqsubset \mathit{mid} \sqsubset \top$ od nejlepší po nejhorší, takže na~nich lze počítat minimum a~maximum. Množina~$K$ obsahuje kontexty, pro které je hodnota způsobilá. Odpovídají jim bezpečné typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2.
+Složka~$i$ udává původ hodnoty: $\bot$ značí text programu, $\mathit{mid}$ hodnotu s~ověřenou strukturou a~$\top$ hodnotu plně řízenou útočníkem. Úrovně jsou seřazeny $\bot \sqsubset \mathit{mid} \sqsubset \top$ od nejlepší po nejhorší, takže na~nich lze počítat minimum a~maximum. Množina~$K$ obsahuje kontexty, pro které je hodnota způsobilá. Prvním čtyřem odpovídají bezpečné typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2. Kontext \emph{text} označuje místa, kde prohlížeč čte pouze text: obsah elementů \texttt{title} a~\texttt{textarea} a~hodnoty textových atributů, jako je \texttt{value} nebo \texttt{title}. Knihovna \texttt{safevalues} pro ně zvláštní typ nemá, protože je její šablona escapuje sama. V~modelu je to kontext jako každý jiný.
 
 Hodnotu se štítkem $(i,K)$ lze použít tam, kde se očekává štítek $(i',K')$, pokud nemá horší původ a~je způsobilá aspoň pro všechny požadované kontexty: $i \sqsubseteq i'$ a~$K \supseteq K'$. Zřetězení dvou hodnot obdrží jejich \emph{spojení}, nejlepší štítek,~který lze přiznat oběma zároveň
 \begin{equation}
@@ -200,14 +202,14 @@ Původ se řídí horší z~obou částí a~kontext zůstane ve štítku zřetě
 \end{tvrzeni}
 
 \begin{proof}
-Štítků je konečně mnoho, konkrétně $3 \cdot 2^4 = 48$ (A1). Uspořádání je posuzováno po složkách: na původu podle pořadí tří úrovní, na kontextech podle obrácené inkluze. Obě jsou částečná uspořádání, a~částečným uspořádáním je proto i~uspořádání dvojic (A2). Nejmenším prvkem je $(\bot, \Ctxs)$, text programu způsobilý pro všechny kontexty (A3). Pro A4 stačí ověřit, že rovnice~\ref{eq:m-join} dává nejlepší štítek,~který lze přiznat oběma zároveň: $\max(i,i')$ je nejlepší úroveň,~která je aspoň tak špatná jako $i$ i~$i'$, a~$K \cap K'$ je největší množina kontextů obsažená v~$K$ i~v~$K'$.
+Štítků je konečně mnoho, konkrétně $3 \cdot 2^5 = 96$ (A1). Uspořádání je posuzováno po složkách: na původu podle pořadí tří úrovní, na kontextech podle obrácené inkluze. Obě jsou částečná uspořádání, a~částečným uspořádáním je proto i~uspořádání dvojic (A2). Nejmenším prvkem je $(\bot, \Ctxs)$, text programu způsobilý pro všechny kontexty (A3). Pro A4 stačí ověřit, že rovnice~\ref{eq:m-join} dává nejlepší štítek,~který lze přiznat oběma zároveň: $\max(i,i')$ je nejlepší úroveň,~která je aspoň tak špatná jako $i$ i~$i'$, a~$K \cap K'$ je největší množina kontextů obsažená v~$K$ i~v~$K'$.
 \end{proof}
 
 V~důkazu konfinace není toto tvrzení využito. Tvrzení však zaručuje, že štítek zřetězení více hodnot nezávisí na pořadí,~ve kterém se spojení počítají.
 
 Model tím zpřesňuje tvrzení teoretické kapitoly ilustrované diagramem~\ref{fig:join-action}. Spojení dvou hodnot způsobilých každá pro jiný jediný kontext, jako \texttt{SafeHtml} a~\texttt{SafeScript}, nedává největší prvek. Štítek výsledku sice nepřizná žádný kontext, původ se však nezhorší, takže spojením dvou takových literálů vznikne $(\bot, \emptyset)$. Toto rozlišení umožní připustit programátorem zapsaný literál obsahující značky HTML.
 
-Obě osy štítku znázorňuje diagram~\ref{fig:mrizka-soucin}. Se všemi čtyřmi kontexty modelu by osa kontextů v~jeho panelu~(b) měla šestnáct vrcholů. V~panelu~(c) směrem vzhůru přibývá kontaminace a~směrem vpravo ubývá kontextů, pro které je hodnota způsobilá. Obojí štítek zhoršuje. Hodnotě \texttt{SafeHtml} odpovídá sloupec~$\{h\}$ v~kterémkoliv řádku, při jakémkoliv původu.
+Obě osy štítku znázorňuje diagram~\ref{fig:mrizka-soucin}. Se všemi pěti kontexty modelu by osa kontextů v~jeho panelu~(b) měla třicet dva vrcholů. V~panelu~(c) směrem vzhůru přibývá kontaminace a~směrem vpravo ubývá kontextů, pro které je hodnota způsobilá. Obojí štítek zhoršuje. Hodnotě \texttt{SafeHtml} odpovídá sloupec~$\{h\}$ v~kterémkoliv řádku, při jakémkoliv původu.
 
 \begin{figure}[htbp]
     \centering
@@ -224,9 +226,9 @@ Způsobilost má v~modelu pouze tři prameny: literál, validaci a~sanitaci. Prv
 Pro literál~$s$ zapsaný v~programu značí $\CtxOf(s)$ množinu kontextů, pro které je~$s$ způsobilý. Pro schéma~$S$ značí $D(S)$ množinu kontextů různých od~\emph{res}, pro které je způsobilý \emph{každý} řetězec vyhovující schématu~$S$, i~když se celý pokládá za znaky útočníka.
 \end{definice}
 
-Štítek literálu je \emph{počítán} z~jeho obsahu, a~to pro každý kontext zvlášť. Literály \verb|"Dobrý den"| a~\verb|"<h1>"| obdrží všechny čtyři kontexty, protože značka \texttt{<h1>} nic neotevře ani v~řetězcovém literálu skriptu, ani v~hodnotě atributu v~uvozovkách. Literály \verb|"<div title="| a~\verb|"<script>"| obdrží $\{\mathit{script}, \mathit{url}, \mathit{res}\}$: v~textu elementu otevírají kontext,~který neuzavřou, a~kontext \emph{html} jim proto chybí, jak vyžaduje požadavek~R3. Uzavřený literál \verb|"<script>init()</script>"| obdrží $\{\mathit{html}, \mathit{url}, \mathit{res}\}$: neobsahuje žádný znak útočníka, podmínku~\eqref{in:vlastni} splňuje a~za ním zůstane text elementu. V~řetězcovém literálu skriptu by naopak jeho značka \verb|</script>| ukončila celý skript.
+Štítek literálu je \emph{počítán} z~jeho obsahu, a~to pro každý kontext zvlášť. Literály \verb|"Dobrý den"| a~\verb|"<h1>"| obdrží všech pět kontextů, protože značka \texttt{<h1>} nic neotevře ani v~řetězcovém literálu skriptu, ani v~hodnotě atributu v~uvozovkách. Literály \verb|"<div title="| a~\verb|"<script>"| obdrží $\{\mathit{script}, \mathit{url}, \mathit{res}, \mathit{text}\}$: v~textu elementu otevírají kontext,~který neuzavřou, a~kontext \emph{html} jim proto chybí, jak vyžaduje požadavek~R3. V~hodnotě atributu i~v~obsahu elementu \texttt{title} jsou naproti tomu pouhým textem. Uzavřený literál \verb|"<script>init()</script>"| obdrží $\{\mathit{html}, \mathit{url}, \mathit{res}, \mathit{text}\}$: neobsahuje žádný znak útočníka, podmínku~\eqref{in:vlastni} splňuje a~za ním zůstane text elementu. V~řetězcovém literálu skriptu by naopak jeho značka \verb|</script>| ukončila celý skript.
 
-Obdobně $D(S)$ vymezuje případy, kdy je validace zároveň sanitací, hranici,~která bývá v~praxi nejasná. Schéma \verb|z.enum(["asc","desc"])| má $D(S) = \{\mathit{html}, \mathit{script}, \mathit{url}\}$, zatímco \verb|z.string()| prázdné.
+Obdobně $D(S)$ vymezuje případy, kdy je validace zároveň sanitací, hranici,~která bývá v~praxi nejasná. Schéma \verb|z.enum(["asc","desc"])| má $D(S) = \{\mathit{html}, \mathit{script}, \mathit{url}, \mathit{text}\}$, zatímco \verb|z.string()| prázdné.
 
 Kontext \emph{res} není do $D(S)$ definicí zahrnut, protože hodnota adresy skriptu je podle předpokladu~\ref{ass:parse} řídicím místem celá. Pro \emph{res} není způsobilý žádný neprázdný řetězec složený pouze ze znaků útočníka: jeho první znak nemůže ukončit hodnotu v~uvozovkách i~v~apostrofech zároveň, takže v~jedné z~nich leží na řídicím místě. Kontext \emph{res} by proto v~$D(S)$ mohl stát pouze u~schématu,~kterému vyhovuje nanejvýš prázdný řetězec.
 
@@ -234,10 +236,12 @@ Obě množiny závisejí na předpokladu~\ref{ass:parse},~který model ponecháv
 
 \begin{predpoklad}[Korektnost sanitační funkce]
 \label{ass:san}
-Pro každý kontext~$c$ různý od~\emph{res} je dána sanitační funkce~$\San_c$,~jejíž výsledek je způsobilý pro kontext~$c$, i~když se celý pokládá za znaky útočníka.
+Pro každý kontext~$c$ různý od~\emph{res} je dána sanitační funkce~$\San_c$ a~množina kontextů $C_c \subseteq \Ctxs \setminus \{\mathit{res}\}$, $c \in C_c$, nazývaná její \emph{deklarace}. Výsledek funkce~$\San_c$ je způsobilý pro každý kontext z~$C_c$, i~když se celý pokládá za znaky útočníka.
 \end{predpoklad}
 
 Pro kontext \emph{res} není v~předpokladu sanitační funkce zavedena, protože výsledek sanitace je celý pokládán za znaky útočníka a~pro \emph{res} není způsobilý žádný neprázdný řetězec složený pouze z~nich. Pravidlo \textsc{T-San} proto platí jen pro $c \neq \mathit{res}$ (podsekce~\ref{sec:model-jazyk}) a~způsobilost pro \emph{res} vzniká jedině z~literálu programu pravidlem \mbox{\textsc{T-Lit}}. Obdobně postupuje knihovna \texttt{safevalues}: hodnotu \texttt{TrustedResourceUrl} vytváří šablona,~ve které první literál pevně určuje počátek adresy, a~dosazené hodnoty za ním kóduje \parencite{googleSafevalues}. Model je přísnější a~dosazení nepřipouští, protože celá hodnota adresy je řídicím místem.
+
+Deklarace dovoluje jedné sanitační funkci sloužit několika kontextům, aniž by proběhla dvakrát. V~knihovně je deklarováno $C_{\mathit{html}} = \{\mathit{html}, \mathit{text}\}$, protože text escapovaný pro obsah elementu neobsahuje ani znak \texttt{<}, ani uvozovku, a~je proto neškodný i~v~titulku a~v~hodnotě textového atributu. Pro \emph{url} a~\emph{script} jsou deklarovány pouze tyto kontexty, ačkoliv by jejich výstup obstál i~jako text. Důvodem je, aby hlášky překladače vedly k~jediné funkci pro text. Deklarovat méně, než platí, je vždy dovoleno. Každou deklarovanou dvojici ověřuje model prohlížeče (\hyperref[app:own-work]{příloha~A}).
 
 Předpoklad~\ref{ass:san} odpovídá předpokladu o~korektnosti sanitačních funkcí ze sekce~\ref{sec:hranice-zaruky}. Spolu s~předpokladem~\ref{ass:parse} tvoří jediná místa, kde samotný model důvěřuje cizímu kódu (sanitačním funkcím a~prohlížeči). Realizací v~TypeScriptu je k~nim přidána důvěra ve validaci, jádro knihovny a~překladač (předpoklad~\ref{ass:jadro} v~podsekci~\ref{sec:model-typescript}).
 
@@ -272,7 +276,7 @@ Funkce, podmínky ani cykly model neobsahuje. Jde o~vědomé zjednodušení: kon
         $\mSrc_n$        & $\bigl(\top,\; \emptyset\bigr)$ & žádná & \textsc{T-Src} \\
         $e_1 \oplus e_2$ & $\bigl(\max(i_1,i_2),\; K_1 \cap K_2\bigr)$ & žádná & \textsc{T-Concat} \\
         $\mVal_S(e)$     & $\bigl(\min(i,\, \mathit{mid}),\; K \cup D(S)\bigr)$ & žádná & \textsc{T-Val} \\
-        $\sigma_c(e)$    & $\bigl(\mathit{mid},\; \{c\}\bigr)$ & $i \neq \top$ a~$c \neq \mathit{res}$ & \textsc{T-San} \\
+        $\sigma_c(e)$    & $\bigl(\mathit{mid},\; C_c\bigr)$ & $i \neq \top$ a~$\mathit{res} \notin C_c$ & \textsc{T-San} \\
         \midrule
         $\mOut_c(e)$     & \emph{(program, štítek nemá)} & $i = \bot$ \;nebo\; $c \in K$ & \textsc{T-Out} \\
         \bottomrule
@@ -287,7 +291,7 @@ Program je \emph{dobře typovaný}, pokud lze štítek každého jeho výrazu sp
 
 Pravidlem \textsc{T-Lit} je literálu přiznán štítek podle jeho vlastního obsahu (definice~\ref{def:prameny}). Vzorec \texttt{"<div title="} $\oplus\; \sigma_{\mathit{html}}(v) \;\oplus$ \texttt{">"} tak selže bez zvláštního opatření. První literál nemá mezi svými kontexty \emph{html}, a~průnik v~\textsc{T-Concat} proto kontext \emph{html} nepřizná ani výsledku. Pravidlem \textsc{T-Out} je pak výsledek odmítnut, jak žádá požadavek~R3.
 
-Pravidly \textsc{T-Val} a~\textsc{T-San} jsou validace a~sanitace zachyceny jako dva různé kroky, jak žádá požadavek~R1. Po validaci má hodnota původ nejhůře $\mathit{mid}$ a~k~jejím kontextům \emph{přibudou} kontexty plynoucí ze schématu. Sanitace naopak množinu kontextů \emph{nahradí} jediným kontextem~$c$, a~to pouze pro $c \neq \mathit{res}$. Sanitace navíc vyžaduje, aby vstup nejprve prošel validací a~neměl původ~$\top$.
+Pravidly \textsc{T-Val} a~\textsc{T-San} jsou validace a~sanitace zachyceny jako dva různé kroky, jak žádá požadavek~R1. Po validaci má hodnota původ nejhůře $\mathit{mid}$ a~k~jejím kontextům \emph{přibudou} kontexty plynoucí ze schématu. Sanitace naopak množinu kontextů \emph{nahradí} deklarací~$C_c$ své funkce,~která kontext~$c$ obsahuje a~kontext \emph{res} nikdy. Sanitace navíc vyžaduje, aby vstup nejprve prošel validací a~neměl původ~$\top$.
 
 Na konfinaci prostřední úroveň vliv nemá. Relace „odpovídá“ z~podsekce~\ref{sec:model-korektnost} rozlišuje pouze $\bot$ a~ostatní úrovně, takže věta~\ref{thm:konfinace} by platila, i~kdyby \textsc{T-San} přijímal vstup s~původem~$\top$. Úroveň $\mathit{mid}$ je metodická vrstva,~kterou vyžaduje požadavek~R1. Sanitace přijme pouze hodnotu,~jejíž strukturu ověřila validace, takže sanitační funkce nikdy nedostane např.~pole,~které Express vytvoří z~opakovaného parametru dotazu. Zúžit předpoklad~\ref{ass:san} pouze na validované vstupy by vyžadovalo, aby štítek nesl i~schéma. Tato informace je v~modelu pro jednoduchost vynechána.
 
@@ -325,7 +329,7 @@ Důkaz je veden indukcí podle stavby výrazu. Tvrzení se ověří pro literál
     \item \emph{Vstup~$\mSrc_n$} má štítek $(\top, \emptyset)$, takže se na~něj nevztahuje ani~(a), ani~(b).
     \item \emph{Zřetězení $e_1 \oplus e_2$} má štítek $(\max(i_1,i_2),\, K_1 \cap K_2)$. Pokud $\max(i_1,i_2) = \bot$, je $i_1 = i_2 = \bot$. Podle indukčního předpokladu pak žádná z~obou částí neobsahuje znak útočníka a~stejné platí pro jejich zřetězení,~což je~(a). Pokud $c \in K_1 \cap K_2$, jsou podle indukčního předpokladu obě části způsobilé pro~$c$ a~podle tvrzení~\ref{lem:monoid} je pro~$c$ způsobilé i~jejich zřetězení,~což je~(b).
     \item \emph{Validace $\mVal_S(e)$} hodnotu nemění a~má štítek $(\min(i,\mathit{mid}),\, K \cup D(S))$. Původ~$\bot$ může mít pouze při $i = \bot$, a~pak (a) plyne z~indukčního předpokladu. Pro $c \in K$ plyne~(b) také z~indukčního předpokladu. Pro $c \in D(S)$ plyne z~toho, že validace uspěla pouze u~řetězce vyhovujícího schématu~$S$. Takový řetězec je pro~$c$ způsobilý podle definice~\ref{def:prameny}, i~kdyby všechny jeho znaky byly znaky útočníka, a~podle tvrzení~\ref{lem:monotonie} pak i~se skutečnými znaky útočníka.
-    \item \emph{Sanitace $\sigma_c(e)$} má štítek $(\mathit{mid}, \{c\})$, takže se na~ni nevztahuje~(a). Pravidlo \mbox{\textsc{T-San}} vyžaduje $c \neq \mathit{res}$, takže na~$c$ se vztahuje předpoklad~\ref{ass:san}, a~ten je přímo podmínkou~(b).\qedhere
+    \item \emph{Sanitace $\sigma_c(e)$} má štítek $(\mathit{mid}, C_c)$, takže se na~ni nevztahuje~(a). Pravidlo \mbox{\textsc{T-San}} vyžaduje $\mathit{res} \notin C_c$, takže na~každý kontext z~$C_c$ se vztahuje předpoklad~\ref{ass:san}, a~ten je pro každý z~nich přímo podmínkou~(b).\qedhere
 \end{itemize}
 \end{proof}
 
