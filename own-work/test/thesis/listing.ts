@@ -31,7 +31,7 @@ type Mid<K extends Ctx> = Str<'lit' | 'val', K>;  // původ nejhůře mid
 declare function h<S extends string>(s: S & Literal<S>): Str<'lit', CtxOf<S>>;
 declare function parse<S extends z.ZodType<string>, V>(schema: S, v: V):
   Str<Extract<ProvOf<V>, 'lit' | 'val'>, CtxsOf<V> | D<z.output<S>>>;
-declare function sanitize(c: 'html', s: Mid<never>): Mid<'html'>;
+declare function sanitize(c: 'html', s: Mid<never>): Mid<'html' | 'text'>;
 declare function sanitize(c: 'script', s: Mid<never>): Mid<'script'>;
 declare function sanitize(c: 'url', s: Mid<never>): Mid<'url'>;
 declare function cat<A extends string, B extends string>(a: A, b: B): A | B;
@@ -84,6 +84,8 @@ sanitize(ctx, parse(z.string(), input)); // expect TS2769
 // a generic signature would accept the union and claim both contexts after one sanitizer
 declare function sanitizeGeneric<C extends Ctx>(c: C, s: Mid<never>): Mid<C>;
 export const both: Mid<'html' | 'url'> = sanitizeGeneric(ctx, parse(z.string(), input));
+// the html overload returns both contexts of its declaration, not two sanitizations
+export const asText: Mid<'text'> = sanitize('html', parse(z.string(), input));
 
 // one parameter of the union type would let the R3 pattern through, the overload pair does not
 declare function sendUnion(res: Response, h: Str<'lit', never> | SafeHtml): void;
