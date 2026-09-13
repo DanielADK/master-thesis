@@ -632,3 +632,54 @@ Hodnota v~díře tvořená polem hodnot, jak je knihovna připouští, je zřet�
 Důsledky pro stávající tvrzení jsou tři. Tvrzení~\ref{lem:stitky} dostane nový případ. Pokud $\max(\bot, i_1, \ldots, i_n) = \bot$, jsou všechny hodnoty v~dírách podle indukčního předpokladu bez znaků útočníka a~literály rovněž,~což je~(a). Pokud $\mathit{html} \in K$, jsou hodnoty podle indukčního předpokladu způsobilé pro své $c_k \in K_k$ a~(b) dává tvrzení~\ref{lem:tpl}. Důkaz věty~\ref{thm:konfinace} se nemění, užívá pouze tvrzení~\ref{lem:stitky}. Tvrzení~\ref{thm:audit} musí šablonu jmenovat jako čtvrtý pramen: šablona \verb|<a href="| $\oplus\; v \;\oplus$ \verb|">| s~hodnotou~$v$ způsobilou pro \emph{url} dává kontext \emph{html}, aniž by některá její část byla pro \emph{html} způsobilá.
 
 Obsah elementu \texttt{title} není datovou dírou kontextu \emph{html}, ačkoliv by se to nabízelo. Kdyby byl, musel by každý řetězec způsobilý pro \emph{html} vyhovět i~prefixům končícím v~titulku. Šablona \verb|<a href="| $\oplus\; v \;\oplus$ \verb|">| by tam nebyla uzavřená, protože \verb|<title><a href="| nekončí v~díře kontextu \emph{url}. Hodnota způsobilá pro \emph{url} přitom smí na úrovni modelu obsahovat \verb|</title><script>…|, takže by tvrzení~\ref{lem:tpl} neplatilo. Realizace takovou hodnotu nevyrobí, důkaz s~tím však počítat nesmí. Kontext \emph{text} tak řeší titulek bez zásahu do definice kontextu \emph{html}.
+
+\subsection{Realizace v~TypeScriptu}
+\label{sec:lib-typescript}
+
+Šablonu zapisuje programátor jako volání \texttt{html('<a href="', u, '">', q, '</a>')}: literály a~hodnoty se střídají v~argumentech. Tagovaná šablona \verb|html`…`| by byla čitelnější, avšak její statické části mají typ \texttt{TemplateStringsArray} bez literálových typů a~překladač by jejich text neviděl. Typovatelné je pouze volání s~typovým parametrem označeným \texttt{const},~který argumenty odvodí jako n-tici literálových typů.
+
+Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~který čte literál znak po znaku a~nese stav tokenizéru v~typovém parametru. Stavy jsou objektové typy (\texttt{Data} pro text elementu, \texttt{Val<N, A, Q, Piece>} pro hodnotu atributu~\texttt{A} elementu~\texttt{N} v~uvozovce~\texttt{Q}, \texttt{Raw<N>} pro obsah elementů se surovým textem, \texttt{Script<Q>} pro skript, \texttt{Bad<M>} pro zamítnutí s~větou~\texttt{M}). Přechody kopírují tokenizér HTML v~rozsahu typu \texttt{CtxOf} z~podsekce~\ref{sec:model-typescript}, rozšířeném o~deklaraci \texttt{<!doctype html>} a~o~sledování řetězcových literálů ve skriptu. Skener je spodním odhadem definice~\ref{def:tpl}: kontext přizná jen díře ve stavu z~tabulky~\ref{tab:diry}, jinak dosadí větu.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{10.5cm}l@{}}
+        \toprule
+        \textbf{stav skeneru před dírou} & \textbf{kontext díry} \\
+        \midrule
+        text elementu & \emph{html} \\
+        obsah elementu \texttt{title} nebo \texttt{textarea} & \emph{text} \\
+        hodnota textového atributu v~uvozovkách na elementu,~který kód nenačítá & \emph{text} \\
+        hodnota jiného atributu v~uvozovkách mimo obsluhy událostí, \texttt{srcdoc} a~\texttt{style}, pokud je statický úsek hodnoty před dírou sám způsobilý pro \emph{url} & \emph{url} \\
+        celá hodnota atributu \texttt{src} elementu \texttt{script} & \emph{res} \\
+        řetězcový literál ve skriptu & \emph{script} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Kontexty děr podle stavu skeneru}
+    \label{tab:diry}
+    \source{vlastní zpracování}
+\end{table}
+
+To, že stačí statický text, ačkoliv definice~\ref{def:tpl} mluví o~všech způsobilých hodnotách, je vlastnost modelu prohlížeče, nikoliv věta. Datová díra je kanonický stav tokenizéru (hodnota atributu, řetězec bez nedokončené escape sekvence, text elementu mimo cizí obsah). Způsobilá hodnota ho podle podmínky~\eqref{in:okoli} nezmění, a~statický text za dírou se proto čte stejně bez ohledu na hodnotu. Shodu skeneru s~definicí ověřují testy z~podsekce~\ref{sec:lib-overeni}. Ve skriptu skener sleduje řetězce přesně a~mimo ně zakazuje znaky \texttt{<}, \texttt{/}, zpětné lomítko a~backtick i~posloupnost \texttt{-->}, protože bez lexeru JavaScriptu nelze spolehlivě rozpoznat komentář, regulární výraz ani šablonový literál. V~hodnotě atributu kontextu \emph{url} musí být každý statický úsek mezi dvěma dírami sám způsobilý pro \emph{url}, aby celou hodnotu pokrylo tvrzení~\ref{lem:monoid}. Jména elementů a~atributů skener převádí na malá písmena, jako to dělá prohlížeč.
+
+Podpis funkce zní:
+
+\begin{minted}{typescript}
+declare function html<const P extends readonly Part[]>(
+  ...parts: P extends Walk<P, Data, []> ? P : Walk<P, Data, []>
+): Str<ProvOfParts<P>, 'html'>;
+\end{minted}
+
+\noindent
+Typ \texttt{Walk} projde n-tici argumentů: literál posune stav skeneru, hodnota v~díře musí nést kontext díry ve své množině \texttt{CtxsOf}. Přijatou n-tici vrátí beze změny, u~zamítnuté nahradí vadný argument literálovým typem věty, takže chyba přistane na přesném argumentu a~překladač větu vypíše:
+
+\begin{minted}{text}
+Argument of type 'Str<"lit" | "val", "html" | "text">' is not assignable to
+parameter of type '"this hole needs a value safe for url; the value is
+escaped for a different context"'.
+\end{minted}
+
+\noindent
+Mapovaný typ v~pozici parametru by odvození typu \texttt{P} zrušil (překladač by hlásil nesprávný počet argumentů), podmíněný typ ho zachová. Výsledek má původ~$\bot$, pokud šablona nemá díry, jinak nejhorší z~původů hodnot, a~kontext \emph{html}. Za běhu funkce jen zřetězí části a~přetypuje výsledek. Přetypování je jediným místem, kde hodnota štítek dostane, a~patří proto do auditní plochy jádra podle předpokladu~\ref{ass:jadro}. Stejné rozhodování provádí za běhu funkce \texttt{walk} nad statickými částmi. Slouží testům a~interpretu modelu.
+
+Rekurzi podmíněných typů překladač vyhodnocuje smyčkou, pokud je rekurzivní volání celým výsledkem větve. Skener je tak psán a~v~textu elementu navíc skáče rovnou k~dalšímu znaku \texttt{<}, takže cena roste s~počtem značek, nikoliv znaků. Rozpočet kroků závisí na tvaru typu i~verzi překladače: literál s~asi 1\,900 značkami skener ještě zpracuje, s~2\,000 končí chybou TS2589. Stránka se proto dělí na části vnořenými voláními \texttt{html}, jak to vykreslování na serveru dělá přirozeně.
