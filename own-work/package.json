@@ -11,6 +11,7 @@
   },
   "scripts": {
     "gen": "node scripts/generate.ts",
+    "mutants": "node scripts/mutants.ts",
     "typecheck": "tsc -p .",
     "test": "npm run gen && npm run typecheck && node --test test/*.test.ts"
   },
