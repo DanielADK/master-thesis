@@ -50,9 +50,12 @@ out('url', parse(z.enum(['asc', 'desc']), raw));
 out('text', parse(z.enum(['asc', 'desc']), raw));
 // @ts-expect-error an apostrophe would end a single-quoted attribute value
 out('text', parse(z.enum(["it's", 'ok']), raw));
-export const lit5: Str<'lit', 'text'> = h('<b>');
+export const lit5: Str<'lit', 'text'> = h('a > b');
+// @ts-expect-error a literal with < is not text: inside select the parser drops the title tag and reads its
+// content as element text, where < opens a tag (found by test/exhaustive.test.ts)
+export const lit6: Str<'lit', 'text'> = h('<b>');
 // @ts-expect-error a literal with </ could end title or textarea
-export const lit6: Str<'lit', 'text'> = h('</b>');
+export const lit7: Str<'lit', 'text'> = h('</b>');
 // @ts-expect-error D(S) never contains res
 out('res', parse(z.enum(['asc', 'desc']), raw));
 // @ts-expect-error not even for a schema that accepts only the empty string

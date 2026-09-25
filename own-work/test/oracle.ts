@@ -95,9 +95,22 @@ function rcdataTail(prefix: string, name: string): boolean {
   return state === 'rcdata';
 }
 
+/** Notices a title tag the tree builder dropped (inside select). */
+class Dropped extends Parser<DefaultTreeAdapterMap> {
+  inDroppedTitle = false;
+  override onStartTag(t: Token.TagToken): void {
+    super.onStartTag(t);
+    if (t.tagName === 'title') this.inDroppedTitle = (this.tokenizer as unknown as Tokenizer).state === S.DATA;
+  }
+  override onEndTag(t: Token.TagToken): void {
+    super.onEndTag(t);
+    if (t.tagName === 'title') this.inDroppedTitle = false;
+  }
+}
+
 /** True iff prefix ends in the data hole of c; for script, stringStart is where the string begins. */
 export function endsInHole(prefix: string, c: Ctx, stringStart?: number): boolean {
-  const p = new Parser<DefaultTreeAdapterMap>();
+  const p = new Dropped();
   p.tokenizer.write(prefix, false);
   const t = p.tokenizer as unknown as Tokenizer;
   const foreign = (p as unknown as { currentNotInHTML: boolean }).currentNotInHTML;
@@ -120,6 +133,7 @@ export function endsInHole(prefix: string, c: Ctx, stringStart?: number): boolea
     case 'text': {
       if (foreign) return false;
       if (t.state === S.RCDATA || (charRef && t.returnState === S.RCDATA)) return true;
+      if (p.inDroppedTitle && (t.state === S.DATA || (charRef && t.returnState === S.DATA))) return true;
       if (t.state === S.RCDATA_LT || t.state === S.RCDATA_END_OPEN || t.state === S.RCDATA_END_NAME) return rcdataTail(prefix, t.lastStartTagName);
       const inValue = inAttr || (charRef && (t.returnState === S.ATTR_DQ || t.returnState === S.ATTR_SQ));
       return inValue && isTextAttr(attr) && !CODE_ELEMENTS.includes(tag);
@@ -135,7 +149,7 @@ export const P: Record<Ctx, string[]> = {
   url: ['<a href="', "<a href='", '<a href="https://example.com/', '<img src="/', '<form action="./x'],
   res: ['<script src="', "<script src='", '<script src="https://cdn.example.com/'],
   text: ['<title>', '<title>Hledání: ', '<textarea name="bio">', '<input value="', "<input value='", '<div title="',
-    "<p class='a ", '<option value="', '<img alt="x ', '<span data-id="'],
+    "<p class='a ", '<option value="', '<img alt="x ', '<span data-id="', '<select><option><title>'],
 };
 export const Q: Record<Ctx, string[]> = {
   html: ['', '</p>', 'lt;', '">', "' onclick=f()>", '<img src=x>'],

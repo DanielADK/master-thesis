@@ -30,9 +30,12 @@ test('ass:parse: every prefix of P and every sink prefix ends in its data hole, 
   // a value made of whitespace only is not url-suitable (a continuation can start with javascript:)
   assert.ok(!suitable({ s: ' ', u: [true] }, 'url'));
   // the data hole of context text: title and textarea content, text attributes outside code elements
-  for (const p of ['<title>', '<title>a&', '<textarea name="b">x', '<input value="', "<p class='a ", '<div data-x="', '<span aria-label="'])
+  // (the last two: inside select the parser drops the title tag and reads its content as text)
+  for (const p of ['<title>', '<title>a&', '<textarea name="b">x', '<input value="', "<p class='a ", '<div data-x="', '<span aria-label="',
+    '<select><option><title>', '<select><option><title>a &amp; b'])
     assert.ok(endsInHole(p, 'text'), p);
-  for (const p of ['<a href="', '<param value="', '<object name="', '<svg><a title="', '<button onclick="', '<p>', '<style>'])
+  for (const p of ['<a href="', '<param value="', '<object name="', '<svg><a title="', '<button onclick="', '<p>', '<style>',
+    '<select><option><title>x</title>', '<select><option><title><script>'])
     assert.ok(!endsInHole(p, 'text'), p);
   // url and res holes are precise about the attribute and the element
   assert.ok(!endsInHole('<div title="', 'url'));
@@ -42,15 +45,19 @@ test('ass:parse: every prefix of P and every sink prefix ends in its data hole, 
   // a dangerous scheme in a text attribute is not executed, in a navigational one it is
   assert.ok(!executed('<input value="javascript:alert(1)">').includes(true));
   assert.ok(executed('<a href="javascript:alert(1)">').includes(true));
+  // a text value with '<' leaves the html hole where the title tag is dropped (found by exhaustive.test.ts)
+  assert.ok(!suitable(mark('<title><script></title>', false), 'html'));
+  assert.ok(suitable(mark('<title>a > b</title>', false), 'html'));
+  assert.ok(!ctxOf('<script>').includes('text'));
 });
 
 test('def:prameny: the examples of the thesis hold in the browser model, the realization grants a subset', () => {
   // literal, ctx(s) by the thesis and the oracle, CtxOf of the realization
   const examples: [string, Ctx[], Ctx[]][] = [
     ['Dobrý den', [...CTXS], [...CTXS]],
-    ['<h1>', [...CTXS], ['html', 'text']],
-    ['<div title=', ['script', 'url', 'res', 'text'], ['text']],
-    ['<script>', ['script', 'url', 'res', 'text'], ['text']],
+    ['<h1>', [...CTXS], ['html']],
+    ['<div title=', ['script', 'url', 'res'], []],
+    ['<script>', ['script', 'url', 'res'], []],
     ['<script>init()</script>', ['html', 'url', 'res', 'text'], ['html']],
     ["it's", ['html'], ['html']],
   ];

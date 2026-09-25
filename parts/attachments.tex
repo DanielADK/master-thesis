@@ -39,7 +39,7 @@ Model prohlížeče je zjednodušený. Do množiny~$V$ řadí těla skriptů kro
 
 Textovými atributy jsou \texttt{alt}, \texttt{class}, \texttt{id}, \texttt{for}, \texttt{name}, \texttt{placeholder}, \texttt{title}, \texttt{value}, \texttt{label}, \texttt{lang}, \texttt{dir}, \texttt{role}, \texttt{tabindex}, \texttt{rows}, \texttt{cols}, \texttt{size}, \texttt{maxlength}, \texttt{width}, \texttt{height} a~atributy s~předponou \texttt{aria-} a~\texttt{data-}. Elementy načítající kód, na kterých díra není dovolena, jsou \texttt{script}, \texttt{base}, \texttt{object}, \texttt{embed}, \texttt{applet} a~\texttt{param}.
 
-Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \texttt{title} a~\texttt{textarea}) nebo hodnota textového atributu v~uvozovkách. Typové balíky Expressu a~Fastify slouží jen překladovému testu funkce \texttt{send}. Tabulka~\ref{tab:own-work} přiřazuje tvrzením modelu testy,~které je ověřují. Cesty v~ní jsou uvedeny vůči složce \texttt{test}.
+Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \texttt{title} a~\texttt{textarea}), hodnota textového atributu v~uvozovkách, nebo stav Data za značkou \texttt{title},~kterou prohlížeč zahodil (uvnitř elementu \texttt{select}), dokud nepřijde její koncová značka. Prefixy~$P$ kontextu \emph{text} proto obsahují i~\texttt{<select><option><title>}. Typové balíky Expressu a~Fastify slouží jen překladovému testu funkce \texttt{send}. Tabulka~\ref{tab:own-work} přiřazuje tvrzením modelu testy,~které je ověřují. Cesty v~ní jsou uvedeny vůči složce \texttt{test}.
 
 \begin{table}[htbp]
     \centering
@@ -57,12 +57,12 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
         předpoklad~\ref{ass:san} & \texttt{contexts.test.ts} & platí pro 40\,180 dvojic výstupu sanitační funkce a~deklarovaného kontextu \\
         díra kontextu \emph{text}, přesnost děr & \texttt{contexts.test.ts} & prefixy z~$P$ končí ve svých dírách, nebezpečné schéma v~textovém atributu se nevykoná \\
         tvrzení~\ref{lem:stitky} & \texttt{konfinace.test.ts} & potvrzeno na 20\,000 výrazech \\
-        věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů včetně šablon, 50\,831 dobře typovaných, 274\,481 odeslání se znaky útočníka, žádná injektáž \\
-        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~24\,588 špatně typovaných programů ve vzorku 50\,000 injektuje 12\,065 \\
-        tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 121\,020 kontextů ve 100\,000 výrazech má pramen \\
-        tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 112 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
+        věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů generátoru včetně šablon, 50\,622 dobře typovaných, 272\,097 odeslání se znaky útočníka, žádná injektáž \\
+        netriviálnost kontroly & \texttt{konfinace.test.ts} & z~24\,679 špatně typovaných programů ve vzorku 50\,000 injektuje 12\,065 \\
+        tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 117\,450 kontextů ve 100\,000 výrazech má pramen \\
+        tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 113 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
         tvrzení~\ref{claim:adekvatnost}, druhá polovina & \texttt{compile/limits.ts}, \texttt{limits.test.ts} & 23 konstrukcí se přeloží a~injektují; F1 až~F3 zachytí jen metodu rozhraní (ověřeno mimo \texttt{npm~test}), zbylých 22 zakazuje F4; úplnost definice~\ref{def:fragment} testy neověřují \\
-        definice~\ref{def:tpl}, skener & \texttt{tpl.test.ts}, \texttt{generated/tpl.ts}, \texttt{compile/tpl.ts} & u~101 přijatých šablon a~780 děr končí každý prefix v~díře svého kontextu; typ a~funkce \texttt{walk} se shodují u~340 šablon a~264 variant s~hodnotou jiného kontextu; každá zamítaná situace má svou větu \\
+        definice~\ref{def:tpl}, skener & \texttt{tpl.test.ts}, \texttt{generated/tpl.ts}, \texttt{compile/tpl.ts} & u~101 přijatých šablon, 7 prefixů kontextu \emph{html} a~5\,460 děr končí každý prefix v~díře svého kontextu; typ a~funkce \texttt{walk} se shodují u~340 šablon a~264 variant s~hodnotou jiného kontextu; každá zamítaná situace má svou větu \\
         tvrzení~\ref{lem:tpl} & \texttt{tpl.test.ts} & 1\,212 výsledků šablon způsobilých pro \emph{html}, žádný vykonaný znak útočníka \\
         netriviálnost šablon & \texttt{tpl.test.ts} & surová nebo jinak escapovaná hodnota v~díře injektuje nebo díru opustí ve všech pěti kontextech \\
         knihovna a~\texttt{send} & \texttt{compile/lib.ts}, \texttt{compile/send.ts}, \texttt{lib.test.ts} & dvojí escapování odmítnuto; \texttt{send} přijímá \texttt{Response} Expressu, \texttt{FastifyReply} i~\texttt{ServerResponse}, obyčejný řetězec ne (TS2769) \\

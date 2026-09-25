@@ -6,7 +6,7 @@ import { CTXS, type Ctx } from '../src/label.ts';
 import { ctxOf } from '../src/contexts.ts';
 import { MSG, SAN, walk } from '../src/index.ts';
 import { arbInput, arbLiteral, arbStatics, TEMPLATES, type Marked } from './model.ts';
-import { endsInHole, executed, suitable } from './oracle.ts';
+import { endsInHole, executed, P, suitable } from './oracle.ts';
 
 const cases: [readonly string[], Ctx[] | string][] = [
   [['<h1>Výsledky pro: ', '</h1>'], ['html']],
@@ -114,13 +114,16 @@ test('def:tpl and lem:tpl: for every accepted template and suitable values, the 
     const samples = fc.sample(fc.tuple(...holes.map(c => VALUES[c])), { seed: 9, numRuns: 12 });
     for (const values of samples) {
       const { doc, prefixes, starts } = build(statics, holes, strings, values);
-      holes.forEach((c, k) => {
-        holesChecked++;
-        const start = strings[k];
-        const abs = start ? starts[strings.slice(0, k).filter(Boolean).length] : undefined;
-        assert.ok(endsInHole(doc.s.slice(0, prefixes[k]), c, abs), `(i) hole ${k} of ${JSON.stringify(statics)} with ${JSON.stringify(values.map(v => v.s))}`);
-      });
-      assert.ok(endsInHole(doc.s, 'html'), `(ii) ${JSON.stringify(statics)}`);
+      // (i) and (ii) quantify over every p ending in the html hole: the prefixes of P.html
+      for (const p of P.html) {
+        holes.forEach((c, k) => {
+          holesChecked++;
+          const start = strings[k];
+          const abs = start ? (starts[strings.slice(0, k).filter(Boolean).length] ?? 0) + p.length : undefined;
+          assert.ok(endsInHole(p + doc.s.slice(0, prefixes[k]), c, abs), `(i) hole ${k} of ${JSON.stringify(statics)} after ${JSON.stringify(p)} with ${JSON.stringify(values.map(v => v.s))}`);
+        });
+        assert.ok(endsInHole(p + doc.s, 'html'), `(ii) ${JSON.stringify(statics)} after ${JSON.stringify(p)}`);
+      }
       results++;
       assert.ok(suitable(doc, 'html', starts), `lem:tpl: ${JSON.stringify(doc.s)}`);
     }

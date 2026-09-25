@@ -94,12 +94,9 @@ type Url<S extends string> = S extends '' ? true
 // res: S stays inside the quoted src attribute of a script element.
 type Res<S> = S extends `${string}${ResBad}${string}` ? false : true;
 
-// text: S stays inside a text attribute value (either quote) and inside title or textarea content; a trailing
-// '<' would leave the RCDATA state, so that the next value could complete the end tag.
-type TextBad = '"' | "'" | '`';
-type Text<S> = S extends `${string}${TextBad}${string}` | `${string}</${string}` | `${string}<` ? false : true;
-// Attacker values get text only without '<' at all (a lower estimate of the same condition).
-type NoQuoteLt<S> = S extends `${string}${TextBad | '<'}${string}` ? false : true;
+// text: no quote, backtick or '<'. A '<' is a tag where the parser drops the title (inside select).
+type TextBad = '"' | "'" | '`' | '<';
+type Text<S> = S extends `${string}${TextBad}${string}` ? false : true;
 export type { Url, Text };
 
 /** Attributes read as text, never as an address or code (ass:parse). */
@@ -131,7 +128,7 @@ export type D<O extends string> = Finite<O> extends false ? never
   : | ([NoLt<O>] extends [true] ? 'html' : never)
     | ([Script<O>] extends [true] ? 'script' : never)
     | ([Url<O>] extends [true] ? 'url' : never)
-    | ([NoQuoteLt<O>] extends [true] ? 'text' : never);
+    | ([Text<O>] extends [true] ? 'text' : never);
 type NoLt<S> = S extends `${string}<${string}` ? false : true;
 
 // Runtime versions of the types above.
@@ -213,8 +210,7 @@ export function urlNeutral(s: string): boolean {
 
 const resNeutral = (s: string): boolean => !RES_BAD.test(s);
 
-const TEXT_BAD = /["'`]|<\/|<$/;
-const TEXT_VALUE_BAD = /["'`<]/;
+const TEXT_BAD = /["'`<]/;
 export const textNeutral = (s: string): boolean => !TEXT_BAD.test(s);
 
 /** CtxOf<S> at run time. */
@@ -225,7 +221,7 @@ export function ctxOf(s: string): Ctx[] {
 
 /** Contexts where v is suitable even as attacker text; never res. */
 export function attackerCtxs(v: string): Ctx[] {
-  const ok = { html: !v.includes('<'), script: scriptNeutral(v), url: urlNeutral(v), res: false, text: !TEXT_VALUE_BAD.test(v) };
+  const ok = { html: !v.includes('<'), script: scriptNeutral(v), url: urlNeutral(v), res: false, text: textNeutral(v) };
   return CTXS.filter(c => ok[c]);
 }
 
