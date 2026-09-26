@@ -12,6 +12,7 @@
   "scripts": {
     "gen": "node scripts/generate.ts",
     "mutants": "node scripts/mutants.ts",
+    "limit": "node scripts/limit.ts 1900 2000",
     "typecheck": "tsc -p .",
     "test": "npm run gen && npm run typecheck && node --test test/*.test.ts"
   },
