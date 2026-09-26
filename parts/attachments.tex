@@ -19,7 +19,7 @@ npm install
 npm test
 \end{minted}
 \noindent
-Příkaz \texttt{npm test} nejprve vygeneruje překladové testy do složky \texttt{test/generated}, poté zkontroluje realizaci i~testy překladačem \texttt{tsc} v~přísném režimu (\texttt{strict}) a~nakonec spustí testy za běhu nástrojem \texttt{node:test}. Použity jsou TypeScript~7.0.2, Zod~4.6.5, parser HTML5 \texttt{parse5}~8.0.1 a~knihovna \texttt{fast-check}~4.10.2,~která generuje náhodné programy a~vstupy útočníka. Generátory mají pevná semínka, takže každý běh dává stejná čísla.
+Příkaz \texttt{npm test} nejprve vygeneruje překladové testy do složky \texttt{test/generated}, poté zkontroluje realizaci i~testy překladačem \texttt{tsc} v~přísném režimu (\texttt{strict}) a~nakonec spustí testy za běhu nástrojem \texttt{node:test}. Použity jsou TypeScript~7.0.2, Zod~4.6.5, parser HTML5 \texttt{parse5}~8.0.1 a~knihovna \texttt{fast-check}~4.10.2,~která generuje náhodné programy a~vstupy útočníka. Generátory mají pevná semínka, takže každý běh dává stejná čísla. Mutační kontrolu z~podsekce~\ref{sec:model-overeni} spouští příkaz \texttt{npm run mutants}. Trvá několik minut a~součástí \texttt{npm test} není.
 
 \paragraph{Obsah složky.}
 \begin{itemize}
@@ -31,7 +31,9 @@ Příkaz \texttt{npm test} nejprve vygeneruje překladové testy do složky \tex
     \item \texttt{test/model.ts}: interpret jazyka modelu,~který u~každého znaku výsledku sleduje jeho původ (množinu~$U(s)$), a~generátory programů a~útoků;
     \item \texttt{test/oracle.ts}: model prohlížeče podle předpokladu~\ref{ass:parse} nad parserem \texttt{parse5};
     \item \texttt{test/compile}: překladové testy,~ve kterých řádek s~direktivou \texttt{@ts-expect-error} musí skončit chybou a~každý jiný se musí přeložit;
+    \item \texttt{test/enumerate.ts}: úplné vyčíslení výrazů modelu do dané velikosti nad sadou stavebních kamenů generátoru;
     \item \texttt{scripts/generate.ts}: skript,~který do složky \texttt{test/generated} vygeneruje další překladové testy;
+    \item \texttt{scripts/mutants.ts}: mutační kontrola z~podsekce~\ref{sec:model-overeni}, výčet mutantů hlídá test \texttt{mutants.test.ts};
     \item \texttt{test/*.test.ts}: testy za běhu.
 \end{itemize}
 
@@ -58,7 +60,9 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
         díra kontextu \emph{text}, přesnost děr & \texttt{contexts.test.ts} & prefixy z~$P$ končí ve svých dírách, nebezpečné schéma v~textovém atributu se nevykoná \\
         tvrzení~\ref{lem:stitky} & \texttt{konfinace.test.ts} & potvrzeno na 20\,000 výrazech \\
         věta~\ref{thm:konfinace} & \texttt{konfinace.test.ts} & 100\,000 programů generátoru včetně šablon, 50\,622 dobře typovaných, 272\,097 odeslání se znaky útočníka, žádná injektáž \\
+        tvrzení~\ref{lem:stitky}, věta~\ref{thm:konfinace} a~tvrzení~\ref{thm:audit} vyčerpáním & \texttt{exhaustive.test.ts} & všech 131\,718 výrazů do tří uzlů nad sadou kamenů: 2\,948\,652 odeslání, 196\,395 se znaky útočníka, žádná injektáž; 773\,712 dvojic (výsledek, kontext) způsobilých; první běh odhalil druhé čtení titulku (podsekce~\ref{sec:model-overeni}) \\
         netriviálnost kontroly & \texttt{konfinace.test.ts} & z~24\,679 špatně typovaných programů ve vzorku 50\,000 injektuje 12\,065 \\
+        mutační kontrola & \texttt{scripts/mutants.ts}, \texttt{mutants.test.ts} & 12 mutantů realizace, každý zachycen; tabulka~\ref{tab:mutanty} \\
         tvrzení~\ref{thm:audit} & \texttt{konfinace.test.ts} & každý ze 117\,450 kontextů ve 100\,000 výrazech má pramen \\
         tvrzení~\ref{claim:adekvatnost}, první polovina & \texttt{generated/adequacy.ts} & shoda u~10\,000 programů při množinách typů \texttt{CtxOf} a~\texttt{D}; 113 z~nich by model díky $D(S)$ regulárního výrazu přijal, realizace je odmítne \\
         tvrzení~\ref{claim:adekvatnost}, druhá polovina & \texttt{compile/limits.ts}, \texttt{limits.test.ts} & 23 konstrukcí se přeloží a~injektují; F1 až~F3 zachytí jen metodu rozhraní (ověřeno mimo \texttt{npm~test}), zbylých 22 zakazuje F4; úplnost definice~\ref{def:fragment} testy neověřují \\
@@ -76,4 +80,31 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
     \source{vlastní zpracování}
 \end{table}
 
-Tvrzení o~štítcích jsou tak testy dokázána vyčerpáním všech případů, tvrzení o~řetězcích a~programech jen podpořena. Platí pro vyzkoušené programy a~vůči uvedenému modelu prohlížeče, nikoliv pro všechny programy a~skutečné prohlížeče.
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \setlength{\extrarowheight}{1.5pt}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{6.4cm}>{\raggedright\arraybackslash}p{7.6cm}@{}}
+        \toprule
+        \textbf{č.} & \textbf{Mutant realizace} & \textbf{Zachytí} \\
+        \midrule
+        1 & sanitace \emph{url} propustí schéma \texttt{javascript:} & běhové testy: \texttt{contexts}, \texttt{exhaustive}, \texttt{konfinace}, \texttt{limits}, \texttt{tpl} \\
+        2 & sanitace \emph{html} neescapuje uvozovky & běhové testy: \texttt{contexts}, \texttt{exhaustive}, \texttt{konfinace}, \texttt{tpl} \\
+        3 & sanitace \emph{html} neescapuje \texttt{<} & běhové testy: \texttt{contexts}, \texttt{exhaustive}, \texttt{konfinace}, \texttt{tpl} \\
+        4 & sanitace \emph{script} neescapuje uvozovky & běhové testy: \texttt{contexts}, \texttt{exhaustive}, \texttt{konfinace}, \texttt{tpl} \\
+        5 & kontext \emph{text} dovolí \texttt{<} (stav před nálezem titulku) & překlad: \texttt{compile/rules.ts}; běhové testy: \texttt{contexts}, \texttt{exhaustive}, \texttt{konfinace} \\
+        6 & skener dá obsluze události kontext \emph{text} & překlad: \texttt{compile/tpl.ts}, \texttt{generated/adequacy.ts} \\
+        7 & \texttt{walk} nepřevádí jména elementů na malá písmena & překlad: \texttt{generated/tpl.ts}; běhové testy: \texttt{tpl} \\
+        8 & \texttt{send} přijme každý řetězec & překlad: \texttt{compile/rules.ts}, \texttt{compile/running-example.ts}, \texttt{generated/adequacy.ts} \\
+        9 & \texttt{sanitize} přijme původ $\top$ & překlad: \texttt{compile/rules.ts}, \texttt{generated/adequacy.ts} \\
+        10 & kontexty sjednocení typů jsou sjednocením, ne průnikem & překlad: \texttt{generated/adequacy.ts} \\
+        11 & každý literál je způsobilý pro \emph{html} & překlad: \texttt{compile/rules.ts}, \texttt{generated/adequacy.ts}, \texttt{generated/literals.ts}; běhové testy: \texttt{thesis} \\
+        12 & $D(S)$ vždy obsahuje \emph{text} & překlad: \texttt{compile/rules.ts}, \texttt{generated/adequacy.ts}, \texttt{generated/literals.ts} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Mutanty realizace a~testy,~které je zachytí (\texttt{npm run mutants})}
+    \label{tab:mutanty}
+    \source{vlastní zpracování}
+\end{table}
+
+Tvrzení o~štítcích jsou tak testy dokázána vyčerpáním všech případů, tvrzení o~řetězcích a~programech jen podpořena. Platí pro vyzkoušené programy, pro všechny malé programy nad sadou kamenů a~vůči uvedenému modelu prohlížeče, nikoliv pro všechny programy a~skutečné prohlížeče.
