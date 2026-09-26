@@ -1,8 +1,9 @@
-// thm:konfinace, lem:stitky and thm:audit on random programs of the model language; the browser is parse5.
+// thm:konfinace, lem:stitky and thm:audit on generated programs, in the browser model.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import { CTXS, type Ctx } from '../src/label.ts';
+import { walk, type San } from '../src/index.ts';
 import { arbExpr, arbInput, arbProgram, evaluate, hasSource, label, PAYLOADS, toTs, wellTyped, type Expr, type Marked } from './model.ts';
 import { injected, suitable } from './oracle.ts';
 import { routes } from './compile/running-example.ts';
@@ -43,12 +44,51 @@ test('running example: the compiling handler never injects, the rejected handler
     + `${original.length} of ${PAYLOADS.length} payloads injected, e.g. ${JSON.stringify(vulnerable[0])}`);
 });
 
+// Coverage of the sample and when each feature first appeared.
+const coverage = {
+  rules: { lit: 0, src: 0, cat: 0, val: 0, san: 0, tpl: 0 } as Record<Expr['k'], number>,
+  sans: { html: 0, script: 0, url: 0 } as Record<San, number>,
+  schemas: new Map<string, number>(),
+  holes: perCtx(),
+  first: new Map<string, number>(),
+  samples: 0,
+};
+const seen = (feature: string): void => { if (!coverage.first.has(feature)) coverage.first.set(feature, coverage.samples); };
+function depth(e: Expr): number {
+  switch (e.k) {
+    case 'lit': case 'src': return 1;
+    case 'cat': return 1 + Math.max(depth(e.a), depth(e.b));
+    case 'val': case 'san': return 1 + depth(e.e);
+    case 'tpl': return 1 + Math.max(0, ...e.holes.map(depth));
+  }
+}
+function count(e: Expr, parent = 'out'): void {
+  coverage.rules[e.k]++;
+  seen(`${parent} > ${e.k}`);
+  switch (e.k) {
+    case 'cat': count(e.a, 'cat'); count(e.b, 'cat'); break;
+    case 'val': coverage.schemas.set(e.S.ts, (coverage.schemas.get(e.S.ts) ?? 0) + 1); seen(e.S.ts); count(e.e, 'val'); break;
+    case 'san': coverage.sans[e.c]++; seen(`san ${e.c}`); count(e.e, 'san'); break;
+    case 'tpl': {
+      const w = walk(e.statics);
+      if (!('error' in w)) for (const c of w.holes) { coverage.holes[c]++; seen(`hole ${c}`); }
+      e.holes.forEach(h => count(h, 'tpl'));
+      break;
+    }
+    default:
+  }
+}
+
 test('thm:konfinace: no well-typed program sends an executed attacker character', t => {
   const typed = perCtx();
   const runs = perCtx();
   const attacker = perCtx();
   let rejected = 0;
   fc.assert(fc.property(arbProgram, fc.tuple(arbInput, arbInput), ({ c, e }, inputs) => {
+    coverage.samples++;
+    seen(`out ${c} ${e.k}`);
+    seen(`depth ${depth(e)}`);
+    count(e);
     if (!wellTyped(c, e)) return;
     typed[c]++;
     for (const xs of [inputs, ...PAYLOADS.map(p => [p, p])]) {
@@ -65,9 +105,22 @@ test('thm:konfinace: no well-typed program sends an executed attacker character'
   t.diagnostic(`100000 programs; well typed: ${show(typed)}`);
   t.diagnostic(`sends checked: ${show(runs)} (${rejected} runs stopped by validation)`);
   t.diagnostic(`of them with attacker characters in the output: ${show(attacker)}`);
+  // every rule, sanitizer, schema and hole context occurs; the sample saturates long before its end
+  for (const [k, n] of Object.entries(coverage.rules)) assert.ok(n > 0, k);
+  for (const [c, n] of Object.entries(coverage.sans)) assert.ok(n > 0, c);
+  assert.equal(coverage.schemas.size, 8);
+  for (const c of CTXS) assert.ok(coverage.holes[c] > 0, c);
+  const firsts = [...coverage.first].sort((a, b) => b[1] - a[1]);
+  const shapes = firsts.filter(([f]) => !f.startsWith('depth'));
+  assert.ok((firsts[0]?.[1] ?? Infinity) < coverage.samples / 2);
+  t.diagnostic(`coverage: rules ${Object.entries(coverage.rules).map(([k, n]) => `${k} ${n}`).join(', ')}`);
+  t.diagnostic(`coverage: sanitizers ${Object.entries(coverage.sans).map(([c, n]) => `${c} ${n}`).join(', ')}; `
+    + `schemas ${[...coverage.schemas].map(([s, n]) => `${s} ${n}`).join(', ')}; template holes ${show(coverage.holes)}`);
+  t.diagnostic(`saturation: ${shapes.length} combinations of rule, sanitizer, schema and hole context all seen by sample `
+    + `${shapes[0]?.[1]} (last: ${shapes[0]?.[0]}); deepest shape (${firsts[0]?.[0]}) by sample ${firsts[0]?.[1]}`);
 });
 
-/** How request input reaches the result: not at all, only through a sanitizer, or also without one. */
+/** How request input reaches the result. */
 function input(e: Expr): 'none' | 'sanitized' | 'raw' {
   switch (e.k) {
     case 'lit': return 'none';
