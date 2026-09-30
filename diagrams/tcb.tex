@@ -13,14 +13,11 @@
         {aplikační kód v~ukázněném fragmentu: sestavování odpovědí,\\
          šablony, předávání hodnot mezi vrstvami, směrovače, obsluhy};
 
-    \node[tcb] (s) at (-1.7, -2.6) {sanitační\\funkce $\San_c$\\[1pt]\tiny předpoklad~\ref{ass:san}};
-    \node[tcb] (b) at ( 1.7, -2.6) {model\\prohlížeče\\[1pt]\tiny předpoklad~\ref{ass:parse}};
-    \node[tcb, minimum width=26mm] (u) at ( 5.6, -2.6) {validace, jádro\\knihovny a~úniky z~typů\\[1pt]\tiny předpoklad~\ref{ass:jadro}, lint};
+    \node[tcb] (s) at (-3.2, -2.6) {sanitační\\funkce $\San_c$\\[1pt]\tiny předpoklad~\ref{ass:san}};
+    \node[tcb] (b) at ( 0.0, -2.6) {model\\prohlížeče\\[1pt]\tiny předpoklad~\ref{ass:parse}};
+    \node[tcb] (u) at ( 3.2, -2.6) {validace, jádro\\knihovny a~úniky z~typů\\[1pt]\tiny předpoklad~\ref{ass:jadro}, lint};
 
-    \draw[a] (s) -- ($(a.south)+(-1.7,0)$);
-    \draw[a] (b) -- ($(a.south)+( 1.7,0)$);
-    \draw[a] (u) -- ($(a.south east)+(-1.0,0)$);
-
-    \node[lbl, red!70!black, anchor=west] at (-4.6, -4.0)
-        {\textbf{mimo typovou kontrolu:} tři oblasti,~kterým je nutno důvěřovat};
+    \draw[a] (s) -- ($(a.south)+(-3.2,0)$);
+    \draw[a] (b) -- (a.south);
+    \draw[a] (u) -- ($(a.south)+( 3.2,0)$);
 \end{tikzpicture}
