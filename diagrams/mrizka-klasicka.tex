@@ -1,0 +1,33 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    n/.style={draw, circle, inner sep=1.2pt, minimum size=7mm, fill=white, font=\small},
+    lat/.style={draw, rounded corners=2pt, minimum width=22mm, minimum height=9mm, align=center, font=\footnotesize, fill=white},
+    operand/.style={lat, fill=green!12, thick, draw=green!50!black},
+    result/.style={lat, fill=red!10, thick, draw=red!70!black},
+    e/.style={-, thick, gray!65!black},
+    hi/.style={->, red!80!black, thick, >=Stealth},
+    pan/.style={font=\footnotesize\itshape}
+]
+    % (a) two-level integrity lattice
+    \node[pan] at (1.2, 5.9) {(a) mřížka integrity};
+    \node[n] (bot) at (0, 1.0) {$\bot$};
+    \node[n] (top) at (0, 4.2) {$\top$};
+    \draw[e] (bot) -- (top);
+    \node[right=2mm of top, anchor=west, align=left] {\emph{Tainted}\\vstup útočníka};
+    \node[right=2mm of bot, anchor=west, align=left] {\emph{Safe}\\text programu,\\sanitovaná hodnota};
+
+    % (b) context types and the join of two of them
+    \begin{scope}[xshift=78mm]
+        \node[pan] at (0, 5.9) {(b) kontextové typy a~spojení};
+        \node[lat]     (b) at ( 0,   0.5) {$\bot$ (\emph{Safe})};
+        \node[lat]     (u) at (-3.7, 2.6) {\texttt{SafeUrl}};
+        \node[operand] (h) at (-1.2, 2.6) {\texttt{SafeHtml}};
+        \node[operand] (s) at ( 1.2, 2.6) {\texttt{SafeScript}};
+        \node[lat]     (r) at ( 3.7, 2.6) {\texttt{Trusted}\\\texttt{ResourceUrl}};
+        \node[result]  (t) at ( 0,   4.7) {$\top$ (\emph{Tainted})};
+        \draw[e] (b) -- (u); \draw[e] (b) -- (h); \draw[e] (b) -- (s); \draw[e] (b) -- (r);
+        \draw[e] (u) -- (t); \draw[e] (r) -- (t);
+        \draw[hi] (h) -- (t); \draw[hi] (s) -- (t);
+        \node[font=\tiny, red!70!black, anchor=west] at (2.3, 3.9) {$\mathtt{SafeHtml} \sqcup \mathtt{SafeScript} = \top$};
+    \end{scope}
+\end{tikzpicture}

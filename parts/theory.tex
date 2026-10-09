@@ -24,9 +24,9 @@ přičemž $\bot$ reprezentuje důvěryhodná data, tj.~text programu a~data val
     \forall\, v \in \mathit{Values}:\; \ell(v) = \top \;\Longrightarrow\; \neg\,(v \rightsquigarrow \mathit{sink}_\bot),
     \label{eq:no-flow}
 \end{equation}
-kde $\rightsquigarrow$ značí datový tok a~$\ell(\cdot)$ vrací bezpečnostní štítek hodnoty \parencite{sabelfeld2003language}. Opačný směr, tok z~$\bot$ do libovolné propasti, je v~tomto obrazu vždy přípustný, protože data se štítkem~$\bot$ jsou pokládána za bezpečná v~libovolném kontextu. Tuto mřížku znázorňuje diagram~\ref{fig:mrizka-integrity}. Jeho jediná hrana $\bot \sqsubseteq \top$ odpovídá tomuto vždy přípustnému toku, zatímco hrana $\top \sqsubseteq \bot$ chybí. Tok kontaminovaných dat do bezpečné propasti proto vyžaduje sanitační funkci~$\sigma$.
+kde $\rightsquigarrow$ značí datový tok a~$\ell(\cdot)$ vrací bezpečnostní štítek hodnoty \parencite{sabelfeld2003language}. Opačný směr, tok z~$\bot$ do libovolné propasti, je v~tomto obrazu vždy přípustný, protože data se štítkem~$\bot$ jsou pokládána za bezpečná v~libovolném kontextu. Tuto mřížku znázorňuje panel~(a) diagramu~\ref{fig:mrizka-klasicka}. Jeho jediná hrana $\bot \sqsubseteq \top$ odpovídá tomuto vždy přípustnému toku, zatímco hrana $\top \sqsubseteq \bot$ chybí. Tok kontaminovaných dat do bezpečné propasti proto vyžaduje sanitační funkci~$\sigma$.
 
-Dvouúrovňová mřížka představuje klasický zjednodušený obraz,~ze kterého vycházejí rovnice~\ref{eq:taint-intro} až~\ref{eq:send-contract} a~schéma~\ref{fig:pipeline}. Sanitace v~tomto obrazu dává štítek~$\bot$ a~sanitovaná hodnota je bezpečná v~libovolném kontextu. Kontextová mřížka v~diagramu~\ref{fig:mrizka-kontextova} ho zčásti opouští. Vlastní model práce (sekce~\ref{sec:model}) tento obraz zpřesňuje. Štítek~$\bot$ v~něm náleží pouze textu programu, zatímco sanitovaná hodnota si ponechává informaci o~svém původu a~je způsobilá jen pro kontext, pro který byla sanitována.
+Dvouúrovňová mřížka představuje klasický zjednodušený obraz,~ze kterého vycházejí rovnice~\ref{eq:taint-intro} až~\ref{eq:send-contract} a~schéma~\ref{fig:pipeline}. Sanitace v~tomto obrazu dává štítek~$\bot$ a~sanitovaná hodnota je bezpečná v~libovolném kontextu. Kontextová mřížka v~panelu~(b) stejného diagramu ho zčásti opouští. Vlastní model práce (sekce~\ref{sec:model}) tento obraz zpřesňuje. Štítek~$\bot$ v~něm náleží pouze textu programu, zatímco sanitovaná hodnota si ponechává informaci o~svém původu a~je způsobilá jen pro kontext, pro který byla sanitována.
 
 Denningovými axiomy jsou stanoveny čtyři vlastnosti,~které musí každá taková mřížka splňovat \parencite{denning1976lattice}: konečnost (A1), částečné uspořádání (A2), existenci nejmenšího prvku (A3) a~existenci spojení, tj.~nejmenší horní meze (A4). Formálně:
 \begin{align}
@@ -37,33 +37,17 @@ Denningovými axiomy jsou stanoveny čtyři vlastnosti,~které musí každá tak
 \end{align}
 Axiom~\ref{ax:join} požaduje, aby spojení $a \sqcup b$ bylo horní mezí obou štítků a~zároveň pod každou jejich společnou horní mezí. Jednoznačnost spojení pak plyne z~antisymetrie (A2). Operátor spojení určuje, jaký štítek získá výsledek operace kombinující data ze dvou různých tříd. Protože je $a \sqcup b$ horní mezí obou operandů, kontaminace se při složených výrazech nemůže ztratit.
 
-\begin{figure}[ht]
+\begin{figure}[htbp]
     \centering
-    \input{diagrams/mrizka-integrity}%
-    \caption{Hasseho diagram dvouprvkové mřížky integrity $\mathcal{L}_2 = (\{\bot,\top\},\sqsubseteq)$}
-    \label{fig:mrizka-integrity}
-    \source{vlastní zpracování podle \textcite{sabelfeld2003language}}
+    \input{diagrams/mrizka-klasicka}%
+    \caption[Klasické mřížky integrity]{Klasické mřížky integrity: dvouprvková~(a) a~mřížka s~kontextovými typy z~dílčího cíle~2 podle vzoru knihovny \texttt{safevalues}~(b). Zeleně operandy spojení, červeně jeho kontaminovaný výsledek~$\top$.}
+    \label{fig:mrizka-klasicka}
+    \source{vlastní zpracování podle \textcite{sabelfeld2003language} a~\textcite{googleSafevalues}}
 \end{figure}
 
-Při vývoji webových aplikací je mřížka rozšířena o~kontextově specifické typy. Uživatelský vstup může být například bezpečný pro vykreslení jako prostý text, nikoliv však pro vložení do atributu HTML či do těla skriptu. Mezi $\bot$ (\emph{Safe}, popř.~\emph{Fully Trusted}; validováno pro libovolný kontext) a~$\top$ (\emph{Tainted}; nevalidováno) tak přibude vrstva vzájemně nesrovnatelných typů. Každý z~nich reprezentuje validaci pro jeden konkrétní kontext \parencite{w3cTrustedTypes,googleSafevalues}. Mřížka přitom zůstává plochá, o~třech úrovních. Štítek o~dvou nezávislých osách zavádí až model práce (podsekce~\ref{sec:model-mrizka}). Příklad takto rozšířené mřížky znázorňuje diagram~\ref{fig:mrizka-kontextova}. Jsou v~něm typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}.
+Při vývoji webových aplikací je mřížka rozšířena o~kontextově specifické typy. Uživatelský vstup může být například bezpečný pro vykreslení jako prostý text, nikoliv však pro vložení do atributu HTML či do těla skriptu. Mezi $\bot$ (\emph{Safe}, popř.~\emph{Fully Trusted}; validováno pro libovolný kontext) a~$\top$ (\emph{Tainted}; nevalidováno) tak přibude vrstva vzájemně nesrovnatelných typů. Každý z~nich reprezentuje validaci pro jeden konkrétní kontext \parencite{w3cTrustedTypes,googleSafevalues}. Mřížka přitom zůstává plochá, o~třech úrovních. Štítek o~dvou nezávislých osách zavádí až model práce (podsekce~\ref{sec:model-mrizka}). Příklad takto rozšířené mřížky znázorňuje panel~(b) diagramu~\ref{fig:mrizka-klasicka}. Jsou v~něm typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}.
 
-\begin{figure}[h]
-    \centering
-    \input{diagrams/mrizka-kontextova}%
-    \caption{Hasseho diagram mřížky s~kontextovými typy z~dílčího cíle~2,~které přebírají vzor knihovny \texttt{safevalues}}
-    \label{fig:mrizka-kontextova}
-    \source{vlastní zpracování podle \textcite{googleSafevalues}}
-\end{figure}
-
-Akci operátoru spojení $\sqcup$ ilustruje diagram~\ref{fig:join-action}. Na tomto operátoru stojí propagace kontaminace: pokud program kombinuje dvě hodnoty z~různých bezpečnostních tříd, získá výsledek štítek odpovídající jejich nejmenší společné horní mezi. Kontextové typy uprostřed mřížky jsou vzájemně nesrovnatelné a~jejich nejmenší společnou horní mezí je~$\top$. Spojení dvou různých bezpečných typů, například \texttt{SafeHtml} a~\texttt{SafeScript}, proto vrací~$\top$. Data validovaná pro různé kontexty po zkombinování neplatí v~žádném z~nich, a~jsou tak považována za kontaminovaná.
-
-\begin{figure}[h]
-    \centering
-    \input{diagrams/join-action}%
-    \caption[Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy]{Spojení hodnot \texttt{SafeHtml} a~\texttt{SafeScript} v~mřížce s~kontextovými typy. Zeleně bezpečné operandy, červeně kontaminovaný výsledek~$\top$.}
-    \label{fig:join-action}
-    \source{vlastní zpracování}
-\end{figure}
+Stejný panel ukazuje akci operátoru spojení $\sqcup$. Na tomto operátoru stojí propagace kontaminace: pokud program kombinuje dvě hodnoty z~různých bezpečnostních tříd, získá výsledek štítek odpovídající jejich nejmenší společné horní mezi. Kontextové typy uprostřed mřížky jsou vzájemně nesrovnatelné a~jejich nejmenší společnou horní mezí je~$\top$. Spojení dvou různých bezpečných typů, například \texttt{SafeHtml} a~\texttt{SafeScript}, proto vrací~$\top$. Data validovaná pro různé kontexty po zkombinování neplatí v~žádném z~nich, a~jsou tak považována za kontaminovaná.
 
 \subsection{Bezpečnostní typové systémy a~lambda kalkul}
 
@@ -208,7 +192,7 @@ Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~
 
 \section{Taint analýza}
 
-Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. Jejím cílem je zjistit, zda se data z~nedůvěryhodného zdroje mohou dostat do nebezpečné propasti bez předchozí sanitace. V~jazyce TypeScript ji lze realizovat buď externími nástroji statické analýzy (\emph{Static Application Security Testing}, SAST), nebo ji integrovat přímo do typového systému \parencite{volpano1996sound,owaspSAST}. Cílovou pipeline backendové aplikace,~kterou taint analýza střeží, shrnuje schéma~\ref{fig:pipeline}. Hodnota typu \texttt{unknown} se štítkem~$\top$ v~ní nejprve projde validací podle schématu knihovny Zod a~získá mezistupeň~$\mathit{mid}$. Poté ji sanitační funkce~$\sigma$ převede na \texttt{SafeHtml} se štítkem~$\bot$. Teprve takovou hodnotu smí přijmout propast \texttt{res.send}, a~to prostřednictvím obalující funkce \texttt{send} s~podpisem podle rovnice~\ref{eq:send-contract}. Schéma~\ref{fig:pipeline} tak doplňuje dvouprvkovou mřížku z~diagramu~\ref{fig:mrizka-integrity} o~mezistupeň~$\mathit{mid}$ z~rovnice~\ref{eq:validate}. Zároveň ji propojuje s~konkrétními typy TypeScriptu,~které zavádějí podsekce~\ref{sec:schema-validace} a~\ref{sec:safevalues}.
+Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. Jejím cílem je zjistit, zda se data z~nedůvěryhodného zdroje mohou dostat do nebezpečné propasti bez předchozí sanitace. V~jazyce TypeScript ji lze realizovat buď externími nástroji statické analýzy (\emph{Static Application Security Testing}, SAST), nebo ji integrovat přímo do typového systému \parencite{volpano1996sound,owaspSAST}. Cílovou pipeline backendové aplikace,~kterou taint analýza střeží, shrnuje schéma~\ref{fig:pipeline}. Hodnota typu \texttt{unknown} se štítkem~$\top$ v~ní nejprve projde validací podle schématu knihovny Zod a~získá mezistupeň~$\mathit{mid}$. Poté ji sanitační funkce~$\sigma$ převede na \texttt{SafeHtml} se štítkem~$\bot$. Teprve takovou hodnotu smí přijmout propast \texttt{res.send}, a~to prostřednictvím obalující funkce \texttt{send} s~podpisem podle rovnice~\ref{eq:send-contract}. Schéma~\ref{fig:pipeline} tak doplňuje dvouprvkovou mřížku z~diagramu~\ref{fig:mrizka-klasicka} o~mezistupeň~$\mathit{mid}$ z~rovnice~\ref{eq:validate}. Zároveň ji propojuje s~konkrétními typy TypeScriptu,~které zavádějí podsekce~\ref{sec:schema-validace} a~\ref{sec:safevalues}.
 
 \begin{figure}[htbp]
     \centering

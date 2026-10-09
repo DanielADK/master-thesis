@@ -207,7 +207,7 @@ Původ se řídí horší z~obou částí a~kontext zůstane ve štítku zřetě
 
 V~důkazu konfinace není toto tvrzení využito. Tvrzení však zaručuje, že štítek zřetězení více hodnot nezávisí na pořadí,~ve kterém se spojení počítají.
 
-Model tím zpřesňuje tvrzení teoretické kapitoly ilustrované diagramem~\ref{fig:join-action}. Spojení dvou hodnot způsobilých každá pro jiný jediný kontext, jako \texttt{SafeHtml} a~\texttt{SafeScript}, nedává největší prvek. Štítek výsledku sice nepřizná žádný kontext, původ se však nezhorší, takže spojením dvou takových literálů vznikne $(\bot, \emptyset)$. Toto rozlišení umožní připustit programátorem zapsaný literál obsahující značky HTML.
+Tím je zpřesněno tvrzení teoretické kapitoly ilustrované panelem~(b) diagramu~\ref{fig:mrizka-klasicka}. Spojení dvou hodnot způsobilých každá pro jiný jediný kontext, jako \texttt{SafeHtml} a~\texttt{SafeScript}, nedává největší prvek. Štítek výsledku sice nepřizná žádný kontext, původ se však nezhorší, takže spojením dvou takových literálů vznikne $(\bot, \emptyset)$. Toto rozlišení umožní připustit programátorem zapsaný literál obsahující značky HTML.
 
 Obě osy štítku znázorňuje diagram~\ref{fig:mrizka-soucin}. Se všemi pěti kontexty modelu by osa kontextů v~jeho panelu~(b) měla třicet dva vrcholů. V~panelu~(c) směrem vzhůru přibývá kontaminace a~směrem vpravo ubývá kontextů, pro které je hodnota způsobilá. Obojí štítek zhoršuje. Hodnotě \texttt{SafeHtml} odpovídá sloupec~$\{h\}$ v~kterémkoliv řádku, při jakémkoliv původu.
 
