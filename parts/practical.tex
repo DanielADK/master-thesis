@@ -664,17 +664,17 @@ Obsah elementu \texttt{title} není datovou dírou kontextu \emph{html}, ačkoli
 
 Šablonu zapisuje programátor jako volání \texttt{html('<a href="', u, '">', q, '</a>')}: literály a~hodnoty se střídají v~argumentech. Tagovaná šablona \verb|html`…`| by byla čitelnější, avšak její statické části mají typ \texttt{TemplateStringsArray} bez literálových typů a~překladač by jejich text neviděl. Typovatelné je pouze volání s~typovým parametrem označeným \texttt{const},~který argumenty odvodí jako n-tici literálových typů.
 
-Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~který čte literál znak po znaku a~nese stav tokenizéru v~typovém parametru. Stavy jsou objektové typy (\texttt{Data} pro text elementu, \texttt{Val<N, A, Q, Piece>} pro hodnotu atributu~\texttt{A} elementu~\texttt{N} v~uvozovce~\texttt{Q}, \texttt{Raw<N>} pro obsah elementů se surovým textem, \texttt{Script<Q>} pro skript, \texttt{Bad<M>} pro zamítnutí s~větou~\texttt{M}). Přechody kopírují tokenizér HTML v~rozsahu typu \texttt{CtxOf} z~podsekce~\ref{sec:model-typescript}, rozšířeném o~deklaraci \texttt{<!doctype html>} a~o~sledování řetězcových literálů ve skriptu. Skener je spodním odhadem definice~\ref{def:tpl}: kontext přizná jen díře ve stavu z~tabulky~\ref{tab:diry}, jinak dosadí větu.
+Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~který čte literál znak po znaku a~nese stav tokenizéru v~typovém parametru. Diagram~\ref{fig:skener} ukazuje jeho stavy a~to, ve kterých z~nich smí ležet díra. Přechody kopírují tokenizér HTML v~rozsahu typu \texttt{CtxOf} z~podsekce~\ref{sec:model-typescript}, rozšířeném o~deklaraci \texttt{<!doctype html>} a~o~řetězcové literály ve skriptu. Skener je spodním odhadem definice~\ref{def:tpl}: díře mimo zelené stavy dosadí větu.
 
-\begin{table}[htbp]
+\begin{figure}[htbp]
     \centering
     \input{diagrams/skener}%
     \caption[Stavy skeneru šablon a~díry v~nich]{Stavy skeneru šablon a~díry v~nich. Zeleně stavy,~ve kterých smí ležet díra, s~jejím kontextem, šedě stavy bez díry.}
     \label{fig:skener}
     \source{vlastní zpracování}
-\end{table}
+\end{figure}
 
-To, že stačí statický text, ačkoliv definice~\ref{def:tpl} mluví o~všech způsobilých hodnotách, je vlastnost modelu prohlížeče, nikoliv věta. Datová díra je kanonický stav tokenizéru (hodnota atributu, řetězec bez nedokončené escape sekvence, text elementu mimo cizí obsah, u~obsahu titulku v~obou čteních z~předpokladu~\ref{ass:parse}). Způsobilá hodnota ho podle podmínky~\eqref{in:okoli} nezmění, a~statický text za dírou se proto čte stejně bez ohledu na hodnotu. Shodu skeneru s~definicí ověřují testy z~podsekce~\ref{sec:lib-overeni}. Ve skriptu skener sleduje řetězce přesně a~mimo ně zakazuje znaky \texttt{<}, \texttt{/}, zpětné lomítko a~backtick i~posloupnost \texttt{-->}, protože bez lexeru JavaScriptu nelze spolehlivě rozpoznat komentář, regulární výraz ani šablonový literál. V~hodnotě atributu kontextu \emph{url} musí být každý statický úsek mezi dvěma dírami sám způsobilý pro \emph{url}, aby celou hodnotu pokrylo tvrzení~\ref{lem:monoid}. Jména elementů a~atributů skener převádí na malá písmena, jako to dělá prohlížeč.
+To, že stačí statický text, je vlastnost modelu prohlížeče, nikoliv věta. Způsobilá hodnota stav díry podle podmínky~\eqref{in:okoli} nezmění, takže statický text za dírou se čte stejně bez ohledu na hodnotu, u~titulku v~obou čteních z~předpokladu~\ref{ass:parse}. Ve skriptu skener mimo řetězce zakazuje znaky \texttt{<}, \texttt{/}, zpětné lomítko a~backtick i~posloupnost \texttt{-->}, protože bez lexeru JavaScriptu nelze rozpoznat komentář, regulární výraz ani šablonový literál. Statický úsek adresy mezi dvěma dírami musí být sám způsobilý pro \emph{url}, aby celou hodnotu pokrylo tvrzení~\ref{lem:monoid}. Jména elementů a~atributů skener převádí na malá písmena jako prohlížeč. Shodu s~definicí ověřují testy z~podsekce~\ref{sec:lib-overeni}.
 
 Podpis funkce zní:
 
