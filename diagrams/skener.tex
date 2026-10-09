@@ -1,0 +1,31 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    st/.style={draw, rounded corners=3pt, minimum width=26mm, minimum height=10mm, align=center, fill=gray!10, draw=gray!55!black},
+    hole/.style={st, fill=green!12, draw=green!45!black, thick},
+    e/.style={->, >=Stealth, gray!45!black},
+    t/.style={font=\tiny\ttfamily, fill=white, inner sep=1pt},
+    lab/.style={font=\scriptsize, align=left}
+]
+    \node[hole] (data) at (0, 0)      {text elementu\\[1pt]\emph{díra html}};
+    \node[st]   (tag)  at (4.6, 0)    {uvnitř značky\\[1pt]\emph{bez díry}};
+    \node[hole] (val)  at (4.6, -3.0) {hodnota atributu\\v~uvozovkách\\[1pt]\emph{díra text, url, res}};
+    \node[hole] (raw)  at (9.8, 1.7)  {obsah \texttt{title}, \texttt{textarea}\\[1pt]\emph{díra text}};
+    \node[st]   (rawx) at (9.8, -0.2) {obsah \texttt{style}, \texttt{xmp}, …\\[1pt]\emph{bez díry}};
+    \node[st]   (code) at (9.8, -2.1) {kód skriptu\\[1pt]\emph{bez díry}};
+    \node[hole] (str)  at (9.8, -4.1) {řetězec ve skriptu\\[1pt]\emph{díra script}};
+
+    \draw[e] (data) to[bend left=14] node[t, above] {<jméno} (tag);
+    \draw[e] (tag)  to[bend left=14] node[t, below] {>} (data);
+    \draw[e] (tag)  to[bend left=18] node[t, right] {atribut="} (val);
+    \draw[e] (val)  to[bend left=18] node[t, left]  {"} (tag);
+    \draw[e] (tag)  -- node[t, above, sloped, pos=0.55] {> u~title, textarea} (raw);
+    \draw[e] (tag)  -- node[t, below, sloped, pos=0.6] {> u~style, xmp, …} (rawx);
+    \draw[e] (tag)  -- node[t, below, sloped, pos=0.55] {> u~script} (code);
+    \draw[e] (code) to[bend left=18] node[t, right] {" nebo '} (str);
+    \draw[e] (str)  to[bend left=18] node[t, left]  {táž uvozovka} (code);
+
+    \node[lab, anchor=north west] at (-1.5, -5.1)
+        {Koncová značka vrací z~pravých stavů do textu elementu. Kontext hodnoty atributu určuje jeho jméno:\\
+         textový atribut \emph{text}, \texttt{src} elementu \texttt{script} \emph{res}, jiný atribut \emph{url}. Obsluha události, \texttt{srcdoc},\\
+         \texttt{style} a~atributy elementů načítajících kód díru nemají, stejně jako kód skriptu mimo řetězec.};
+\end{tikzpicture}
