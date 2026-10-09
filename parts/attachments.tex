@@ -45,9 +45,9 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
 
 \begin{table}[htbp]
     \centering
-    \footnotesize
-    \setlength{\extrarowheight}{1.5pt}
-    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{7.4cm}@{}}
+    \scriptsize
+    \setlength{\extrarowheight}{1pt}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{4.2cm}Y@{}}
         \toprule
         \textbf{Tvrzení} & \textbf{Test} & \textbf{Výsledek} \\
         \midrule
@@ -74,7 +74,7 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
         běžící příklad & \texttt{compile/\allowbreak running-example.ts}, \texttt{konfinace.test.ts} & opravená obsluha se přeloží a~pro 45 útoků neinjektuje, zranitelná se nepřeloží \\
         odpověď po částech & \texttt{limits.test.ts} & injektáž nastane, ač je každá část přijata \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Tvrzení modelu a~testy,~které je ověřují}
     \label{tab:own-work}
     \source{vlastní zpracování}
@@ -84,7 +84,7 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
     \centering
     \footnotesize
     \setlength{\extrarowheight}{1.5pt}
-    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{6.4cm}>{\raggedright\arraybackslash}p{7.6cm}@{}}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.5cm}>{\raggedright\arraybackslash}p{6.4cm}Y@{}}
         \toprule
         \textbf{č.} & \textbf{Mutant realizace} & \textbf{Zachytí} \\
         \midrule
@@ -101,7 +101,7 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
         11 & každý literál je způsobilý pro \emph{html} & překlad: \texttt{compile/rules.ts}, \texttt{generated/adequacy.ts}, \texttt{generated/literals.ts}; běhové testy: \texttt{thesis} \\
         12 & $D(S)$ vždy obsahuje \emph{text} & překlad: \texttt{compile/rules.ts}, \texttt{generated/adequacy.ts}, \texttt{generated/literals.ts} \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Mutanty realizace a~testy,~které je zachytí (\texttt{npm run mutants})}
     \label{tab:mutanty}
     \source{vlastní zpracování}

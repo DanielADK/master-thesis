@@ -118,7 +118,7 @@ Vztah zavedených formálních pojmů k~prevenci XSS shrnuje tabulka~\ref{tab:fo
 \begin{table}[h]
     \centering
     \footnotesize
-    \begin{tabular}{l>{\raggedright\arraybackslash}p{52mm}l}
+    \begin{tabularx}{\textwidth}{@{}lYY@{}}
         \toprule
         \textbf{Formální koncept} & \textbf{Význam v~prevenci XSS} & \textbf{Cíl analýzy} \\
         \midrule
@@ -127,7 +127,7 @@ Vztah zavedených formálních pojmů k~prevenci XSS shrnuje tabulka~\ref{tab:fo
         Operátor $\sqcup$          & propagace kontaminace          & sledování složitých výrazů \\
         Konfinace                  & znaky útočníka mimo vykonávaná a~řídicí místa & věta~\ref{thm:konfinace} modelu \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Mapování formálních konceptů na úlohy prevence XSS}
     \label{tab:formalni-koncepty}
     \source{vlastní zpracování}
@@ -190,7 +190,7 @@ Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~
 \begin{table}[h]
     \centering
     \footnotesize
-    \begin{tabular}{lll}
+    \begin{tabularx}{\textwidth}{@{}lYl@{}}
         \toprule
         \textbf{Kategorie propasti} & \textbf{Příklad rozhraní} & \textbf{Požadovaný typ} \\
         \midrule
@@ -200,7 +200,7 @@ Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~
         Načtení zdroje      & atribut \texttt{src} v~\texttt{<script>}          & \texttt{TrustedResourceUrl}  \\
         Přesměrování        & \texttt{res.redirect}                             & \texttt{SafeUrl} \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Kategorie backendových propastí a~odpovídající typové ochrany dle vzoru Trusted Types}
     \label{tab:sinky}
     \source{vlastní zpracování}

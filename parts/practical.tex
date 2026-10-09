@@ -26,7 +26,7 @@ Nejblíže má model k~typovému systému CSAS (\emph{Context-Sensitive Auto-San
 \begin{table}[htbp]
     \centering
     \footnotesize
-    \begin{tabular}{@{}lll@{}}
+    \begin{tabularx}{\textwidth}{@{}lYY@{}}
         \toprule
         \textbf{Pojem} & \textbf{Zápis} & \textbf{Význam} \\
         \midrule
@@ -40,9 +40,9 @@ Nejblíže má model k~typovému systému CSAS (\emph{Context-Sensitive Auto-San
         propast kontextu~$c$ & $i = \bot$ \;nebo\; $c \in K$ & vlastní text, nebo způsobilá hodnota \\
         \midrule
         co je dokázáno      & věta~\ref{thm:konfinace} & znaky útočníka mimo vykonávaná a~řídicí místa \\
-        co zbývá ověřit     & \begin{tabular}[t]{@{}l@{}}předpoklady~\ref{ass:parse}, \ref{ass:san}\\ a~\ref{ass:jadro},\\ tvrzení~\ref{claim:adekvatnost}, definice~\ref{def:fragment}\end{tabular} & \begin{tabular}[t]{@{}l@{}}model prohlížeče, sanitační funkce,\\ validace, jádro knihovny,\\ přenos do TypeScriptu, úniky z~typů\end{tabular} \\
+        co zbývá ověřit     & předpoklady~\ref{ass:parse}, \ref{ass:san} a~\ref{ass:jadro}, tvrzení~\ref{claim:adekvatnost}, definice~\ref{def:fragment} & model prohlížeče, sanitační funkce, validace, jádro knihovny, přenos do TypeScriptu, úniky z~typů \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Přehled modelu: bezpečnostní štítek, pravidla pro jeho výpočet a~výsledné záruky}
     \label{tab:model-prehled}
     \source{vlastní zpracování}
@@ -268,7 +268,7 @@ Funkce, podmínky ani cykly model neobsahuje. Jde o~vědomé zjednodušení: kon
 \begin{table}[htbp]
     \centering
     \footnotesize
-    \begin{tabular}{llll}
+    \begin{tabularx}{\textwidth}{@{}llYl@{}}
         \toprule
         \textbf{výraz} & \textbf{štítek výsledku} & \textbf{podmínka} & \textbf{značka} \\
         \midrule
@@ -280,7 +280,7 @@ Funkce, podmínky ani cykly model neobsahuje. Jde o~vědomé zjednodušení: kon
         \midrule
         $\mOut_c(e)$     & \emph{(program, štítek nemá)} & $i = \bot$ \;nebo\; $c \in K$ & \textsc{T-Out} \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Pravidla pro výpočet štítku}
     \label{tab:pravidla}
     \source{vlastní zpracování}
@@ -521,7 +521,7 @@ Tabulka~\ref{tab:puvod} uvádí u~všeho, s~čím model pracuje, jeho původ. Lz
     \centering
     \footnotesize
     \setlength{\tabcolsep}{4pt}
-    \begin{tabular}{@{}lll@{}}
+    \begin{tabularx}{\textwidth}{@{}YlY@{}}
         \toprule
         \textbf{Pojem} & \textbf{Status} & \textbf{Kde} \\
         \midrule
@@ -562,7 +562,7 @@ Tabulka~\ref{tab:puvod} uvádí u~všeho, s~čím model pracuje, jeho původ. Lz
         deserializace vstupu             & \textbf{mimo záruku} & níže \\
         odpověď odesílaná po částech     & \textbf{mimo záruku} & níže \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Původ pojmů, předpokladů a~tvrzení modelu}
     \label{tab:puvod}
     \source{vlastní zpracování}
@@ -623,13 +623,13 @@ Podmínka~(i) pro $k = 1$ na hodnotách nezávisí: kontext první díry určuje
 
 \begin{center}
     \footnotesize
-    \begin{tabular}{llll}
+    \begin{tabularx}{\textwidth}{@{}llYl@{}}
         \toprule
         \textbf{výraz} & \textbf{štítek výsledku} & \textbf{podmínka} & \textbf{značka} \\
         \midrule
         $\mTpl(s_0, e_1, \ldots, e_n, s_n)$ & $\bigl(\max(\bot, i_1, \ldots, i_n),\; \{\mathit{html}\}\bigr)$ & uzavřená s~kontexty děr $(c_k)$ a~$c_k \in K_k$ & \textsc{T-Tpl} \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
 \end{center}
 
 Diagram~\ref{fig:sablona} ukazuje pravidlo na šabloně se třemi dírami: kontext každé díry určuje statický text před ní, hodnota v~díře ho musí nést a~výsledek má kontext \emph{html}.
@@ -668,21 +668,9 @@ Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~kt
 
 \begin{table}[htbp]
     \centering
-    \footnotesize
-    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{10.5cm}l@{}}
-        \toprule
-        \textbf{stav skeneru před dírou} & \textbf{kontext díry} \\
-        \midrule
-        text elementu & \emph{html} \\
-        obsah elementu \texttt{title} nebo \texttt{textarea} & \emph{text} \\
-        hodnota textového atributu v~uvozovkách na elementu,~který kód nenačítá & \emph{text} \\
-        hodnota jiného atributu v~uvozovkách mimo obsluhy událostí, \texttt{srcdoc} a~\texttt{style}, pokud je statický úsek hodnoty před dírou sám způsobilý pro \emph{url} & \emph{url} \\
-        celá hodnota atributu \texttt{src} elementu \texttt{script} & \emph{res} \\
-        řetězcový literál ve skriptu & \emph{script} \\
-        \bottomrule
-    \end{tabular}
-    \caption{Kontexty děr podle stavu skeneru}
-    \label{tab:diry}
+    \input{diagrams/skener}%
+    \caption[Stavy skeneru šablon a~díry v~nich]{Stavy skeneru šablon a~díry v~nich. Zeleně stavy,~ve kterých smí ležet díra, s~jejím kontextem, šedě stavy bez díry.}
+    \label{fig:skener}
     \source{vlastní zpracování}
 \end{table}
 
@@ -718,7 +706,7 @@ Knihovna leží ve složce \texttt{lib} nad jádrem ze složky \texttt{src}. Já
 \begin{table}[htbp]
     \centering
     \footnotesize
-    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{8.4cm}@{}}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.1cm}Y@{}}
         \toprule
         \textbf{symbol} & \textbf{pravidlo} & \textbf{význam} \\
         \midrule
@@ -731,7 +719,7 @@ Knihovna leží ve složce \texttt{lib} nad jádrem ze složky \texttt{src}. Já
         \texttt{send(res, page)} & \textsc{T-Out} & odeslání stránky vcelku s~hlavičkou \texttt{Content-Type}; přijme odpověď Expressu, Fastify i~\texttt{node:http} \\
         \texttt{SafeHtml}, \texttt{SafeText}, \texttt{SafeScript}, \texttt{SafeUrl}, \texttt{TrustedResourceUrl} & & typy \texttt{Str<Level, c>} pro jednotlivé kontexty; čtyři z~dílčího cíle~2 a~pátý pro kontext \emph{text} \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
     \caption{Veřejné rozhraní knihovny}
     \label{tab:lib}
     \source{vlastní zpracování}
