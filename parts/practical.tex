@@ -510,7 +510,7 @@ Vyčíslení se vyplatilo hned při prvním běhu. Našlo šablonu s~titulkem a~
 Sílu testů měří mutační kontrola \parencite{jia2011mutation}: realizace se dvanáctkrát záměrně rozbije, pokaždé na jednom místě, a~sada testů musí rozbití poznat. Mutanty jmenuje tabulka~\ref{tab:mutanty} v~\hyperref[app:own-work]{příloze~A}: sanitační funkce propustí schéma \texttt{javascript:} nebo uvozovku, skener dá obsluze události kontext \emph{text}, funkce \texttt{send} přijme každý řetězec, a~podobně. Každý mutant byl zachycen: mutanty typů chytá překlad, mutanty sanitačních funkcí běhové testy. Pátý mutant je stav realizace před nálezem titulku. Dnes ho chytí i~testy generátoru, protože model prohlížeče už zná zahozený titulek. Před nálezem ho z~běhových testů zachytilo pouze vyčíslení.
 
 \paragraph{Hrozby platnosti.}
-Model prohlížeče není prohlížeč: omyl, který sdílí předpoklad i~realizace, test nenajde, jak ukázal titulek. Množinu~$V$ model navíc nadhodnocuje, protože nemá lexer JavaScriptu. Sadu kamenů i~mutanty volil autor a~vyčíslení je úplné pouze do tří uzlů nad touto sadou. Tvrzení platí vůči modelu prohlížeče, nikoliv vůči skutečným prohlížečům a~aplikacím. To posoudí až vyhodnocení na skutečných zranitelnostech. Silnější oporou by byl důkaz ověřený v~asistentu, například v~Lean, a~z~něj odvozená realizace,~což přesahuje rozsah práce.
+Model prohlížeče není prohlížeč: omyl,~který sdílí předpoklad i~realizace, test nenajde, jak ukázal titulek. Množinu~$V$ model navíc nadhodnocuje, protože nemá lexer JavaScriptu. Sadu kamenů i~mutanty volil autor a~vyčíslení je úplné pouze do tří uzlů nad touto sadou. Tvrzení platí vůči modelu prohlížeče, nikoliv vůči skutečným prohlížečům a~aplikacím. To posoudí až vyhodnocení na skutečných zranitelnostech. Silnější oporou by byl důkaz ověřený v~asistentu, například v~Lean, a~z~něj odvozená realizace,~což přesahuje rozsah práce.
 
 \subsection{Předpoklady a~meze modelu}
 \label{sec:model-hranice}
@@ -631,6 +631,16 @@ Podmínka~(i) pro $k = 1$ na hodnotách nezávisí: kontext první díry určuje
         \bottomrule
     \end{tabular}
 \end{center}
+
+Diagram~\ref{fig:sablona} ukazuje pravidlo na šabloně se třemi dírami: kontext každé díry určuje statický text před ní, hodnota v~díře ho musí nést a~výsledek má kontext \emph{html}.
+
+\begin{figure}[htbp]
+    \centering
+    \input{diagrams/sablona}%
+    \caption[Šablona s~dírami a~pravidlo T-Tpl]{Šablona s~dírami a~pravidlo T-Tpl. Šedě statický text, žlutě díry s~kontexty podle definice~\ref{def:tpl}, červeně hodnoty se znaky útočníka a~jejich štítky.}
+    \label{fig:sablona}
+    \source{vlastní zpracování}
+\end{figure}
 
 Na rozdíl od pravidla \textsc{T-Out} se v~díře nepřipouští alternativa $i_k = \bot$. Literál programátora bez způsobilosti pro kontext díry, například \verb|'"><p>'| v~hodnotě atributu, by posunul kontext hodnotám útočníka v~dalších dírách a~podmínka~(i) by pro ně neplatila.
 

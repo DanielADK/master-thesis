@@ -1,0 +1,40 @@
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    st/.style={draw, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny, inner sep=3pt, outer sep=0pt},
+    hole/.style={draw, dashed, minimum height=6mm, minimum width=16mm, fill=yellow!25, draw=orange!80!black, font=\itshape\scriptsize, inner sep=3pt, outer sep=0pt},
+    val/.style={draw, rounded corners=2pt, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny, inner sep=3pt},
+    lab/.style={font=\tiny, align=center},
+    hdr/.style={font=\scriptsize\bfseries},
+    a/.style={->, >=Stealth, gray!55!black}
+]
+    % template: static text and holes in one chain
+    \node[st] (s0) at (0, 0) {<a href="};
+    \node[hole, anchor=west] (h1) at (s0.east) {url};
+    \node[st, anchor=west] (s1) at (h1.east) {" title="};
+    \node[hole, anchor=west] (h2) at (s1.east) {text};
+    \node[st, anchor=west, minimum width=12mm] (s2) at (h2.east) {">};
+    \node[hole, anchor=west] (h3) at (s2.east) {html};
+    \node[st, anchor=west] (s3) at (h3.east) {</a>};
+    \node[lab, above=1pt of h1] {díra 1: $c_1$};
+    \node[lab, above=1pt of h2] {díra 2: $c_2$};
+    \node[lab, above=1pt of h3] {díra 3: $c_3$};
+    \node[hdr, left=3mm of s0] {šablona};
+
+    % values with their labels
+    \node[val, below=11mm of h1] (v1) {escapeUrl(u)};
+    \node[val, below=11mm of h2] (v2) {escapeHtml(q)};
+    \node[val, below=11mm of h3] (v3) {escapeHtml(q)};
+    \node[lab, below=1pt of v1] {$(\mathit{mid}, \{\mathit{url}\})$};
+    \node[lab, below=1pt of v2] {$(\mathit{mid}, \{\mathit{html}, \mathit{text}\})$};
+    \node[lab, below=1pt of v3] {$(\mathit{mid}, \{\mathit{html}, \mathit{text}\})$};
+    \draw[a] (v1) -- (h1) node[midway, right, lab] {$c_1 \in K_1$};
+    \draw[a] (v2) -- (h2) node[midway, right, lab] {$c_2 \in K_2$};
+    \draw[a] (v3) -- (h3) node[midway, right, lab] {$c_3 \in K_3$};
+    \node[hdr, left=3mm of v1] {hodnoty};
+
+    % result and the two conditions of def:tpl
+    \node[lab, align=left, anchor=north west] at ($(s0.south west)+(-1.55,-2.55)$)
+        {\textbf{výsledek} $s_0 v_1 s_1 v_2 s_2 v_3 s_3$ se štítkem $(\mathit{mid}, \{\mathit{html}\})$\\[2pt]
+         (i) text před každou dírou končí v~datové díře jejího kontextu\\
+         (ii) celý výsledek končí v~datové díře kontextu \emph{html}};
+\end{tikzpicture}
