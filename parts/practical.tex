@@ -65,15 +65,27 @@ U~tohoto programu má model přesně určit příčinu chyby a~nejmenší změnu
 \subsection{Meze escapování}
 \label{sec:model-proc}
 
-Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~která ze vstupu odstraní nebezpečné znaky. Schéma~\ref{fig:escapovani-nestaci} ukazuje pět variant běžícího příkladu,~které se liší \emph{pouze} místem, kam je hodnota vkládána. Stejná escapovací funkce je ve dvou z~nich dostatečná, ve zbylých třech nikoliv. V~atributu bez uvozovek ukončí hodnotu mezera,~kterou escapování nemění. V~obsluze události dekóduje prohlížeč entity v~hodnotě atributu dřív, než kód předá JavaScriptu, takže z~\texttt{\&\#39;} se opět stane apostrof. Schéma \texttt{javascript:} pak neobsahuje jediný escapovaný znak.
+Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~která ze vstupu odstraní nebezpečné znaky. Tabulka~\ref{tab:escapovani-nestaci} ukazuje pět variant běžícího příkladu,~které se liší \emph{pouze} místem, kam je hodnota vkládána. Stejná escapovací funkce je ve dvou z~nich dostatečná, ve zbylých třech nikoliv. V~atributu bez uvozovek ukončí hodnotu mezera,~kterou escapování nemění. V~obsluze události dekóduje prohlížeč entity v~hodnotě atributu dřív, než kód předá JavaScriptu, takže z~\texttt{\&\#39;} se opět stane apostrof. Schéma \texttt{javascript:} pak neobsahuje jediný escapovaný znak.
 
-\begin{figure}[htbp]
+\begin{table}[htbp]
     \centering
-    \input{diagrams/escapovani-nestaci}%
-    \caption{Pět variant běžícího příkladu a~účinnost escapování}
-    \label{fig:escapovani-nestaci}
+    \footnotesize
+    \begin{tabularx}{\textwidth}{@{}lYl@{}}
+        \toprule
+        \textbf{šablona: kam se \texttt{q} vkládá} & \textbf{escapování} & \textbf{vstup,~který přesto projde} \\
+        \midrule
+        \texttt{<h1>\$\{q\}</h1>} & stačí & žádný \\
+        \texttt{<a title="\$\{q\}">} & stačí & žádný \\
+        \midrule
+        \texttt{<input value=\$\{q\}>} & nestačí & \texttt{x onfocus=f() autofocus} \\
+        \texttt{<a onclick="go('\$\{q\}')">} & nestačí & \texttt{');f();//} \\
+        \texttt{<a href="\$\{q\}">} & nestačí & \texttt{javascript:f()} \\
+        \bottomrule
+    \end{tabularx}
+    \caption[Pět variant běžícího příkladu a~účinnost escapování]{Pět variant běžícího příkladu a~účinnost escapování. Escapování zde znamená náhradu znaků \texttt{\& < > " '} příslušnými entitami.}
+    \label{tab:escapovani-nestaci}
     \source{vlastní zpracování}
-\end{figure}
+\end{table}
 
 Bezpečnost tak závisí na hodnotě i~na místě, kam je vkládána. Model proto u~každé hodnoty sleduje její původ i~místa, kam ji lze bez újmy vložit. Obojí zachycuje štítek $(i, K)$ z~tabulky~\ref{tab:model-prehled}.
 
@@ -571,7 +583,7 @@ Tabulka~\ref{tab:puvod} uvádí u~všeho, s~čím model pracuje, jeho původ. Lz
 Model má i~tato omezení:
 
 \begin{description}
-    \item[Neúplnost zřetězení.] Pravidlo \textsc{T-Concat} je sice korektní, avšak neúplné: odmítne i~\emph{správnou} stavbu atributu v~uvozovkách. Literál \verb|'<a title="'| v~textu elementu otevírá hodnotu atributu, a~kontext \emph{html} mu proto chybí, ačkoliv hodnota escapovaná pro HTML by v~takovém atributu byla bezpečná (schéma~\ref{fig:escapovani-nestaci}). Model literálu přizná pouze kontexty,~které literál nezmění. Přechody kontextu u~literálů, jaké pro šablony odvozují a~při zřetězení skládají \textcite{samuel2011context}, by toto omezení odstranily a~jsou možným rozšířením modelu. Pro šablonu s~dírami, nejčastější tvar takového přechodu, zavádí rozšíření sekce~\ref{sec:lib} pravidlem \textsc{T-Tpl}.
+    \item[Neúplnost zřetězení.] Pravidlo \textsc{T-Concat} je sice korektní, avšak neúplné: odmítne i~\emph{správnou} stavbu atributu v~uvozovkách. Literál \verb|'<a title="'| v~textu elementu otevírá hodnotu atributu, a~kontext \emph{html} mu proto chybí, ačkoliv hodnota escapovaná pro HTML by v~takovém atributu byla bezpečná (tabulka~\ref{tab:escapovani-nestaci}). Model literálu přizná pouze kontexty,~které literál nezmění. Přechody kontextu u~literálů, jaké pro šablony odvozují a~při zřetězení skládají \textcite{samuel2011context}, by toto omezení odstranily a~jsou možným rozšířením modelu. Pro šablonu s~dírami, nejčastější tvar takového přechodu, zavádí rozšíření sekce~\ref{sec:lib} pravidlem \textsc{T-Tpl}.
     \item[Proměnlivý stav a~aliasing.] Model nemá vedlejší účinky. Značkované typy tuto obtíž u~neměnných řetězců \emph{obcházejí}: štítek nese hodnota, nikoliv místo, kde je uložena, takže více odkazů na stejnou hodnotu štítek neztratí. Neplatí to však pro měnitelné kontejnery bezpečných hodnot: pole, objekty a~kolekce \texttt{Map} a~\texttt{Set}. Jejich kovariance dovolí vložit vstup útočníka například do pole, na které odkazuje i~proměnná typu \texttt{SafeHtml[]}. Zachytit to musí pravidlo~F4 z~definice~\ref{def:fragment}. Model ovšem nedokáže vyjádřit hodnotu,~jejíž bezpečnost se v~čase mění.
     \item[Deserializace.] Model začíná u~řetězce a~cesta od těla požadavku typu \texttt{unknown} je skryta uvnitř validace~$\mVal_S$. Při realizaci proto musí hranice mezi \texttt{unknown} a~modelem procházet výhradně validační vrstvou. Ukázněný fragment ze stejného důvodu žádá, aby vstupy požadavku měly typ \texttt{unknown}.
     \item[Sanitační funkce jako taková.] Model dokáže, že sanitace proběhla, nedokáže však, že proběhla správně. Automatizovanému ověření této mezery se věnují zjemněné typy a~SMT solvery (sekce~\ref{sec:formalni-overeni}).
@@ -632,7 +644,7 @@ Podmínka~(i) pro $k = 1$ na hodnotách nezávisí: kontext první díry určuje
     \end{tabularx}
 \end{center}
 
-Diagram~\ref{fig:sablona} ukazuje pravidlo na šabloně se třemi dírami: kontext každé díry určuje statický text před ní, hodnota v~díře ho musí nést a~výsledek má kontext \emph{html}.
+Diagram~\ref{fig:sablona} ukazuje pravidlo na šabloně se třemi dírami: kontext každé díry určuje statický text před ní, hodnota v~díře ho musí nést a~výsledek $s_0 v_1 s_1 v_2 s_2 v_3 s_3$ dostane štítek $(\mathit{mid}, \{\mathit{html}\})$. Podmínka~(i) říká, že text před každou dírou končí v~datové díře jejího kontextu. Podmínka~(ii) říká, že celý výsledek končí v~datové díře kontextu \emph{html}.
 
 \begin{figure}[htbp]
     \centering
