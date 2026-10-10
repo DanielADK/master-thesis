@@ -664,12 +664,12 @@ Obsah elementu \texttt{title} není datovou dírou kontextu \emph{html}, ačkoli
 
 Šablonu zapisuje programátor jako volání \texttt{html('<a href="', u, '">', q, '</a>')}: literály a~hodnoty se střídají v~argumentech. Tagovaná šablona \verb|html`…`| by byla čitelnější, avšak její statické části mají typ \texttt{TemplateStringsArray} bez literálových typů a~překladač by jejich text neviděl. Typovatelné je pouze volání s~typovým parametrem označeným \texttt{const},~který argumenty odvodí jako n-tici literálových typů.
 
-Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~který čte literál znak po znaku a~nese stav tokenizéru v~typovém parametru. Diagram~\ref{fig:skener} ukazuje jeho stavy a~to, ve kterých z~nich smí ležet díra. Přechody kopírují tokenizér HTML v~rozsahu typu \texttt{CtxOf} z~podsekce~\ref{sec:model-typescript}, rozšířeném o~deklaraci \texttt{<!doctype html>} a~o~řetězcové literály ve skriptu. Skener je spodním odhadem definice~\ref{def:tpl}: díře mimo zelené stavy dosadí větu.
+Kontexty děr počítá ze statického textu \emph{skener}: podmíněný typ,~který čte literál znak po znaku a~nese stav tokenizéru v~typovém parametru. Stavový diagram~\ref{fig:skener} ukazuje jeho stavy a~přechody. Díra je v~každém stavu, kde ji smí přijmout, zapsána jako vnitřní přechod s~podmínkou na štítek hodnoty. Přechody kopírují tokenizér HTML v~rozsahu typu \texttt{CtxOf} z~podsekce~\ref{sec:model-typescript}, rozšířeném o~deklaraci \texttt{<!doctype html>} a~o~řetězcové literály ve skriptu. Skener je spodním odhadem definice~\ref{def:tpl}: díře mimo zelené stavy dosadí větu.
 
 \begin{figure}[htbp]
     \centering
     \input{diagrams/skener}%
-    \caption[Stavy skeneru šablon a~díry v~nich]{Stavy skeneru šablon a~díry v~nich. Zeleně stavy,~ve kterých smí ležet díra, s~jejím kontextem, šedě stavy bez díry.}
+    \caption[Stavový diagram skeneru šablon]{Stavový diagram skeneru šablon v~notaci UML. Přechody nesou událost, podmínku v~hranatých závorkách a~případně akci; křížek je ukončení se zamítnutím.}
     \label{fig:skener}
     \source{vlastní zpracování}
 \end{figure}

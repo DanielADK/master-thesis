@@ -1,31 +1,63 @@
+% UML state machine diagram of the template scanner, portrait layout. Green: states that accept a hole
+% (the hole is an internal transition with a guard on the label of the value); grey: states without a hole;
+% red crosses: terminate pseudostates (the rejection sentence); the diamond is a choice pseudostate.
 \begin{tikzpicture}[
     every node/.style={font=\scriptsize},
-    st/.style={draw, rounded corners=3pt, minimum width=26mm, minimum height=10mm, align=center, fill=gray!10, draw=gray!55!black},
-    hole/.style={st, fill=green!12, draw=green!45!black, thick},
-    e/.style={->, >=Stealth, gray!45!black},
-    t/.style={font=\tiny\ttfamily, fill=white, inner sep=1pt},
-    lab/.style={font=\scriptsize, align=left}
+    state/.style={draw, rounded corners=4pt, rectangle split, rectangle split parts=2, align=center, inner sep=3pt, minimum width=26mm, fill=gray!8, draw=gray!55!black},
+    hole/.style={state, fill=green!12, draw=green!45!black},
+    simple/.style={draw, rounded corners=4pt, align=center, inner sep=4pt, minimum width=26mm, minimum height=8mm, fill=gray!8, draw=gray!55!black},
+    comp/.style={draw, rounded corners=6pt, inner sep=5pt, draw=gray!55!black},
+    tr/.style={->, >=Stealth, gray!30!black},
+    t/.style={font=\tiny, fill=white, inner sep=1pt, align=center},
+    init/.style={circle, fill=black, inner sep=0pt, minimum size=2.4mm},
+    choice/.style={diamond, draw, inner sep=0pt, minimum size=4mm, fill=white},
+    final/.style={circle, draw, inner sep=0pt, minimum size=4mm, path picture={\fill (path picture bounding box.center) circle (1.1mm);}}
 ]
-    \node[hole] (data) at (0, 0)      {text elementu\\[1pt]\emph{díra html}};
-    \node[st]   (tag)  at (4.6, 0)    {uvnitř značky\\[1pt]\emph{bez díry}};
-    \node[hole] (val)  at (4.6, -3.0) {hodnota atributu\\v~uvozovkách\\[1pt]\emph{díra text, url, res}};
-    \node[hole] (raw)  at (9.8, 1.7)  {obsah \texttt{title}, \texttt{textarea}\\[1pt]\emph{díra text}};
-    \node[st]   (rawx) at (9.8, -0.2) {obsah \texttt{style}, \texttt{xmp}, …\\[1pt]\emph{bez díry}};
-    \node[st]   (code) at (9.8, -2.1) {kód skriptu\\[1pt]\emph{bez díry}};
-    \node[hole] (str)  at (9.8, -4.1) {řetězec ve skriptu\\[1pt]\emph{díra script}};
+    \newcommand\terminate[2]{\coordinate (#1) at (#2);
+        \draw[thick, red!70!black] ($(#1)+(-1.3mm,-1.3mm)$) -- ($(#1)+(1.3mm,1.3mm)$) ($(#1)+(-1.3mm,1.3mm)$) -- ($(#1)+(1.3mm,-1.3mm)$);}
 
-    \draw[e] (data) to[bend left=14] node[t, above] {<jméno} (tag);
-    \draw[e] (tag)  to[bend left=14] node[t, below] {>} (data);
-    \draw[e] (tag)  to[bend left=18] node[t, right] {atribut="} (val);
-    \draw[e] (val)  to[bend left=18] node[t, left]  {"} (tag);
-    \draw[e] (tag)  -- node[t, above, sloped, pos=0.55] {> u~title, textarea} (raw);
-    \draw[e] (tag)  -- node[t, below, sloped, pos=0.6] {> u~style, xmp, …} (rawx);
-    \draw[e] (tag)  -- node[t, below, sloped, pos=0.55] {> u~script} (code);
-    \draw[e] (code) to[bend left=18] node[t, right] {" nebo '} (str);
-    \draw[e] (str)  to[bend left=18] node[t, left]  {táž uvozovka} (code);
+    % left column: element text, the tag, the attribute value
+    \node[init]   (init) at (0.0, 0.3) {};
+    \node[final]  (fin)  at (2.6, 1.9) {};
+    \node[hole]   (data) at (2.6, 0) {text elementu\nodepart{two}díra [html $\in K$]};
+    \node[simple] (tag)  at (2.6, -2.6) {uvnitř značky};
+    \node[hole]   (val)  at (2.6, -5.9) {hodnota atributu\\v~uvozovkách\nodepart{two}díra [textový atribut, text $\in K$]\\díra [src skriptu, res $\in K$]\\díra [jiný atribut, url $\in K$]};
+    \terminate{tagX}{0.1, -2.6}
+    \terminate{valX}{2.6, -8.6}
 
-    \node[lab, anchor=north west] at (-1.5, -5.1)
-        {Koncová značka vrací z~pravých stavů do textu elementu. Kontext hodnoty atributu určuje jeho jméno:\\
-         textový atribut \emph{text}, \texttt{src} elementu \texttt{script} \emph{res}, jiný atribut \emph{url}. Obsluha události, \texttt{srcdoc},\\
-         \texttt{style} a~atributy elementů načítajících kód díru nemají, stejně jako kód skriptu mimo řetězec.};
+    % right column: the choice after ">" and the raw-text content
+    \node[choice] (ch)   at (8.6, -2.6) {};
+    \node[hole]   (raw)  at (8.6, -5.0)  {obsah \texttt{title}, \texttt{textarea}\nodepart{two}díra [text $\in K$]};
+    \node[simple] (rawx) at (8.6, -7.2) {obsah \texttt{style}, \texttt{xmp}, …};
+    \node[simple] (code) at (8.6, -9.4) {kód skriptu};
+    \node[hole]   (str)  at (8.6, -11.5) {řetězec ve skriptu\nodepart{two}díra [script $\in K$]};
+    \node[comp] (scr) [fit=(code)(str)] {};
+    \node[anchor=south west, font=\scriptsize\itshape, inner sep=2pt] at (scr.north west) {skript};
+    \node[comp] (all) [fit=(raw)(rawx)(scr), inner sep=7pt] {};
+    \node[anchor=south west, font=\scriptsize\itshape, inner sep=2pt] at (all.north west) {obsah elementu se surovým textem};
+    \terminate{rawxX}{5.9, -7.2}
+    \terminate{codeX}{5.9, -9.4}
+
+    % transitions
+    \draw[tr] (init) -- ([yshift=3mm]data.west);
+    \draw[tr] (data) -- node[t, right] {konec textu} (fin);
+    \draw[tr] (data) -- node[t, right] {< jméno} (tag);
+    \draw[tr] (tag) -- node[t, above] {>} (ch);
+    \draw[tr] (ch.north) -- (8.6, 0.4) -- node[t, above, pos=0.5] {[běžný element]} (4.4, 0.4) -- ([yshift=4mm]data.east);
+    \draw[tr] (ch) -- node[t, right] {[title, textarea]} (raw.north);
+    \draw[tr] (ch.east) -- (11.3, -2.6) -- (11.3, -7.2) -- node[t, above, pos=0.45] {[style, xmp, …]} (rawx.east);
+    \draw[tr] (ch.east) -- (11.3, -2.6) -- (11.8, -2.6) -- (11.8, -9.4) -- node[t, above, pos=0.4] {[script]} (code.east);
+    \draw[tr] ([xshift=-3mm]tag.south) -- node[t, left] {atribut ="} ([xshift=-3mm]val.north);
+    \draw[tr] ([xshift=3mm]val.north) -- node[t, right] {"} ([xshift=3mm]tag.south);
+    \draw[tr] ([xshift=-3mm]code.south) -- node[t, left] {" nebo '} ([xshift=-3mm]str.north);
+    \draw[tr] ([xshift=3mm]str.north) -- node[t, right] {táž uvozovka} ([xshift=3mm]code.south);
+    \draw[tr] (all.south west) -- ++(0, -0.5) -| (-1.0, -0.3) -- node[t, left, pos=0.0] {} ([yshift=-3mm]data.west);
+    \node[t] at (3.4, -12.95) {</ jméno > [jméno otevřeného elementu]};
+    \draw[tr] (tag) -- node[t, above] {díra / věta} (tagX);
+    \draw[tr] (val) -- node[t, right] {díra [zakázaný atribut] / věta} (valX);
+    \draw[tr] (rawx) -- (rawxX) node[t, left] {díra / věta};
+    \draw[tr] (code) -- (codeX) node[t, left] {díra / věta};
+    \node[draw, font=\tiny, align=left, anchor=north, inner sep=2pt, fill=yellow!10] (note) at (2.6, -9.6)
+        {konec textu v~jiném stavu: zamítnuto s~větou;\\zakázaný atribut: obsluha události, srcdoc,\\style, atribut prvku načítajícího kód};
+    \draw[dashed, gray] (note.north) -- (valX);
 \end{tikzpicture}
