@@ -127,8 +127,8 @@ Cross-Site Scripting je zranitelnost,~která vzniká z~nedodržení striktního 
 
 \begin{figure}[!htb]
     \centering
-    \input{diagrams/xss-typy}%
-    \caption[Tři typy XSS na konkrétních příkladech]{Tři typy XSS na konkrétních příkladech. Červeně cesta škodlivého řetězce, šedě komunikace bez něj, červeným obdélníkem místo vložení do HTML.}
+    \diagram{xss-typy}%
+    \caption[Tři typy XSS jako sekvenční diagramy]{Tři typy XSS jako sekvenční diagramy UML na konkrétních příkladech. Červeně zprávy nesoucí škodlivý řetězec, šedě komunikace bez něj; zprávy k~sobě samému jsou zpracování uvnitř účastníka.}
     \label{fig:xss-typy}
     \source{vlastní zpracování podle \textcite{owaspTypesXSS}}
 \end{figure}

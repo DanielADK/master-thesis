@@ -1,64 +1,72 @@
+% UML sequence diagrams: one sd frame per XSS type, lifelines, synchronous calls (filled heads), replies
+% (dashed, open heads), self messages. Red marks the messages that carry the malicious string.
 \begin{tikzpicture}[
     x=1mm, y=0.9mm,
     every node/.style={font=\scriptsize},
-    actor/.style={draw=blue!50!black, fill=blue!8, rounded corners=2pt, minimum width=20mm, minimum height=7mm, font=\footnotesize},
-    attacker/.style={actor, draw=red!70!black, fill=red!10},
+    head/.style={draw, fill=blue!8, minimum width=20mm, minimum height=7mm, font=\footnotesize},
+    attacker/.style={head, fill=red!10},
     life/.style={densely dashed, gray!55},
-    lane/.style={draw=gray!60!black, rounded corners=2pt},
-    tab/.style={draw=gray!60!black, fill=gray!12, rounded corners=2pt, anchor=north west, inner sep=2.5pt, font=\footnotesize\bfseries},
-    pay/.style={-{Stealth}, thick, red!70!black},
-    msg/.style={-{Stealth}, thick, gray!60!black},
-    lbl/.style={above, inner sep=1.5pt, text=black, xshift=1.6mm},
-    num/.style={circle, inner sep=0pt, minimum size=3.2mm, font=\tiny\bfseries, text=white, fill=red!70!black},
-    numg/.style={num, fill=gray!60!black},
-    ins/.style={draw=red!70!black, fill=red!25, minimum width=2.2mm, minimum height=4.5mm, inner sep=0pt},
-    run/.style={font=\scriptsize\itshape, text=red!70!black}
+    frame/.style={draw=gray!60!black},
+    tag/.style={font=\footnotesize\bfseries, anchor=north west, inner sep=2pt},
+    call/.style={-{Stealth}, thick},
+    reply/.style={-{Straight Barb}, thick, dashed},
+    pay/.style={red!70!black},
+    plain/.style={gray!60!black},
+    lbl/.style={above, inner sep=1.5pt, text=black, font=\scriptsize}
 ]
-    % Actors and their timelines
-    \node[attacker] at ( 10, 0) {útočník};
-    \node[actor]    at ( 60, 0) {prohlížeč oběti};
-    \node[actor]    at (109, 0) {server aplikace};
-    \node[actor, minimum width=18mm] at (145, 0) {databáze};
+    % lifelines
+    \node[attacker] at ( 12, 0) {útočník};
+    \node[head]     at ( 60, 0) {prohlížeč oběti};
+    \node[head]     at (108, 0) {server aplikace};
+    \node[head, minimum width=18mm] at (143, 0) {databáze};
     \begin{scope}[on background layer]
-        \foreach \x in {10, 60, 109, 145} { \draw[life] (\x, -3.5) -- (\x, -124); }
+        \foreach \x in {12, 60, 108, 143} { \draw[life] (\x, -3.5) -- (\x, -146); }
     \end{scope}
+    % frame with a pentagon tag
+    \newcommand\sdframe[3]{%
+        \draw[frame] (0, #1) rectangle (152, #1-#2);
+        \draw[frame, fill=white] (0, #1) -- (#3, #1) -- (#3, #1-4.5) -- (#3-2, #1-6.5) -- (0, #1-6.5) -- cycle;
+        \node[tag] at (0, #1) {sd};}
+    % self message: a small loop on the lifeline at x, y with a label to the right
+    \newcommand\selfmsg[4]{%
+        \draw[call, #4] (#1, #2) -- (#1+6, #2) -- (#1+6, #2-5) -- (#1+0.6, #2-5);
+        \node[anchor=west, inner sep=1.5pt] at (#1+7, #2-2.5) {#3};}
 
     % Reflected XSS
-    \begin{scope}[shift={(0,-7)}]
-        \draw[lane] (0, 0) rectangle (154, -33);
-        \node[tab] at (0, 0) {Reflektované XSS (typ~I)};
-        \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{?q=<script>…</script>}} (60, -10.5);
-        \draw[pay] (60, -16.5) -- node[lbl, label={[num]left:2}] {\texttt{GET /hledat?q=<script>…}} (109, -16.5);
-        \node[ins] at (109, -22.5) {};
-        \node[anchor=west, label={[num]left:3}] at (115, -22.5) {vložení \texttt{q} do HTML};
-        \draw[pay] (109, -28.5) -- node[lbl, label={[num]left:4}] {HTML se skriptem} (60, -28.5);
-        \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
-    \end{scope}
+    \sdframe{-6}{38}{58}
+    \node[tag, xshift=5mm] at (0, -6) {Reflektované XSS (typ~I)};
+    \draw[call, pay] (12, -19) -- node[lbl] {1: odkaz \texttt{?q=<script>…</script>}} (60, -19);
+    \draw[call, pay] (60, -25) -- node[lbl] {2: \texttt{GET /hledat?q=<script>…}} (108, -25);
+    \selfmsg{108}{-29}{3: vložení \texttt{q} do HTML}{pay}
+    \draw[reply, pay] (108, -37) -- node[lbl] {4: HTML se skriptem} (60, -37);
+    \selfmsg{60}{-39}{5: spuštění skriptu}{pay}
 
     % Stored XSS
-    \begin{scope}[shift={(0,-43)}]
-        \draw[lane] (0, 0) rectangle (154, -45);
-        \node[tab] at (0, 0) {Uložené XSS (typ~II)};
-        \draw[pay] (10, -10.5) -- (109, -10.5);
-        \node[lbl, label={[num]left:1}] at (35, -10.5) {komentář \texttt{<script>…</script>}};
-        \draw[pay] (109, -16.5) -- node[lbl, label={[num]left:2}] {uložení} (145, -16.5);
-        \draw[msg] (60, -22.5) -- node[lbl, label={[numg]left:3}] {později \texttt{GET /clanek}} (109, -22.5);
-        \draw[pay] (145, -28.5) -- node[lbl, label={[num]left:4}] {načtení} (109, -28.5);
-        \node[ins] at (109, -34.5) {};
-        \node[anchor=west, label={[num]left:5}] at (115, -34.5) {vložení do HTML};
-        \draw[pay] (109, -40.5) -- node[lbl, label={[num]left:6}] {HTML se skriptem} (60, -40.5);
-        \node[run, anchor=east, label={[num]left:7}] at (57.5, -40.5) {spuštění skriptu};
-    \end{scope}
+    \sdframe{-48}{52}{52}
+    \node[tag, xshift=5mm] at (0, -48) {Uložené XSS (typ~II)};
+    \draw[call, pay] (12, -61) -- node[lbl, pos=0.3] {1: \texttt{POST} komentář \texttt{<script>…</script>}} (108, -61);
+    \draw[call, pay] (108, -67) -- node[lbl] {2: uložení} (143, -67);
+    \draw[call, plain] (60, -73) -- node[lbl] {3: později \texttt{GET /clanek}} (108, -73);
+    \draw[call, plain] (108, -79) -- node[lbl] {4: načtení} (143, -79);
+    \draw[reply, pay] (143, -85) -- node[lbl] {5: komentář} (108, -85);
+    \selfmsg{108}{-88}{6: vložení do HTML}{pay}
+    \draw[reply, pay] (108, -96) -- node[lbl] {7: HTML se skriptem} (60, -96);
+    \selfmsg{60}{-98}{8: spuštění skriptu}{pay}
 
     % DOM-based XSS
-    \begin{scope}[shift={(0,-91)}]
-        \draw[lane] (0, 0) rectangle (154, -33);
-        \node[tab] at (0, 0) {DOM-based XSS (typ~0)};
-        \draw[pay] (10, -10.5) -- node[lbl, label={[num]left:1}] {odkaz \texttt{\#<img src=x onerror=…>}} (60, -10.5);
-        \draw[msg] (60, -16.5) -- node[lbl, label={[numg]left:2}] {\texttt{GET /} bez fragmentu \texttt{\#…}} (109, -16.5);
-        \draw[msg] (109, -22.5) -- node[lbl, label={[numg]left:3}] {nezměněná stránka} (60, -22.5);
-        \node[ins] at (60, -28.5) {};
-        \node[anchor=west, label={[num]left:4}] at (66, -28.5) {\texttt{location.hash} $\to$ \texttt{innerHTML}};
-        \node[run, anchor=east, label={[num]left:5}] at (57.5, -28.5) {spuštění skriptu};
-    \end{scope}
+    \sdframe{-104}{41}{56}
+    \node[tag, xshift=5mm] at (0, -104) {DOM-based XSS (typ~0)};
+    \draw[call, pay] (12, -117) -- node[lbl] {1: odkaz \texttt{\#<img src=x onerror=…>}} (60, -117);
+    \draw[call, plain] (60, -123) -- node[lbl] {2: \texttt{GET /} bez fragmentu \texttt{\#…}} (108, -123);
+    \draw[reply, plain] (108, -129) -- node[lbl] {3: nezměněná stránka} (60, -129);
+    \selfmsg{60}{-132}{4: \texttt{location.hash} do \texttt{innerHTML}}{pay}
+    \selfmsg{60}{-138}{5: spuštění skriptu}{pay}
+
+    % legend
+    \draw[call, pay] (2, -151) -- (14, -151);
+    \node[anchor=west, font=\tiny] at (15, -151) {zpráva nesoucí škodlivý řetězec};
+    \draw[call, plain] (62, -151) -- (74, -151);
+    \node[anchor=west, font=\tiny] at (75, -151) {zpráva bez něj};
+    \draw[reply, plain] (102, -151) -- (114, -151);
+    \node[anchor=west, font=\tiny] at (115, -151) {odpověď};
 \end{tikzpicture}
