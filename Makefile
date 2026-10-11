@@ -13,7 +13,7 @@ export TEXMF_OUTPUT_DIRECTORY = .
 .PHONY: build draft watch diagrams clean cleanall typo typo-apply
 
 # Build: 3× xelatex + biber + typo-apply.
-build: typo-apply $(BIBER_DEP)
+build: typo-apply $(BIBER_DEP) diagrams
 	$(LATEX) $(MAIN).tex
 	$(BIBER) $(MAIN)
 	$(LATEX) $(MAIN).tex

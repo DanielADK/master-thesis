@@ -39,7 +39,7 @@ Axiom~\ref{ax:join} požaduje, aby spojení $a \sqcup b$ bylo horní mezí obou 
 
 \begin{figure}[htbp]
     \centering
-    \input{diagrams/mrizka-klasicka}%
+    \diagram{mrizka-klasicka}%
     \caption[Klasické mřížky integrity]{Klasické mřížky integrity: dvouprvková~(a) a~mřížka s~kontextovými typy z~dílčího cíle~2 podle vzoru knihovny \texttt{safevalues}~(b). Zeleně operandy spojení, červeně jeho kontaminovaný výsledek~$\top$.}
     \label{fig:mrizka-klasicka}
     \source{vlastní zpracování podle \textcite{sabelfeld2003language} a~\textcite{googleSafevalues}}
@@ -73,7 +73,7 @@ Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních št
 
 \begin{figure}[h]
     \centering
-    \input{diagrams/t-op-tree}%
+    \diagram{t-op-tree}%
     \caption{Pravidlo T-Op jako strom toku dat pro výraz \texttt{"Hello~"+name}}
     \label{fig:t-op-tree}
     \source{vlastní zpracování}
@@ -89,7 +89,7 @@ kde $\llbracket P \rrbracket$ značí denotační sémantiku programu~$P$ \paren
 
 \begin{figure}[h]
     \centering
-    \input{diagrams/noninterference}%
+    \diagram{noninterference}%
     \caption[Neinterference jako dva paralelní běhy programu~$P$]{Neinterference jako dva paralelní běhy programu~$P$. Červeně kontaminovaná složka stavu (vstup útočníka), zeleně bezpečná složka.}
     \label{fig:noninterference}
     \source{vlastní zpracování}
@@ -204,7 +204,7 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
 
 \begin{figure}[htbp]
     \centering
-    \input{diagrams/taint-three-phases}%
+    \diagram{taint-three-phases}%
     \caption{Tři fáze taint analýzy na příkladu uživatelského komentáře}
     \label{fig:taint-three-phases}
     \source{vlastní zpracování}
