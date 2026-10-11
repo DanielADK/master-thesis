@@ -1,31 +1,36 @@
+% UML activity diagram: actions (rounded), object nodes (rectangles), initial, final and flow final nodes, a decision.
 \begin{tikzpicture}[
-    every node/.style={font=\footnotesize},
-    stage/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=16mm, align=center, thick},
-    s0/.style={stage, fill=red!10,    draw=red!70!black},
-    s1/.style={stage, fill=orange!12, draw=orange!70!black},
-    s2/.style={stage, fill=green!12,  draw=green!50!black},
-    snk/.style={stage, fill=blue!8,   draw=blue!50!black},
-    e/.style={->, very thick, >=Stealth},
-    op/.style={font=\footnotesize\itshape, align=center}
+    every node/.style={font=\scriptsize},
+    action/.style={draw, rounded corners=6pt, minimum width=28mm, minimum height=10mm, align=center, fill=blue!6, draw=blue!50!black},
+    object/.style={draw, minimum width=24mm, minimum height=10mm, align=center},
+    init/.style={circle, fill=black, inner sep=0pt, minimum size=2.4mm},
+    final/.style={circle, draw, inner sep=0pt, minimum size=4mm, path picture={\fill (path picture bounding box.center) circle (1.1mm);}},
+    flowfinal/.style={circle, draw, inner sep=0pt, minimum size=4mm, path picture={\draw (path picture bounding box.north west) -- (path picture bounding box.south east) (path picture bounding box.north east) -- (path picture bounding box.south west);}},
+    decision/.style={diamond, draw, inner sep=0pt, minimum size=5mm, fill=white},
+    f/.style={->, >=Stealth},
+    g/.style={font=\tiny, fill=white, inner sep=1pt, align=center}
 ]
-    % Top row: input and validation
-    \node[s0] (s_unknown)   at (0, 3.6) {\texttt{unknown}\\$\tau_\top$};
-    \node[s1] (s_validated) at (6, 3.6) {\texttt{Validated}\\$\langle S \rangle$\\($\mathit{mid}$)};
+    % left column: the request value and its validation
+    \node[init]   (i) at (0, 5.4) {};
+    \node[object, fill=red!10, draw=red!70!black] (u) at (0, 4.0) {\texttt{unknown}\\$\top$};
+    \node[font=\tiny, red!70!black, anchor=west] at (1.5, 4.0) {\texttt{req.body}, \texttt{req.query}};
+    \node[action] (v) at (0, 2.2) {validace schématem\\\texttt{Zod.parse}};
+    \node[decision] (d) at (0, 0.5) {};
+    \node[flowfinal] (x) at (0, -1.3) {};
+    % right column: the validated value, its sanitization and the sink
+    \node[object, fill=orange!12, draw=orange!70!black] (m) at (5.6, 0.5) {\texttt{Validated}$\langle S\rangle$\\$\mathit{mid}$};
+    \node[action] (s) at (5.6, -1.3) {sanitace $\sigma$};
+    \node[object, fill=green!12, draw=green!50!black] (h) at (5.6, -3.1) {\texttt{SafeHtml}\\$\bot$};
+    \node[action] (o) at (5.6, -4.9) {odeslání \texttt{send}};
+    \node[final]  (e) at (5.6, -6.6) {};
 
-    % Bottom row: sanitization and send
-    \node[s2]  (s_safe)     at (0, 0)   {\texttt{SafeHtml}\\$\tau_\bot$};
-    \node[snk] (sink)       at (6, 0)   {\texttt{res.send}\\$\rightarrow$ prohlížeč};
-
-    % Top horizontal arrow
-    \draw[e] (s_unknown) -- node[above, op] {\texttt{Zod.parse}} (s_validated);
-
-    % Diagonal (middle) stroke of the Z
-    \draw[e] (s_validated) -- node[sloped, above, op] {$\sigma$ (\texttt{sanitizeHtml})} (s_safe);
-
-    % Bottom horizontal arrow
-    \draw[e] (s_safe) -- node[above, op] {\texttt{send}} (sink);
-
-    % Outer labels, away from the arrows
-    \node[above=2mm of s_unknown, font=\scriptsize, red!70!black]   {\texttt{req.body} / \texttt{req.query}};
-    \node[below=2mm of s_safe,    font=\scriptsize, green!50!black] {\emph{validováno + sanitováno}};
+    \draw[f] (i) -- (u);
+    \draw[f] (u) -- (v);
+    \draw[f] (v) -- (d);
+    \draw[f] (d) -- node[g, right] {[nevyhovuje] / výjimka} (x);
+    \draw[f] (d) -- node[g, above] {[vyhovuje]} (m);
+    \draw[f] (m) -- (s);
+    \draw[f] (s) -- (h);
+    \draw[f] (h) -- (o);
+    \draw[f] (o) -- node[g, right] {do prohlížeče} (e);
 \end{tikzpicture}
