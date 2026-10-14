@@ -18,7 +18,7 @@ Hlavním cílem diplomové práce je navrhnout a~implementovat typově řízený
 Práce postupuje v~pěti metodicky odlišených fázích,~které na sebe navazují a~současně odpovídají struktuře kapitol.
 
 \paragraph{Rešerše a~formální základ.}
-V~první fázi proběhne studium primárních zdrojů z~oblasti řízení toku informací \parencite{denning1976lattice,sabelfeld2003language}, bezpečnostních typových systémů \parencite{volpano1996sound,zdancewic2003robust} a~referenčních dokumentů standardu Trusted Types \parencite{w3cTrustedTypes,mdnTrustedTypes}. Součástí rešerše je i~průzkum veřejně dostupných databází a~korpusů skutečných zranitelností,~ze kterého vzejde datový podklad pro závěrečné ověření. Výstupem je formální model s~doloženou korektností,~který slouží jako podklad pro odvození vlastních typových pravidel.
+V~první fázi proběhne studium primárních zdrojů z~oblasti řízení toku informací \parencite{denning1976lattice,sabelfeld2003language}, bezpečnostních typových systémů \parencite{volpano1996sound,zdancewic2003robust} a~referenčních dokumentů standardu Trusted Types \parencite{w3cTrustedTypes}. Součástí rešerše je i~průzkum veřejně dostupných databází a~korpusů skutečných zranitelností,~ze kterého vzejde datový podklad pro závěrečné ověření. Výstupem je formální model s~doloženou korektností,~který slouží jako podklad pro odvození vlastních typových pravidel.
 
 \paragraph{Konstruktivní návrh.}
 Z~formálního modelu jsou odvozena typová pravidla pro jednotlivé propasti (\emph{sinks}) v~prostředí Node.js. Návrh se opírá o~existující praxi knihovny \texttt{safevalues} \parencite{googleSafevalues}, validační vrstvu zajišťuje Zod. Výstupem fáze jsou typová pravidla a~podpisy funkcí knihovny.
