@@ -51,13 +51,7 @@ Stejný panel ukazuje akci operátoru spojení $\sqcup$. Na tomto operátoru sto
 
 \subsection{Bezpečnostní typové systémy a~lambda kalkul}
 
-Aplikace bezpečnostních politik na programovací jazyky se opírá o~rozšíření standardní teorie typů o~bezpečnostní anotace. Denningova analýza toku byla zapsána jako typový systém a~korektnost tohoto systému dokázána v~práci \textcite{volpano1996sound}, a~to pro jednoduchý imperativní jazyk s~proměnnými, přiřazením, podmíněným příkazem a~cyklem. Pro funkcionální jazyky vycházející z~lambda kalkulu navrhli bezpečnostní typový systém \textcite{heintze1998slam} v~kalkulu SLam. Jeho zjednodušenou variantou je kalkul $\lambda_{\mathrm{SEC}}$,~který \textcite{zdancewic2002thesis} popisuje jako jednoduše typovaný lambda kalkul doplněný o~štítky z~bezpečnostní mřížky. Typy v~něm mají tvar
-\[
-    \tau \;::=\; \mathtt{Int} \;\mid\; \mathtt{String} \;\mid\; s \to s,
-    \qquad
-    s \;::=\; \tau_\ell,
-\]
-kde $\tau$ je typ bez štítku, tedy základní typ nebo typ funkce, a~$s$ je bezpečnostní typ, tj.~typ~$\tau$ opatřený štítkem $\ell \in SC$. Původní definice má jediný základní typ \texttt{bool}. Typy \texttt{Int} a~\texttt{String} ho zde nahrazují pro názornost \parencite{zdancewic2002thesis}.
+Aplikace bezpečnostních politik na programovací jazyky se opírá o~rozšíření standardní teorie typů o~bezpečnostní anotace. Denningova analýza toku byla zapsána jako typový systém a~korektnost tohoto systému dokázána v~práci \textcite{volpano1996sound}, a~to pro jednoduchý imperativní jazyk s~proměnnými, přiřazením, podmíněným příkazem a~cyklem. Pro funkcionální jazyky byl zapsán v~práci \textcite{zdancewic2002thesis}: každý typ nese štítek $\ell \in SC$.
 
 \paragraph{Typový úsudek.}
 Typový úsudek (\emph{typing judgment}) má tvar $\Gamma \vdash e : \tau_\ell$ a~vyjadřuje, že v~kontextu typového prostředí~$\Gamma$ (mapujícího proměnné na jejich typy se štítky) má výraz~$e$ typ~$\tau$,~který svým informačním obsahem patří do třídy~$\ell$.
@@ -69,15 +63,7 @@ Pro $n$-ární operátor $op$ aplikovaný na operandy o~různých bezpečnostní
               {\Gamma \vdash op(e_1, e_2) : \tau_{\ell_1 \sqcup \ell_2}}\;\;\textsc{(T-Op)}
     \label{eq:t-op}
 \end{equation}
-Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních štítků, protože spojení je jejich horní mezí ($\ell_i \sqsubseteq \ell_1 \sqcup \ell_2$, axiom~\ref{ax:join}). Jediný kontaminovaný operand tak kontaminuje celý výraz,~což plyne z~rovnosti $\ell \sqcup \top = \top$ pro každý štítek~$\ell$. Pravidlo T-Op lze intuitivně přeformulovat jako strom toku dat (schéma~\ref{fig:t-op-tree}). Operátor zřetězení v~něm spojuje dvě hodnoty: programátorem zapsaný literál \verb|"Hello "| se štítkem~$\bot$ a~hodnotu \texttt{name} z~\texttt{req.body} se štítkem~$\top$. Výraz tak získá štítek $\bot \sqcup \top = \top$.
-
-\begin{figure}[h]
-    \centering
-    \diagram{t-op-tree}%
-    \caption{Pravidlo T-Op jako strom toku dat pro výraz \texttt{"Hello~"+name}}
-    \label{fig:t-op-tree}
-    \source{vlastní zpracování}
-\end{figure}
+Výsledný štítek je alespoň tak restriktivní jako každý ze vstupních štítků, protože spojení je jejich horní mezí ($\ell_i \sqsubseteq \ell_1 \sqcup \ell_2$, axiom~\ref{ax:join}). Jediný kontaminovaný operand tak kontaminuje celý výraz,~což plyne z~rovnosti $\ell \sqcup \top = \top$ pro každý štítek~$\ell$.
 
 \paragraph{Neinterference.}
 Cílem tohoto systému je dokázat jeho hlavní vlastnost, \emph{neinterferenci} (\emph{non-interference}). Tato vlastnost zaručuje, že data s~vysokou bezpečnostní úrovní nemohou ovlivnit pozorovatelné chování programu na nízké bezpečnostní úrovni (v~bezpečných propastech, anglicky \emph{sinks}) \parencite{goguen1982security}. Formálně ji lze definovat pomocí ekvivalence stavů. Zápis $\mu \approx_L \mu'$ označuje relaci „stavy~$\mu$ a~$\mu'$ se shodují ve všech proměnných se štítkem $\sqsubseteq L$“. Program $P$ pak splňuje neinterferenci vzhledem k~úrovni~$L$ právě tehdy, když
@@ -85,37 +71,9 @@ Cílem tohoto systému je dokázat jeho hlavní vlastnost, \emph{neinterferenci}
     \forall \mu, \mu' \in \mathit{State} : \mu \approx_L \mu' \;\Longrightarrow\; \llbracket P \rrbracket(\mu) \approx_L \llbracket P \rrbracket(\mu'),
     \label{eq:noninterference}
 \end{equation}
-kde $\llbracket P \rrbracket$ značí denotační sémantiku programu~$P$ \parencite{sabelfeld2003language}. Tato definice dává matematickou záruku, že vstup útočníka (vysoká úroveň kontaminace) nemůže být pozorovatelný skrze propasti,~které očekávají bezpečná data. Pro programátora je neinterference srozumitelnější jako dva paralelní běhy stejného programu (schéma~\ref{fig:noninterference}). Počáteční stavy obou běhů se liší pouze kontaminovanou složkou, bezpečná složka je v~obou shodná.
-
-\begin{figure}[h]
-    \centering
-    \diagram{noninterference}%
-    \caption[Neinterference jako dva paralelní běhy programu~$P$]{Neinterference jako dva paralelní běhy programu~$P$. Červeně kontaminovaná složka stavu (vstup útočníka), zeleně bezpečná složka.}
-    \label{fig:noninterference}
-    \source{vlastní zpracování}
-\end{figure}
+kde $\llbracket P \rrbracket$ značí denotační sémantiku programu~$P$ \parencite{sabelfeld2003language}. Tato definice dává matematickou záruku, že vstup útočníka (vysoká úroveň kontaminace) nemůže být pozorovatelný skrze propasti,~které očekávají bezpečná data.
 
 Pro prevenci XSS je však klasická neinterference příliš přísná. Aplikace,~která vypisuje uživatelský vstup, ji porušuje už svou podstatou, protože její výstup na vstupu útočníka záviset musí. Stejné platí i~pro sanitaci: její výsledek na vstupu útočníka závisí, a~přesto je mu přiznána vyšší důvěryhodnost. Jde o~záměrné povýšení integrity (\emph{endorsement}), integritní protějšek deklasifikace, tj.~záměrného uvolnění důvěrné informace \parencite{zdancewic2003robust,sabelfeld2009declassification}. Vlastní model práce proto dokazuje slabší vlastnost, \emph{konfinaci}: žádný znak útočníka se ve výstupu neocitne na místě,~které prohlížeč vykoná nebo kterým určí spouštěný kód (věta~\ref{thm:konfinace}). Vztah obou vlastností rozebírá podsekce~\ref{sec:model-neinterference}.
-
-Vztah zavedených formálních pojmů k~prevenci XSS shrnuje tabulka~\ref{tab:formalni-koncepty}.
-
-\begin{table}[h]
-    \centering
-    \footnotesize
-    \begin{tabularx}{\textwidth}{@{}lYY@{}}
-        \toprule
-        \textbf{Formální koncept} & \textbf{Význam v~prevenci XSS} & \textbf{Cíl analýzy} \\
-        \midrule
-        Bezpečnostní štítek $\ell$ & úroveň kontaminace dat & identifikace původu informace \\
-        Relace $\sqsubseteq$       & povolený tok od zdroje k~propasti & zamezení toku kontaminovaných dat \\
-        Operátor $\sqcup$          & propagace kontaminace          & sledování složitých výrazů \\
-        Konfinace                  & znaky útočníka mimo vykonávaná a~řídicí místa & věta~\ref{thm:konfinace} modelu \\
-        \bottomrule
-    \end{tabularx}
-    \caption{Mapování formálních konceptů na úlohy prevence XSS}
-    \label{tab:formalni-koncepty}
-    \source{vlastní zpracování}
-\end{table}
 
 \section{Cross-Site Scripting v~backendové architektuře}
 
