@@ -26,7 +26,7 @@ přičemž $\bot$ reprezentuje důvěryhodná data, tj.~text programu a~data val
 \end{equation}
 kde $\rightsquigarrow$ značí datový tok a~$\ell(\cdot)$ vrací bezpečnostní štítek hodnoty \parencite{sabelfeld2003language}. Opačný směr, tok z~$\bot$ do libovolné propasti, je v~tomto obrazu vždy přípustný, protože data se štítkem~$\bot$ jsou pokládána za bezpečná v~libovolném kontextu. Tuto mřížku znázorňuje panel~(a) diagramu~\ref{fig:mrizka-klasicka}. Jeho jediná hrana $\bot \sqsubseteq \top$ odpovídá tomuto vždy přípustnému toku, zatímco hrana $\top \sqsubseteq \bot$ chybí. Tok kontaminovaných dat do bezpečné propasti proto vyžaduje sanitační funkci~$\sigma$.
 
-Dvouúrovňová mřížka představuje klasický zjednodušený obraz,~ze kterého vycházejí rovnice~\ref{eq:taint-intro} až~\ref{eq:send-contract} a~schéma~\ref{fig:pipeline}. Sanitace v~tomto obrazu dává štítek~$\bot$ a~sanitovaná hodnota je bezpečná v~libovolném kontextu. Kontextová mřížka v~panelu~(b) stejného diagramu ho zčásti opouští. Vlastní model práce (sekce~\ref{sec:model}) tento obraz zpřesňuje. Štítek~$\bot$ v~něm náleží pouze textu programu, zatímco sanitovaná hodnota si ponechává informaci o~svém původu a~je způsobilá jen pro kontext, pro který byla sanitována.
+Dvouúrovňová mřížka představuje klasický zjednodušený obraz,~ze kterého vycházejí schéma~\ref{fig:pipeline} a~typové podpisy z~rovnic~\ref{eq:sanitizer} až~\ref{eq:send-contract}. Sanitace v~tomto obrazu dává štítek~$\bot$ a~sanitovaná hodnota je bezpečná v~libovolném kontextu. Kontextová mřížka v~panelu~(b) stejného diagramu tento obraz zčásti opouští. Vlastní model práce (sekce~\ref{sec:model}) ho zpřesňuje. Štítek~$\bot$ v~něm náleží pouze textu programu, zatímco sanitovaná hodnota si ponechává informaci o~svém původu a~je způsobilá jen pro kontext, pro který byla sanitována.
 
 Denningovými axiomy jsou stanoveny čtyři vlastnosti,~které musí každá taková mřížka splňovat \parencite{denning1976lattice}: konečnost (A1), částečné uspořádání (A2), existenci nejmenšího prvku (A3) a~existenci spojení, tj.~nejmenší horní meze (A4). Formálně:
 \begin{align}
@@ -111,42 +111,7 @@ Ve frameworcích pracujících současně na serveru i~v~prohlížeči (Next.js,
 
 Taint analýza rozlišuje \emph{zdroje} (anglicky \emph{sources}), tedy vstupní body neprověřených dat, a~\emph{propasti} (anglicky \emph{sinks}), tedy citlivá rozhraní, kde může dojít k~provedení kódu \parencite{kern2014tangled}.
 
-Mezi typické zdroje v~backendové aplikaci patří:
-\begin{itemize}
-    \item tělo HTTP požadavku (\texttt{req.body}) a~parametry URL (\texttt{req.query}, \texttt{req.params}) ve frameworcích jako Express, Fastify či Next.js;
-    \item hlavičky požadavku, jmenovitě \texttt{User-Agent}, \texttt{Referer} a~vlastní hlavičky,~které útočník plně kontroluje;
-    \item záznamy z~databáze nebo z~mezipaměti,~které mohly být kontaminovány v~předchozím požadavku (perzistentní zdroj);
-    \item odpovědi vnějších rozhraní a~zprávy z~front (Kafka, RabbitMQ),~které je nutno až do validace pokládat za nedůvěryhodné.
-\end{itemize}
-
-Mezi kritické propasti v~prostředí Node.js patří:
-\begin{itemize}
-    \item \textbf{šablonovací enginy} (EJS, Handlebars, Pug, Nunjucks),~které vedle escapovaného výstupu nabízejí i~výstup bez escapování. Ten vloží řetězec do HTML beze změny: v~Handlebars trojité složené závorky \verb|{{{ value }}}| \parencite{handlebarsDocs}, v~EJS značka \verb|<%- value %>| \parencite{ejsDocs}, v~Pug zápisy \verb|!=| a~\verb|!{value}| \parencite{pugCodeDocs,pugInterpolationDocs} a~v~Nunjucks filtr \verb+|safe+ \parencite{nunjucksDocs};
-    \item \textbf{SSR vykreslovače}, například funkce \texttt{renderToString} frameworků React a~Vue či vykreslování na serveru ve Svelte. Nejnebezpečnější jsou konstrukce,~které vloží řetězec jako HTML bez escapování: v~Reactu atribut \texttt{dangerouslySetInnerHTML} \parencite{reactDocs}, ve Vue direktiva \texttt{v-html} \parencite{vueDocs} a~ve Svelte značka \verb|{@html ...}| \parencite{svelteDocs};
-    \item \textbf{přímé zápisy do odpovědi} přes \texttt{res.send(html)}, \texttt{res.write(html)} či zřetězení v~handleru, kde Node.js neposkytuje žádnou ochrannou abstrakci;
-    \item \textbf{HTTP hlavičky a~přesměrování}: volání \texttt{res.redirect(url)} nastavuje pole \texttt{Location}. Express do verze~4.19 navíc vkládal adresu jako odkaz do těla odpovědi, takže injektáž řetězce \texttt{javascript:} vedla k~XSS po kliknutí \parencite{ghsaExpressRedirect}.
-\end{itemize}
-
-Požadovaný bezpečný typ pro jednotlivé kategorie propastí uvádí tabulka~\ref{tab:sinky}.
-
-\begin{table}[h]
-    \centering
-    \footnotesize
-    \begin{tabularx}{\textwidth}{@{}lYl@{}}
-        \toprule
-        \textbf{Kategorie propasti} & \textbf{Příklad rozhraní} & \textbf{Požadovaný typ} \\
-        \midrule
-        Vložení do HTML     & \texttt{ejs.render}, \texttt{res.send}            & \texttt{SafeHtml}            \\
-        SSR fragment        & \texttt{dangerouslySetInnerHTML}, \texttt{v-html} & \texttt{SafeHtml}            \\
-        Data ve skriptu     & řetězcový literál v~inline \texttt{<script>}      & \texttt{SafeScript}          \\
-        Načtení zdroje      & atribut \texttt{src} v~\texttt{<script>}          & \texttt{TrustedResourceUrl}  \\
-        Přesměrování        & \texttt{res.redirect}                             & \texttt{SafeUrl} \\
-        \bottomrule
-    \end{tabularx}
-    \caption{Kategorie backendových propastí a~odpovídající typové ochrany dle vzoru Trusted Types}
-    \label{tab:sinky}
-    \source{vlastní zpracování}
-\end{table}
+Zdrojem je každý vstup požadavku (tělo, parametry adresy, hlavičky), záznam z~úložiště,~který mohl být kontaminován dříve, i~odpověď vnějšího rozhraní. Propastí je každé místo, kde řetězec vstupuje do HTML odpovědi: výstup šablonovacího enginu bez escapování, vložení surového HTML ve vykreslovači SSR, přímý zápis do odpovědi (\texttt{res.send}, \texttt{res.write}) a~hlavička přesměrování. Požadovaným typem hodnoty je určen kontext vložení: \texttt{SafeHtml} pro obsah elementu, \texttt{SafeScript} pro řetězec ve skriptu, \texttt{TrustedResourceUrl} pro adresu skriptu a~\texttt{SafeUrl} pro adresu odkazu či přesměrování.
 
 \section{Taint analýza}
 
@@ -159,46 +124,6 @@ Taint analýza (analýza kontaminace) je metoda sledování toku dat programem. 
     \label{fig:pipeline}
     \source{vlastní zpracování}
 \end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \diagram{taint-three-phases}%
-    \caption{Tři fáze taint analýzy na příkladu uživatelského komentáře}
-    \label{fig:taint-three-phases}
-    \source{vlastní zpracování}
-\end{figure}
-
-\subsection{Fáze sledování toku dat}
-
-Proces taint analýzy lze rozdělit do tří fází \parencite{denning1976lattice,sabelfeld2003language}. Každou fázi charakterizuje předpis, jak se v~ní zachází se štítkem $\ell(v)$ hodnoty~$v$. Průchod konkrétního kódu všemi třemi fázemi ukazuje schéma~\ref{fig:taint-three-phases}: komentář uživatele z~\texttt{req.body} se zřetězí s~literálem programátora a~program se výsledek pokusí odeslat do propasti \texttt{res.send} obalující funkcí \texttt{send} s~podpisem podle rovnice~\ref{eq:send-contract}.
-
-\FloatBarrier
-\paragraph{1. Značení (\emph{introduction}, \emph{tainting}).}
-Přiřazení příznaku kontaminace datům,~která vstupují do systému. Formálně pro každý vstupní zdroj $\mathit{src} \in \mathit{Sources}$ platí
-\begin{equation}
-    v \leftarrow \mathit{read}(\mathit{src}) \;\Longrightarrow\; \ell(v) := \top.
-    \label{eq:taint-intro}
-\end{equation}
-V~navrženém řešení se značení neprovádí zvláštním konstruktorem. Štítku~$\top$ odpovídá každý řetězec bez značky, protože ho žádná bezpečná propast nepřijme. Hodnotu typu \texttt{any} by však propast přijala, a~ukázněný fragment jazyka (sekce~\ref{sec:hranice-zaruky}) proto žádá, aby vstupy požadavku měly typ \texttt{unknown}.
-
-\paragraph{2. Propagace (\emph{propagation}).}
-Definice pravidel, jak se příznak šíří při operacích s~daty. Pro $n$-ární operátor $op$ platí
-\begin{equation}
-    v = op(v_1, \ldots, v_n) \;\Longrightarrow\; \ell(v) := \bigsqcup_{i=1}^{n} \ell(v_i).
-    \label{eq:taint-prop}
-\end{equation}
-Spojení je horní mezí štítků všech operandů (axiom~\ref{ax:join}). Pokud je tedy kontaminován alespoň jeden z~operandů, je kontaminován i~výsledek. Sanitační status nelze získat „zředěním“.
-
-TypeScript sám štítky tímto způsobem nešíří. Zřetězení operátorem \texttt{+} dává prostý \texttt{string} bez značky, a~to i~tehdy, pokud některý z~operandů značku nese. V~navrženém řešení proto spojení štítků počítají funkce knihovny, například funkce zřetězení \texttt{cat} (podsekce~\ref{sec:model-typescript}), a~hodnotu vzniklou mimo ně bezpečná propast odmítne jako řetězec bez značky.
-
-\paragraph{3. Kontrola a~sanitace (\emph{sanitization}).}
-V~okamžiku, kdy data dosáhnou propasti, kontrolor ověří přítomnost příznaku. V~klasickém dvouúrovňovém obrazu značí $\sigma : \tau_\top \to \tau_\bot$ schválenou sanitační funkci a~$\mathit{sink}_\bot$ citlivé rozhraní,~které vyžaduje důvěryhodný vstup. Analýza pak povolí zápis právě tehdy, když
-\begin{equation}
-    \mathit{sink}_\bot(v) \;\text{je platný} \;\iff\; \ell(v) = \bot.
-    \label{eq:taint-sink}
-\end{equation}
-Hodnota odvozená ze vstupu přitom štítek~$\bot$ získá pouze jako výsledek sanitace, tedy zápisem $v \leftarrow \sigma(v_0)$. Ten stejně jako v~rovnici~\ref{eq:taint-intro} vyjadřuje původ hodnoty: $v$ vzniklo aplikací funkce~$\sigma$ na nějakou hodnotu~$v_0$. Rozhoduje tedy, jak hodnota vznikla, nikoliv jaká je. Řetězec,~který se s~některým výstupem~$\sigma$ jen shoduje, podmínku nesplní. Pokud podmínka splněna není, analýza nahlásí chybu již při překladu a~zranitelný kód neprojde typovou kontrolou. Pokud je kontrola součástí sestavení, sestavení se zastaví (sekce~\ref{sec:hranice-zaruky}).
-
 
 \subsection{Výzvy statické taint analýzy v~jazyce JavaScript a~TypeScript}
 
@@ -301,7 +226,7 @@ Myšlenka nahradit rozptýlenou sanitaci typovým rozlišením hodnot nevznikla 
 
 Stejný vzor lze realizovat zcela staticky, pokud se přesune z~prohlížeče do typového systému serveru. Namísto objektů \texttt{TrustedHTML},~které existují za běhu, pak vystupují značkované typy \texttt{SafeHtml}, \texttt{SafeScript}, \texttt{SafeUrl} a~\texttt{TrustedResourceUrl} z~dílčího cíle~2, zavedené technikou z~podsekce~\ref{sec:branded}. Namísto registrované politiky vystupují značkované konstruktory,~které jako jediné takové hodnoty vyrobí.
 
-Předlohou návrhu je knihovna \texttt{safevalues} od společnosti Google \parencite{googleSafevalues}. Tato knihovna však stejný vzor realizuje v~prohlížeči: chrání propasti DOM a~usnadňuje nasazení Trusted Types. Její typy nejsou značky,~které překlad vymaže, ale objekty za běhu. Každý z~nich obaluje hodnotu Trusted Types, nebo prostý řetězec tam, kde rozhraní Trusted Types chybí. Typ \texttt{SafeHtml} tak obaluje \texttt{TrustedHTML} a~\texttt{SafeScript} obaluje \texttt{TrustedScript}. Sanitizér HTML knihovny pracuje nad rozhraním DOM. Typ \texttt{SafeUrl} není knihovnou zaveden a~adresy jsou sanitovány až v~propasti. Ve vlastním řešení této práce (kapitola~\ref{chap:practical}) jsou proto z~knihovny převzaty návrhový vzor a~názvy typů \texttt{SafeHtml}, \texttt{SafeScript} a~\texttt{TrustedResourceUrl}. Typ \texttt{SafeUrl} doplňuje z~knihoven typů bezpečných hodnot,~které popisuje \textcite{kern2014tangled}. Všechny tyto typy jsou přeneseny do typů na serveru, aby mělo řešení plnou kontrolu nad množinou konstruktorů a~nezáviselo na prohlížečové vrstvě Trusted Types. Na rozdíl od knihovny označuje typ \texttt{SafeScript} pouze hodnotu způsobilou pro obsah řetězcového literálu ve skriptu (tabulka~\ref{tab:sinky}, předpoklad~\ref{ass:parse}). Zbytek těla skriptu smí tvořit jen text programu. V~kombinaci s~validací schématem z~podsekce~\ref{sec:schema-validace} poskytuje tento aparát statickou záruku, že do citlivé propasti se dostane pouze hodnota bezpečného typu.
+Předlohou návrhu je knihovna \texttt{safevalues} od společnosti Google \parencite{googleSafevalues}. Tato knihovna však stejný vzor realizuje v~prohlížeči: chrání propasti DOM a~usnadňuje nasazení Trusted Types. Její typy nejsou značky,~které překlad vymaže, ale objekty za běhu. Každý z~nich obaluje hodnotu Trusted Types, nebo prostý řetězec tam, kde rozhraní Trusted Types chybí. Typ \texttt{SafeHtml} tak obaluje \texttt{TrustedHTML} a~\texttt{SafeScript} obaluje \texttt{TrustedScript}. Sanitizér HTML knihovny pracuje nad rozhraním DOM. Typ \texttt{SafeUrl} není knihovnou zaveden a~adresy jsou sanitovány až v~propasti. Ve vlastním řešení této práce (kapitola~\ref{chap:practical}) jsou proto z~knihovny převzaty návrhový vzor a~názvy typů \texttt{SafeHtml}, \texttt{SafeScript} a~\texttt{TrustedResourceUrl}. Typ \texttt{SafeUrl} doplňuje z~knihoven typů bezpečných hodnot,~které popisuje \textcite{kern2014tangled}. Všechny tyto typy jsou přeneseny do typů na serveru, aby mělo řešení plnou kontrolu nad množinou konstruktorů a~nezáviselo na prohlížečové vrstvě Trusted Types. Na rozdíl od knihovny označuje typ \texttt{SafeScript} pouze hodnotu způsobilou pro obsah řetězcového literálu ve skriptu (předpoklad~\ref{ass:parse}). Zbytek těla skriptu smí tvořit jen text programu. V~kombinaci s~validací schématem z~podsekce~\ref{sec:schema-validace} poskytuje tento aparát statickou záruku, že do citlivé propasti se dostane pouze hodnota bezpečného typu.
 
 Stavební bloky knihovny \texttt{safevalues},~které zde slouží jako návrhová předloha, lze rozdělit do tří kategorií:
 \begin{itemize}
@@ -318,15 +243,6 @@ Pomocí značkovaných typů lze typový podpis propasti \texttt{res.send} rozš
     \label{eq:send-contract}
 \end{equation}
 čímž se rozhodnutí o~bezpečnosti přesouvá z~doby běhu do doby překladu.
-
-\subsection{Volitelná prohlížečová vrstva: require-trusted-types-for}
-
-Vynucení navrhované záruky probíhá při překladu: hodnotu nesprávného typu odmítne kompilátor a~místa, kde kód porušuje pravidla ukázněného fragmentu jazyka, ohlásí lint (viz sekce~\ref{sec:hranice-zaruky}). Nezávisle na tom lze klientské propasti stejné aplikace chránit i~v~prohlížeči za~běhu, a~to hlavičkou \texttt{Content-Security-Policy} s~dvojicí direktiv \parencite{mdnCSPTrustedTypes,w3cTrustedTypes}:
-\begin{minted}{http}
-HTTP/1.1 200 OK
-Content-Security-Policy: require-trusted-types-for 'script'; trusted-types myPolicy
-\end{minted}
-První direktiva přikazuje prohlížeči odmítat řetězce u~propastí,~které pracují se skriptem. Druhá omezuje povolené názvy politik. Backend tuto hlavičku obvykle vkládá uprostřed middleware vrstvy (např.~v~Expressu pomocí balíku \texttt{helmet}). Oznámení o~porušení politiky lze doručit na auditní endpoint direktivou \texttt{report-to}. Starší direktiva \texttt{report-uri} je zastaralá. Při postupném zavádění se politika posílá samostatnou hlavičkou \texttt{Content-Security-Policy-Report-Only}. S~ní prohlížeč porušení pouze hlásí a~nic neblokuje \parencite{mdnCSP}. Tato vrstva je nezávislou, nepovinnou pojistkou (\emph{defense in depth}), její dosah je však omezený. Trusted Types chrání pouze klientské propasti DOM. Zachytí například skript třetí strany,~který by do nich zapisoval prosté řetězce. Na injektáž,~která by unikla na serveru a~skončila přímo v~serverem vykresleném HTML, však nedosáhnou. Specifikace ochranu serverem generovaného HTML výslovně vylučuje ze svých cílů a~proti takové injektáži doporučuje šablonovací systémy nebo direktivu CSP \texttt{script-src} \parencite{w3cTrustedTypes}. Direktiva \texttt{script-src} s~jednorázovou hodnotou \emph{nonce} funguje tak, že server tuto hodnotu pro každou odpověď nově vygeneruje a~uvede ji v~direktivě i~v~atributu \texttt{nonce} svých elementů \texttt{<script>}. Skript,~který útočník do stránky vložil bez ní, prohlížeč nespustí \parencite{mdnCSP}. Ani jedna z~obou pojistek však překladovou záruku nenahrazuje, ani nepodmiňuje.
 
 \subsection{Centralizace a~auditovatelnost politik}
 \label{sec:audit}
@@ -387,16 +303,3 @@ Vývojářskou stránku řešení posuzují tři ukazatele z~kapitoly~\ref{chap:
 
 \label{sec:heuristika}
 Typová kontrola se od heuristických skenerů liší povahou hlášení: chybu hlásí z~pravidel jazyka přímo v~editoru při psaní, nikoliv z~odhadu po sestavení, a~nedává falešná hlášení. Úniky z~bezpečných typů proto musí hlídat automatizovaná pravidla, nikoliv revize kódu \parencite{kern2014tangled}.
-
-\section{Shrnutí teoretických východisek}
-
-Z~přehledu vyplývají čtyři přínosy preventivního přístupu:
-
-\begin{itemize}
-    \item \textbf{záruka konfinace}: klasickou neinterferenci aplikace vypisující uživatelský vstup splnit nemůže. Model práce dokazuje, že dobře typovaný program modelu nevloží žádný znak útočníka na místo,~které prohlížeč vykoná nebo kterým určí spouštěný kód (věta~\ref{thm:konfinace}), pokud platí předpoklady o~modelu prohlížeče a~o~korektnosti sanitace. Na program v~TypeScriptu se tato záruka přenáší jen v~ukázněném fragmentu jazyka a~za předpokladů ze sekce~\ref{sec:hranice-zaruky}. Věrnost přenosu (tvrzení~\ref{claim:adekvatnost}) dokázána není;
-    \item \textbf{centralizace bezpečnostní logiky}: využití Trusted Types a~explicitních politik soustřeďuje bezpečnostně kritický kód do malého počtu modulů,~které lze podrobit důkladnému ručnímu auditu \parencite{w3cTrustedTypes,googleSafevalues};
-    \item \textbf{rychlá zpětná vazba}: typová chyba se ohlásí v~editoru už při psaní kódu, nikoliv až po sestavení, a~zpětnovazební smyčka se tím zkracuje (podsekce~\ref{sec:space}). Zda to mění i~uvažování vývojářů o~původu dat, by ověřila až studie s~respondenty;
-    \item \textbf{volitelná prohlížečová vrstva}: statickou ochranu lze volitelně doplnit ochranou na úrovni prohlížeče (Trusted Types, CSP). Vzniká tak vícevrstvá obrana. Prohlížečová vrstva však zachytí pouze zápisy do klientských propastí DOM a~skripty bez platné hodnoty \emph{nonce} \parencite{w3cTrustedTypes,mdnCSPTrustedTypes,mdnCSP}.
-\end{itemize}
-
-Na axiomech mřížky integrity a~pravidlech sledování toku dat (rovnice~\ref{eq:lattice} až~\ref{eq:taint-sink}) stojí typové podpisy pro backend Node.js (rovnice~\ref{eq:sanitizer} a~\ref{eq:validate} až~\ref{eq:send-contract}),~které vstup typu \texttt{unknown} povyšují přes mezistupeň \texttt{Validated} až na \texttt{SafeHtml}. Praktická aplikace těchto podpisů, jejich realizace formou znovupoužitelného balíku a~jejich ověření na vzorku skutečných zranitelností korpusu OpenSSF CVE Benchmark je předmětem následující kapitoly.
