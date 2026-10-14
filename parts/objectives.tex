@@ -43,7 +43,7 @@ Vývojářská stránka řešení se posuzuje třemi ukazateli,~které lze stano
     \item rozsah zásahů nutných k~zavedení knihovny do existující aplikace;
     \item velikost plochy kódu,~která zůstává předmětem bezpečnostního auditu, zjištěná pravidly z~dílčího cíle~4.
 \end{itemize}
-Ukazatele vycházejí z~pojmu zpětnovazebních smyček (\emph{feedback loops}),~který rámec DevEx vymezuje jako rychlost a~kvalitu odezvy na provedenou akci \parencite{noda2023devex}. První ukazatel měří délku těchto smyček přímo. Druhý udává cenu, za kterou se ověřování bezpečnosti přesune do typové kontroly. Třetí určuje rozsah kódu, na který typová kontrola nedosáhne a~který zůstává odkázán na ruční revizi. Rámec SPACE \parencite{forsgren2021space} slouží jen jako pozadí. Hodnocení bez respondentů nemůže vyhovět doporučení jeho autorů zahrnout mezi metriky měřítko založené na vnímání vývojářů (podsekce~\ref{sec:space}). Práce proto netvrdí, že hodnotí podle rámce SPACE.
+První ukazatel měří, jak rychle se vývojář o~chybě dozví. Druhý udává cenu, za kterou se ověřování bezpečnosti přesune do typové kontroly. Třetí určuje rozsah kódu, na který typová kontrola nedosáhne a~který zůstává odkázán na ruční revizi (podsekce~\ref{sec:space}).
 
 \paragraph{Doporučení.}
 V~závěrečné fázi jsou z~výsledků hodnocení odvozena doporučení pro úpravu procesu vývoje, shrnutá v~kapitole „Zhodnocení a~doporučení“. Doporučení navazují zejména na ukazatele vývojářské stránky. Z~doby ohlášení chyby plyne, kam zařadit typovou kontrolu (\texttt{tsc --noEmit}) a~pravidla z~dílčího cíle~4 (editor, sestavovací řetězec). Z~rozsahu zásahů plyne postup zavedení knihovny do existující aplikace a~z~velikosti auditní plochy rozsah ruční revize.
