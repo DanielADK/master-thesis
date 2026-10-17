@@ -1,35 +1,45 @@
 \begin{tikzpicture}[
     every node/.style={font=\scriptsize},
-    el/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny},
-    dat/.style={draw, minimum width=32mm, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny},
+    el/.style={draw, rounded corners=2pt, minimum width=13mm, minimum height=6mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny},
+    dat/.style={draw, minimum width=30mm, minimum height=6mm, fill=red!16, draw=red!60!black, font=\ttfamily\tiny},
     atk/.style={el, fill=red!16, draw=red!60!black},
-    exn/.style={draw, rounded corners=2pt, minimum width=15mm, minimum height=6mm, fill=red!16, draw=red!75!black, thick, double, font=\ttfamily\tiny},
+    exn/.style={draw, rounded corners=2pt, minimum width=13mm, minimum height=6mm, fill=red!16, draw=red!75!black, thick, double, font=\ttfamily\tiny},
     e/.style={-, gray!55!black},
     hdr/.style={font=\scriptsize\bfseries},
-    note/.style={font=\tiny\itshape, align=center}
+    note/.style={font=\tiny}
 ]
-    % ---------- safe ----------
-    \node[hdr, green!40!black] at (2.1, 3.1) {(a) výstup bez injektáže};
-    \node[el]  (ah) at (2.1, 2.3) {html};
-    \node[el]  (ab) at (2.1, 1.4) {body};
-    \node[el]  (ap) at (2.1, 0.5) {p};
-    \node[dat] (at) at (2.1, -0.4) {\#text: \&lt;img src=x onerror=f()\&gt;};
+    % ---------- (a) escaped text ----------
+    \node[hdr, green!40!black] at (1.6, 3.1) {(a) text};
+    \node[el]  (ah) at (1.6, 2.3) {html};
+    \node[el]  (ab) at (1.6, 1.4) {body};
+    \node[el]  (ap) at (1.6, 0.5) {p};
+    \node[dat] (at) at (1.6, -0.4) {\#text: \&lt;img src=x onerror=f()\&gt;};
     \draw[e] (ah) -- (ab) -- (ap) -- (at);
-    \node[note, green!40!black] at (2.1, -1.35)
-        {znaky útočníka zůstaly\\ v~textovém uzlu\\[1pt] $U(s) \cap V_c(s) = \emptyset$};
+    \node[note, green!40!black] at (1.6, -2.1) {$U(s) \cap V_c(s) = \emptyset$};
 
-    % ---------- vulnerable ----------
-    \begin{scope}[xshift=72mm]
-    \node[hdr, red!65!black] at (2.1, 3.1) {(b) injektáž};
-    \node[el]  (bh) at (2.1, 2.3) {html};
-    \node[el]  (bb) at (2.1, 1.4) {body};
-    \node[el]  (bp) at (2.1, 0.5) {p};
-    \node[el]  (bt) at (0.3, -0.4) {\#text};
-    \node[atk] (bs) at (3.3, -0.4) {img @onerror};
-    \node[exn] (bx) at (3.3, -1.35) {f()};
-    \draw[e] (bh) -- (bb) -- (bp);
-    \draw[e] (bp) -- (bt); \draw[e] (bp) -- (bs); \draw[e] (bs) -- (bx);
-    \node[note, red!65!black] at (2.1, -2.2)
-        {znaky útočníka vytvořily\\ uzel řídicí struktury\\[1pt] $U(s) \cap V_c(s) \neq \emptyset$};
+    % ---------- (b) sanitized formatted text ----------
+    \begin{scope}[xshift=44mm]
+    \node[hdr, green!40!black] at (1.6, 3.1) {(b) formátovaný text};
+    \node[el]  (bh) at (1.6, 2.3) {html};
+    \node[el]  (bb) at (1.6, 1.4) {body};
+    \node[el]  (bp) at (1.6, 0.5) {p};
+    \node[atk] (bs) at (1.6, -0.4) {b};
+    \node[atk] (bt) at (1.6, -1.3) {\#text: Ahoj};
+    \draw[e] (bh) -- (bb) -- (bp) -- (bs) -- (bt);
+    \node[note, green!40!black] at (1.6, -2.1) {$U(s) \cap V_c(s) = \emptyset$};
+    \end{scope}
+
+    % ---------- (c) injection ----------
+    \begin{scope}[xshift=88mm]
+    \node[hdr, red!65!black] at (1.8, 3.1) {(c) injektáž};
+    \node[el]  (ch) at (1.8, 2.3) {html};
+    \node[el]  (cb) at (1.8, 1.4) {body};
+    \node[el]  (cp) at (1.8, 0.5) {p};
+    \node[el]  (ct) at (0.6, -0.4) {\#text};
+    \node[atk] (cs) at (3.0, -0.4) {img @onerror};
+    \node[exn] (cx) at (3.0, -1.3) {f()};
+    \draw[e] (ch) -- (cb) -- (cp);
+    \draw[e] (cp) -- (ct); \draw[e] (cp) -- (cs); \draw[e] (cs) -- (cx);
+    \node[note, red!65!black] at (1.8, -2.1) {$U(s) \cap V_c(s) \neq \emptyset$};
     \end{scope}
 \end{tikzpicture}

@@ -92,7 +92,7 @@ Bezpečnost tak závisí na hodnotě i~na místě, kam je vkládána. Model prot
 \subsection{Požadovaná záruka}
 \label{sec:model-cil}
 
-Zranitelnost XSS vzniká, když se vstup útočníka stane součástí \emph{řídicí struktury} výstupu. Samotná závislost výstupu na tomto vstupu je u~aplikace vypisující komentáře žádoucí. V~průběžném příkladu vytvoří vstup \texttt{q = "Praha"} nadpis obsahující text (výstup \verb|<h1>Výsledky pro: Praha</h1>|). Vstup \texttt{q = "<img src=x onerror=f()>"} naproti tomu vytvoří výstup,~ve kterém prohlížeč najde \emph{nový element} s~obsluhou události. V~prvním případě útočník ovlivnil text stránky, ve druhém její \emph{chování}. Toto rozlišení zavedli pro injektážní útoky obecně \textcite{su2006essence}. Model z~něj přejímá část,~která se týká kódu: útočníkovi nezakazuje vytvořit značku, zakazuje jen, aby se jeho znaky vykonaly nebo určily, jaký kód se spustí. Připouští tak i~sanitovaný formátovaný text.
+Zranitelnost XSS vzniká, když se vstup útočníka stane součástí \emph{řídicí struktury} výstupu. Samotná závislost výstupu na tomto vstupu je u~aplikace vypisující komentáře žádoucí. V~průběžném příkladu vytvoří vstup \texttt{q = "Praha"} nadpis obsahující text (výstup \verb|<h1>Výsledky pro: Praha</h1>|). Vstup \texttt{q = "<img src=x onerror=f()>"} naproti tomu vytvoří výstup,~ve kterém prohlížeč najde \emph{nový element} s~obsluhou události. V~prvním případě útočník ovlivnil text stránky, ve druhém její \emph{chování}. Toto rozlišení zavedli pro injektážní útoky obecně \textcite{su2006essence}: vstup smí být listem syntaktického stromu výstupu, nesmí však měnit jeho strukturu. Model z~něj přejímá část,~která se týká kódu: útočníkovi nezakazuje vytvořit značku, zakazuje jen, aby se jeho znaky vykonaly nebo určily, jaký kód se spustí. Připouští tak i~sanitovaný formátovaný text, případ~(b) schématu~\ref{fig:konfinace},~který strukturu stromu mění, ale žádný kód nespouští.
 
 U~každého znaku výstupu je proto rozlišován jeho původ: každý znak řetězce nese příznak, zda pochází ze vstupu požadavku. Znaky s~tímto příznakem jsou \emph{znaky útočníka}, ostatní napsal programátor. Množina pozic, na kterých v~řetězci~$s$ stojí znak útočníka, se značí~$U(s)$. Tato množina závisí na příznacích znaků, zatímco množina $V_c(s)$ z~následujícího předpokladu pouze na znacích samotných. Původ znaků je jen pomůckou důkazu: v~přeloženém programu není nikde ukládán ani sledován.
 
@@ -129,12 +129,12 @@ Odeslání řetězce~$s$ do propasti kontextu~$c$ je \emph{bez injektáže}, pok
 \]
 \end{definice}
 
-Tuto vlastnost má model dokázat a~ostatní pojmy zavádí kvůli jejímu důkazu. Definice nezakazuje, aby výstup na vstupu útočníka závisel, pouze aby znak útočníka stál na vykonávaném nebo řídicím místě, a~splňuje tak požadavek~R2. Rozdíl mezi obojím ukazuje schéma~\ref{fig:konfinace}. V~případě~(a) prošel vstup sanitací, zůstal proto uvnitř textového uzlu a~ovlivňuje pouze obsah stránky. V~případě~(b) sanitace chybí, vstup vytvořil vlastní uzel s~obsluhou události a~stal se součástí řídicí struktury dokumentu. Podle věty~\ref{thm:konfinace} dobře typovaný program případ~(b) nikdy nevytvoří.
+Tuto vlastnost má model dokázat a~ostatní pojmy zavádí kvůli jejímu důkazu. Definice nezakazuje, aby výstup na vstupu útočníka závisel, pouze aby znak útočníka stál na vykonávaném nebo řídicím místě, a~splňuje tak požadavek~R2. Rozdíl mezi obojím ukazuje schéma~\ref{fig:konfinace}. V~případech~(a) a~(b) prošel vstup escapováním nebo sanitací a~ovlivňuje pouze obsah stránky. V~případě~(c) sanitace chybí, vstup vytvořil vlastní uzel s~obsluhou události a~stal se součástí řídicí struktury dokumentu. Podle věty~\ref{thm:konfinace} není případ~(c) dobře typovaným programem nikdy vytvořen.
 
 \begin{figure}[htbp]
     \centering
     \diagram{konfinace}%
-    \caption[Stejný vstup útočníka ve výstupu bez injektáže a~s~injektáží]{Stejný vstup útočníka ve výstupu bez injektáže~(a) a~s~injektáží~(b). Červeně znaky útočníka (pozice z~$U(s)$), dvojitým rámečkem vykonávané místo (pozice z~$V_c(s)$).}
+    \caption[Tři vstupy útočníka ve stromu dokumentu]{Stejné místo vložení se třemi vstupy útočníka: escapovaný text~(a), sanitovaný formátovaný text~(b) a~neošetřený element s~obsluhou události~(c). Červeně uzly ze znaků útočníka (pozice z~$U(s)$), dvojitým rámečkem vykonávané místo (pozice z~$V_c(s)$). Strukturu stromu mění vstup v~(b) i~v~(c), kód spouští pouze vstup v~(c).}
     \label{fig:konfinace}
     \source{vlastní zpracování}
 \end{figure}
