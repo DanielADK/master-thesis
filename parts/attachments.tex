@@ -71,7 +71,7 @@ Datová díra kontextu \emph{text} je stav tokenizéru RCDATA (obsah elementů \
         netriviálnost šablon & \texttt{tpl.test.ts} & surová nebo jinak escapovaná hodnota v~díře injektuje nebo díru opustí ve všech pěti kontextech \\
         knihovna a~\texttt{send} & \texttt{compile/lib.ts}, \texttt{compile/send.ts}, \texttt{lib.test.ts} & dvojí escapování odmítnuto; \texttt{send} přijímá \texttt{Response} Expressu, \texttt{FastifyReply} i~\texttt{ServerResponse}, obyčejný řetězec ne (TS2769) \\
         požadavek~R3, přetížení \texttt{sanitize} a~\texttt{send} & \texttt{compile/rules.ts}, \texttt{compile/limits.ts}, \texttt{limits.test.ts} & vzorec R3 odmítnut; generický podpis i~jediný parametr typu sjednocení by propustily injektáž \\
-        běžící příklad & \texttt{compile/\allowbreak running-example.ts}, \texttt{konfinace.test.ts} & opravená obsluha se přeloží a~pro 45 útoků neinjektuje, zranitelná se nepřeloží \\
+        průběžný příklad & \texttt{compile/\allowbreak running-example.ts}, \texttt{konfinace.test.ts} & opravená obsluha se přeloží a~pro 45 útoků neinjektuje, zranitelná se nepřeloží \\
         odpověď po částech & \texttt{limits.test.ts} & injektáž nastane, ač je každá část přijata \\
         \bottomrule
     \end{tabularx}

@@ -48,8 +48,8 @@ Nejblíže má model k~typovému systému CSAS (\emph{Context-Sensitive Auto-San
     \source{vlastní zpracování}
 \end{table}
 
-\paragraph{Běžící příklad.}
-Celou sekcí prochází jediný program, typická obsluha vyhledávání v~Expressu:
+\paragraph{Průběžný příklad.}
+Celou sekcí prochází jeden program, obsluha vyhledávání v~Expressu:
 
 \begin{minted}{typescript}
 app.get('/hledat', (req, res) => {
@@ -59,13 +59,13 @@ app.get('/hledat', (req, res) => {
 \end{minted}
 
 \noindent
-U~tohoto programu má model přesně určit příčinu chyby a~nejmenší změnu,~která ji napraví. Escapování hodnoty \texttt{q} je správnou opravou pouze pro toto místo vložení a~jen shodou okolností, jak ukazuje následující podsekce.
+Model má u~tohoto programu určit příčinu chyby a~nejmenší opravu. Escapování hodnoty \texttt{q} zde stačí pouze proto, že je hodnota vkládána do textu elementu. Na jiném místě by nestačilo, jak ukazuje následující podsekce.
 
 
 \subsection{Meze escapování}
 \label{sec:model-proc}
 
-Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~která ze vstupu odstraní nebezpečné znaky. Tabulka~\ref{tab:escapovani-nestaci} ukazuje pět variant běžícího příkladu,~které se liší \emph{pouze} místem, kam je hodnota vkládána. Stejná escapovací funkce je ve dvou z~nich dostatečná, ve zbylých třech nikoliv. V~atributu bez uvozovek ukončí hodnotu mezera,~kterou escapování nemění. V~obsluze události dekóduje prohlížeč entity v~hodnotě atributu dřív, než kód předá JavaScriptu, takže z~\texttt{\&\#39;} se opět stane apostrof. Schéma \texttt{javascript:} pak neobsahuje jediný escapovaný znak.
+Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~která ze vstupu odstraní nebezpečné znaky. Tabulka~\ref{tab:escapovani-nestaci} ukazuje pět variant průběžného příkladu,~které se liší \emph{pouze} místem, kam je hodnota vkládána. Stejná escapovací funkce je ve dvou z~nich dostatečná, ve zbylých třech nikoliv. V~atributu bez uvozovek ukončí hodnotu mezera,~kterou escapování nemění. V~obsluze události dekóduje prohlížeč entity v~hodnotě atributu dřív, než kód předá JavaScriptu, takže z~\texttt{\&\#39;} se opět stane apostrof. Schéma \texttt{javascript:} pak neobsahuje jediný escapovaný znak.
 
 \begin{table}[htbp]
     \centering
@@ -82,7 +82,7 @@ Podle rozšířené představy o~obraně proti XSS postačí jediná funkce,~kte
         \texttt{<a href="\$\{q\}">} & nestačí & \texttt{javascript:f()} \\
         \bottomrule
     \end{tabularx}
-    \caption[Pět variant běžícího příkladu a~účinnost escapování]{Pět variant běžícího příkladu a~účinnost escapování. Escapování zde znamená náhradu znaků \texttt{\& < > " '} příslušnými entitami.}
+    \caption[Pět variant průběžného příkladu a~účinnost escapování]{Pět variant průběžného příkladu a~účinnost escapování. Escapování zde znamená náhradu znaků \texttt{\& < > " '} příslušnými entitami.}
     \label{tab:escapovani-nestaci}
     \source{vlastní zpracování}
 \end{table}
@@ -92,7 +92,7 @@ Bezpečnost tak závisí na hodnotě i~na místě, kam je vkládána. Model prot
 \subsection{Požadovaná záruka}
 \label{sec:model-cil}
 
-Zranitelnost XSS vzniká, když se vstup útočníka stane součástí \emph{řídicí struktury} výstupu. Samotná závislost výstupu na tomto vstupu je u~aplikace vypisující komentáře žádoucí. V~běžícím příkladu vytvoří vstup \texttt{q = "Praha"} nadpis obsahující text (výstup \verb|<h1>Výsledky pro: Praha</h1>|). Vstup \texttt{q = "<img src=x onerror=f()>"} naproti tomu vytvoří výstup,~ve kterém prohlížeč najde \emph{nový element} s~obsluhou události. V~prvním případě útočník ovlivnil text stránky, ve druhém její \emph{chování}. Toto rozlišení zavedli pro injektážní útoky obecně \textcite{su2006essence}. Model z~něj přejímá část,~která se týká kódu: útočníkovi nezakazuje vytvořit značku, zakazuje jen, aby se jeho znaky vykonaly nebo určily, jaký kód se spustí. Připouští tak i~sanitovaný formátovaný text.
+Zranitelnost XSS vzniká, když se vstup útočníka stane součástí \emph{řídicí struktury} výstupu. Samotná závislost výstupu na tomto vstupu je u~aplikace vypisující komentáře žádoucí. V~průběžném příkladu vytvoří vstup \texttt{q = "Praha"} nadpis obsahující text (výstup \verb|<h1>Výsledky pro: Praha</h1>|). Vstup \texttt{q = "<img src=x onerror=f()>"} naproti tomu vytvoří výstup,~ve kterém prohlížeč najde \emph{nový element} s~obsluhou události. V~prvním případě útočník ovlivnil text stránky, ve druhém její \emph{chování}. Toto rozlišení zavedli pro injektážní útoky obecně \textcite{su2006essence}. Model z~něj přejímá část,~která se týká kódu: útočníkovi nezakazuje vytvořit značku, zakazuje jen, aby se jeho znaky vykonaly nebo určily, jaký kód se spustí. Připouští tak i~sanitovaný formátovaný text.
 
 U~každého znaku výstupu je proto rozlišován jeho původ: každý znak řetězce nese příznak, zda pochází ze vstupu požadavku. Znaky s~tímto příznakem jsou \emph{znaky útočníka}, ostatní napsal programátor. Množina pozic, na kterých v~řetězci~$s$ stojí znak útočníka, se značí~$U(s)$. Tato množina závisí na příznacích znaků, zatímco množina $V_c(s)$ z~následujícího předpokladu pouze na znacích samotných. Původ znaků je jen pomůckou důkazu: v~přeloženém programu není nikde ukládán ani sledován.
 
@@ -191,7 +191,7 @@ Podmínka~\eqref{in:okoli} je v~důkazu nezbytná: bez ní by $p\,s_1$ nemusel k
 \subsection{Bezpečnostní štítek}
 \label{sec:model-mrizka}
 
-Hodnota nese dvě nezávislé vlastnosti: \emph{původ} a~\emph{způsobilost pro kontexty}. Jejich nezávislost ukazuje běžící příklad: hodnota \texttt{q} je i~po sanitaci od útočníka, protože její obsah zvolil on, a~přece je způsobilá pro vložení do těla HTML. Model s~jedinou osou by musel jednu z~obou informací pominout. Buď by sanitovanou hodnotu prohlásil za důvěryhodnou a~ztratil přehled o~původu, anebo by ji dál považoval za nebezpečnou a~zakázal její vypsání.
+Hodnota nese dvě nezávislé vlastnosti: \emph{původ} a~\emph{způsobilost pro kontexty}. Jejich nezávislost ukazuje průběžný příklad: hodnota \texttt{q} je i~po sanitaci od útočníka, protože její obsah zvolil on, a~přece je způsobilá pro vložení do těla HTML. Model s~jedinou osou by musel jednu z~obou informací pominout. Buď by sanitovanou hodnotu prohlásil za důvěryhodnou a~ztratil přehled o~původu, anebo by ji dál považoval za nebezpečnou a~zakázal její vypsání.
 
 Štítek je proto dvojice $\ell = (i, K)$, kde
 \[
@@ -309,12 +309,12 @@ Na konfinaci prostřední úroveň vliv nemá. Relace „odpovídá“ z~podsekc
 
 Podmínka pravidla \textsc{T-Out} je disjunkce: propasti stačí způsobilost pro daný kontext a~důvěryhodný původ nevyžaduje, takže sanitovaný vstup útočníka lze vypsat, jak žádá požadavek~R2. Alternativa $i = \bot$ dovoluje programátorovi zapsat do výstupu vlastní text obsahující značky.
 
-Výpočet štítku podle tabulky~\ref{tab:pravidla} na běžícím příkladu, ve zranitelné i~opravené podobě, ukazuje schéma~\ref{fig:vypocet}. V~případě~(a) zúží průnik s~prázdnou množinou u~uzlu~$\oplus$ množinu kontextů na prázdnou, takže podmínka propasti selže v~obou svých alternativách. V~případě~(b) prošel vstup validací a~sanitací, jeho množina kontextů je $\{\mathit{html}\}$, průnik ji zachová a~podmínka propasti je splněna. Pokud má hledaný text zůstat libovolný, pro schéma s~$D(S) = \emptyset$ jako \texttt{z.string().max(100)} ve výpisu v~podsekci~\ref{sec:model-typescript}, jsou nejmenší změnou,~kterou typová kontrola přijme, dvě volání: validace a~sanitace~$\sigma_{\mathit{html}}$. Bezpečnosti by na tomto místě dosáhlo samo escapování, jak uvádí běžící příklad v~úvodu sekce. Validace před ním je modelem vyžadována kvůli požadavku~R1.
+Výpočet štítku podle tabulky~\ref{tab:pravidla} na průběžném příkladu, ve zranitelné i~opravené podobě, ukazuje schéma~\ref{fig:vypocet}. V~případě~(a) zúží průnik s~prázdnou množinou u~uzlu~$\oplus$ množinu kontextů na prázdnou, takže podmínka propasti selže v~obou svých alternativách. V~případě~(b) prošel vstup validací a~sanitací, jeho množina kontextů je $\{\mathit{html}\}$, průnik ji zachová a~podmínka propasti je splněna. Pokud má hledaný text zůstat libovolný, pro schéma s~$D(S) = \emptyset$ jako \texttt{z.string().max(100)} ve výpisu v~podsekci~\ref{sec:model-typescript}, jsou nejmenší změnou,~kterou typová kontrola přijme, dvě volání: validace a~sanitace~$\sigma_{\mathit{html}}$. Bezpečnosti by na tomto místě dosáhlo samo escapování, jak uvádí průběžný příklad v~úvodu sekce. Validace před ním je modelem vyžadována kvůli požadavku~R1.
 
 \begin{figure}[htbp]
     \centering
     \diagram{vypocet}%
-    \caption{Výpočet štítku pro zranitelnou~(a) a~opravenou~(b) podobu běžícího příkladu}
+    \caption{Výpočet štítku pro zranitelnou~(a) a~opravenou~(b) podobu průběžného příkladu}
     \label{fig:vypocet}
     \source{vlastní zpracování}
 \end{figure}
@@ -417,7 +417,7 @@ Sjednocení typů lze přiřadit do cílového typu právě tehdy, když tam lze
 
 Pro jiné cílové typy tvrzení neplatí. Do cíle \texttt{A | B} lze sjednocení \texttt{A | B} přiřadit vždy, typ spojení však ne vždy. Pro \texttt{A = Str<'lit', 'html'>} a~\texttt{B = Str<'lit' | 'val', 'script'>} je typem spojení \texttt{Str<'lit' | 'val', never>} a~ten do cíle přiřadit nelze. Parametry propastí v~knihovně proto jsou typy štítků.
 
-Podpis zřetězení je tím zjednodušen na jediný řádek,~ve kterém se žádná mřížka nevyskytuje. Každé pravidlo z~tabulky~\ref{tab:pravidla} kromě \textsc{T-Src},~kterému odpovídá samotný typ \texttt{unknown} vstupu, má v~knihovně svou funkci. Běžící příklad tak dostává konečnou podobu:
+Podpis zřetězení je tím zjednodušen na jediný řádek,~ve kterém se žádná mřížka nevyskytuje. Každé pravidlo z~tabulky~\ref{tab:pravidla} kromě \textsc{T-Src},~kterému odpovídá samotný typ \texttt{unknown} vstupu, má v~knihovně svou funkci. Průběžný příklad tak dostává konečnou podobu:
 
 \begin{minted}{typescript}
 import type { Response } from 'express';
@@ -737,7 +737,7 @@ Knihovna leží ve složce \texttt{lib} nad jádrem ze složky \texttt{src}. Já
     \source{vlastní zpracování}
 \end{table}
 
-Funkce \texttt{escape*} skládají validaci a~sanitaci do jednoho volání, v~modelu však zůstávají dvě pravidla, jak žádá požadavek~R1. Výchozí schéma \texttt{z.string()} za běhu odmítne pole,~které Express vytvoří z~opakovaného parametru dotazu, i~hodnotu \texttt{undefined}, a~vlastní schéma hodnotu omezí. Hodnotu,~která už nějaký kontext nese, funkce odmítnou větou o~dvojím escapování, hodnotu jen validovanou přijmou. Automatické escapování v~dírách knihovna záměrně nemá. Obyčejný řetězec v~díře je chyba s~větou „validate and escape it“, protože tichá oprava by zranitelnou verzi programu přeložila místo odmítnutí. Sanitaci má navíc podle úvodu sekce~\ref{sec:model} zapsat programátor. Běžící příklad knihovnou:
+Funkce \texttt{escape*} skládají validaci a~sanitaci do jednoho volání, v~modelu však zůstávají dvě pravidla, jak žádá požadavek~R1. Výchozí schéma \texttt{z.string()} za běhu odmítne pole,~které Express vytvoří z~opakovaného parametru dotazu, i~hodnotu \texttt{undefined}, a~vlastní schéma hodnotu omezí. Hodnotu,~která už nějaký kontext nese, funkce odmítnou větou o~dvojím escapování, hodnotu jen validovanou přijmou. Automatické escapování v~dírách knihovna záměrně nemá. Obyčejný řetězec v~díře je chyba s~větou „validate and escape it“, protože tichá oprava by zranitelnou verzi programu přeložila místo odmítnutí. Sanitaci má navíc podle úvodu sekce~\ref{sec:model} zapsat programátor. Průběžný příklad knihovnou:
 
 \begin{minted}{typescript}
 import { z } from 'zod';
