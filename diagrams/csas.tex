@@ -1,0 +1,32 @@
+% What CSAS (Samuel et al.) brought: every constant string of a template gets a context transition,
+% the transitions compose left to right into the context of each hole, and the compiler inserts
+% the sanitizer for that context. Same chain notation as sablona.tex.
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    st/.style={draw, minimum height=6mm, minimum width=12mm, fill=gray!12, draw=gray!55!black, font=\ttfamily\tiny, inner sep=3pt, outer sep=0pt},
+    hole/.style={draw, dashed, minimum height=6mm, minimum width=16mm, fill=yellow!25, draw=orange!80!black, font=\itshape\scriptsize, inner sep=3pt, outer sep=0pt},
+    san/.style={draw, rounded corners=2pt, minimum height=6mm, fill=green!12, draw=green!45!black, font=\ttfamily\tiny, inner sep=3pt},
+    lab/.style={font=\tiny, align=center},
+    hdr/.style={font=\scriptsize\bfseries},
+    a/.style={->, >=Stealth, gray!55!black}
+]
+    % template: static text and holes in one chain, each hole shows its composed context
+    \node[st] (s0) at (0, 0) {<a href="};
+    \node[hole, anchor=west] (h1) at (s0.east) {url};
+    \node[st, anchor=west] (s1) at (h1.east) {">};
+    \node[hole, anchor=west] (h2) at (s1.east) {html};
+    \node[st, anchor=west] (s2) at (h2.east) {</a>};
+    \node[lab, above=1pt of s0] {html $\to$ url};
+    \node[lab, above=1pt of h1] {díra 1};
+    \node[lab, above=1pt of s1] {url $\to$ html};
+    \node[lab, above=1pt of h2] {díra 2};
+    \node[lab, above=1pt of s2] {html $\to$ html};
+    \node[hdr, left=3mm of s0] {šablona};
+
+    % sanitizers the compiler inserts into the holes
+    \node[san, below=11mm of h1] (e1) {escapeUri(u)};
+    \node[san, below=11mm of h2] (e2) {escapeHtml(x)};
+    \draw[a] (e1) -- (h1);
+    \draw[a] (e2) -- (h2);
+    \node[hdr, left=3mm of e1] {doplní překladač};
+\end{tikzpicture}
