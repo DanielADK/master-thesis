@@ -445,6 +445,11 @@
     tabsize=2,
     autogobble%
   }
+  % minted 3 lets a listing break across pages; keep each listing in one box (all are shorter than a page).
+  % The minipage drops the list spacing of fancyvrb (topsep + partopsep), so it is added around the box.
+  \newcommand\CZU@listingskip{\@tempskipa=\topsep \advance\@tempskipa\partopsep \addvspace{\@tempskipa}}
+  \AddToHook{env/minted/before}{\par\if@nobreak\else\CZU@listingskip\fi\noindent\begin{minipage}{\linewidth}}
+  \AddToHook{env/minted/after}{\end{minipage}\par\CZU@listingskip}
 \fi
 
 \endinput
