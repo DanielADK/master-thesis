@@ -11,19 +11,17 @@
     t/.style={font=\tiny, fill=white, inner sep=1pt, align=center},
     init/.style={circle, fill=black, inner sep=0pt, minimum size=2.4mm},
     choice/.style={diamond, draw, inner sep=0pt, minimum size=4mm, fill=white},
-    final/.style={circle, draw, inner sep=0pt, minimum size=4mm, path picture={\fill (path picture bounding box.center) circle (1.1mm);}}
+    final/.style={circle, draw, inner sep=0pt, minimum size=4mm, path picture={\fill (path picture bounding box.center) circle (1.1mm);}},
+    term/.style={cross out, draw=red!70!black, thick, inner sep=0pt, minimum size=2.6mm}
 ]
-    \newcommand\terminate[2]{\coordinate (#1) at (#2);
-        \draw[thick, red!70!black] ($(#1)+(-1.3mm,-1.3mm)$) -- ($(#1)+(1.3mm,1.3mm)$) ($(#1)+(-1.3mm,1.3mm)$) -- ($(#1)+(1.3mm,-1.3mm)$);}
-
     % left column: element text, the tag, the attribute value
     \node[init]   (init) at (0.0, 0.3) {};
     \node[final]  (fin)  at (2.6, 1.9) {};
     \node[hole]   (data) at (2.6, 0) {text elementu\nodepart{two}díra [html $\in K$]};
     \node[simple] (tag)  at (2.6, -2.6) {uvnitř značky};
     \node[hole]   (val)  at (2.6, -5.9) {hodnota atributu\\v~uvozovkách\nodepart{two}díra [textový atribut, text $\in K$]\\díra [src skriptu, res $\in K$]\\díra [jiný atribut, url $\in K$]};
-    \terminate{tagX}{0.1, -2.6}
-    \terminate{valX}{2.6, -8.6}
+    \node[term] (tagX) at (-0.6, -2.6) {};
+    \node[term] (valX) at (2.6, -8.6) {};
 
     % right column: the choice after ">" and the raw-text content
     \node[choice] (ch)   at (8.6, -2.6) {};
@@ -35,29 +33,28 @@
     \node[anchor=south west, font=\scriptsize\itshape, inner sep=2pt] at (scr.north west) {skript};
     \node[comp] (all) [fit=(raw)(rawx)(scr), inner sep=7pt] {};
     \node[anchor=south west, font=\scriptsize\itshape, inner sep=2pt] at (all.north west) {obsah elementu se surovým textem};
-    \terminate{rawxX}{5.9, -7.2}
-    \terminate{codeX}{5.9, -9.4}
+    \node[term] (rawxX) at (5.5, -7.2) {};
+    \node[term] (codeX) at (5.5, -9.4) {};
 
     % transitions
     \draw[tr] (init) -- ([yshift=3mm]data.west);
     \draw[tr] (data) -- node[t, right] {konec textu} (fin);
     \draw[tr] (data) -- node[t, right] {< jméno} (tag);
     \draw[tr] (tag) -- node[t, above] {>} (ch);
-    \draw[tr] (ch.north) -- (8.6, 0.4) -- node[t, above, pos=0.5] {[běžný element]} (4.4, 0.4) -- ([yshift=4mm]data.east);
+    \draw[tr] (ch.north) -- (8.6, 0.4) -- node[t, above, pos=0.5] {[běžný element]} (4.4, 0.4) -- ([yshift=3mm]data.east);
     \draw[tr] (ch) -- node[t, right] {[title, textarea]} (raw.north);
-    \draw[tr] (ch.east) -- (11.3, -2.6) -- (11.3, -7.2) -- node[t, above, pos=0.45] {[style, xmp, …]} (rawx.east);
-    \draw[tr] (ch.east) -- (11.3, -2.6) -- (11.8, -2.6) -- (11.8, -9.4) -- node[t, above, pos=0.4] {[script]} (code.east);
+    \draw[tr] (ch.east) -- (11.9, -2.6) -- (11.9, -7.2) -- node[t, above] {[style, xmp, …]} (rawx.east);
+    \draw[tr] (ch.east) -- (12.5, -2.6) -- (12.5, -9.4) -- node[t, above] {[script]} (code.east);
     \draw[tr] ([xshift=-3mm]tag.south) -- node[t, left] {atribut ="} ([xshift=-3mm]val.north);
     \draw[tr] ([xshift=3mm]val.north) -- node[t, right] {"} ([xshift=3mm]tag.south);
     \draw[tr] ([xshift=-3mm]code.south) -- node[t, left] {" nebo '} ([xshift=-3mm]str.north);
     \draw[tr] ([xshift=3mm]str.north) -- node[t, right] {táž uvozovka} ([xshift=3mm]code.south);
-    \draw[tr] (all.south west) -- ++(0, -0.5) -| (-1.0, -0.3) -- node[t, left, pos=0.0] {} ([yshift=-3mm]data.west);
-    \node[t] at (3.4, -12.95) {</ jméno > [jméno otevřeného elementu]};
+    \draw[tr] (all.south) -- ++(0, -0.5) -| node[t, above, pos=0.25] {</ jméno > [jméno otevřeného elementu]} (-1.0, -0.3) -- ([yshift=-3mm]data.west);
     \draw[tr] (tag) -- node[t, above] {díra / věta} (tagX);
     \draw[tr] (val) -- node[t, right] {díra [zakázaný atribut] / věta} (valX);
-    \draw[tr] (rawx) -- (rawxX) node[t, left] {díra / věta};
-    \draw[tr] (code) -- (codeX) node[t, left] {díra / věta};
-    \node[draw, font=\tiny, align=left, anchor=north, inner sep=2pt, fill=yellow!10] (note) at (2.6, -9.6)
+    \draw[tr] (rawx) -- node[t, above] {díra / věta} (rawxX);
+    \draw[tr] (code) -- node[t, above] {díra / věta} (codeX);
+    \node[draw, font=\tiny, align=left, anchor=north, inner sep=2pt, fill=yellow!10] (note) at (2.3, -9.6)
         {konec textu v~jiném stavu: zamítnuto s~větou;\\zakázaný atribut: obsluha události, srcdoc,\\style, atribut prvku načítajícího kód};
     \draw[dashed, gray] (note.north) -- (valX);
 \end{tikzpicture}
